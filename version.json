@@ -1,0 +1,16 @@
+{
+    "graph-dispatching" : {
+        "value" : "0.0.1"
+    },
+    "dependencies" : {
+        "cmake" : {
+            "value" : "3.29.4"
+        },
+        "googletest" : {
+            "value" : "1.15.1"
+        },
+        "kokkos" : {
+            "value" : "4.4.00"
+        }
+    }
+}

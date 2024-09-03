@@ -1,0 +1,76 @@
+name: Build and test
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+env:
+    REGISTRY: ghcr.io
+
+jobs:
+
+    set-vars:
+        runs-on: [ubuntu-latest]
+        outputs:
+            CI_IMAGE : ${{ steps.common.outputs.CI_IMAGE }}
+        steps:
+            - name: Export common variables.
+              id  : common
+              run : |
+                  echo "CI_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/graph-dispatching" >> $GITHUB_OUTPUT
+
+    build-image:
+        needs: [set-vars]
+        runs-on: [ubuntu-latest]
+        container:
+            image: docker:latest
+        permissions:
+            packages: write
+            contents: read
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - backend        : OpenMP
+                      compiler_family: gcc
+                      base_image     : ubuntu:24.04
+                      platforms      : linux/amd64
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Prepare.
+              run: |
+                  apk add jq
+
+                  echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value      version.json -j)" >> $GITHUB_ENV
+                  echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value version.json -j)" >> $GITHUB_ENV
+                  echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value     version.json -j)" >> $GITHUB_ENV
+
+            - uses: docker/setup-buildx-action@v3
+
+            - uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  platforms: ${{ matrix.platforms }}
+                  push: ${{ github.ref == 'refs/heads/main' }}
+                  file: docker/dockerfile
+                  tags: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  cache-to: type=inline
+                  build-args: |
+                      BASE_IMAGE=${{ matrix.base_image }}
+                      CMAKE_VERSION=${{ env.CMAKE_VERSION }}
+                      GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
+                      KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
+                      KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
+                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"

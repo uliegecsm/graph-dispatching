@@ -1,0 +1,92 @@
+ARG BASE_IMAGE
+
+FROM ${BASE_IMAGE} as requirements
+
+# Install APT requirements.
+RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
+
+    set -ex
+
+    apt update
+
+    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.txt | tr "\n" " ")
+
+    apt clean && rm -rf /var/lib/apt/lists/*
+
+EOF
+
+ARG CMAKE_VERSION
+
+RUN <<EOF
+
+    INSTALLER=cmake-${CMAKE_VERSION}-linux-x86_64.sh
+
+    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${INSTALLER}
+
+    mkdir -p /opt/cmake-${CMAKE_VERSION}
+
+    sh ${INSTALLER} --skip-license --prefix=/opt/cmake-${CMAKE_VERSION}/
+
+    rm ${INSTALLER}
+EOF
+
+ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
+
+# Compile Google Test.
+FROM requirements as google-test-compile
+
+ARG GOOGLETEST_VERSION
+
+RUN <<EOF
+
+    set -ex
+
+    git clone --depth=1 --branch=v${GOOGLETEST_VERSION} https://github.com/google/googletest googletest
+
+    cd googletest
+
+    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/opt/google-test-${GOOGLETEST_VERSION}
+
+    cmake --build build -j4
+
+    cmake --build build --target install
+
+EOF
+
+# Compile Kokkos.
+FROM requirements as kokkos-compile
+
+ARG KOKKOS_PRESET
+ARG KOKKOS_VERSION
+
+RUN --mount=target=/cmake/presets,type=bind,source=cmake/presets <<EOF
+
+    set -ex
+
+    git clone --depth=1 --branch=${KOKKOS_VERSION} https://github.com/kokkos/kokkos kokkos
+
+    cd kokkos
+
+    cp /cmake/presets/kokkos.json CMakePresets.json
+
+    cmake -S . --preset=${KOKKOS_PRESET} \
+        -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+
+    cmake --build --preset=${KOKKOS_PRESET} -j4
+
+    cmake --build --preset=${KOKKOS_PRESET} --target=install
+
+EOF
+
+# Build the final image from previous stages.
+FROM requirements as final
+
+ARG GOOGLETEST_VERSION
+ARG KOKKOS_VERSION
+ARG KOKKOS_PRESET
+
+COPY --from=google-test-compile /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
+COPY --from=kokkos-compile      /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+
+ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
+ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
