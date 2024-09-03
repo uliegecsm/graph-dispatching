@@ -79,7 +79,7 @@ RUN --mount=target=/cmake/presets,type=bind,source=cmake/presets <<EOF
 EOF
 
 # Compile Doxygen.
-FROM requirements as doxygen-compile
+FROM requirements AS doxygen-compile
 
 ARG DOXYGEN_VERSION
 
