@@ -46,10 +46,11 @@ jobs:
               run: |
                   apk add jq
 
-                  echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value      version.json -j)" >> $GITHUB_ENV
-                  echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value    version.json -j)" >> $GITHUB_ENV
-                  echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value version.json -j)" >> $GITHUB_ENV
-                  echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value     version.json -j)" >> $GITHUB_ENV
+                  echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
+                  echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
+                  echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
+                  echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
+                  echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
 
             - uses: docker/setup-buildx-action@v3
 
@@ -75,4 +76,5 @@ jobs:
                       GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                       KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
                       KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
+                      NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
                   labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"

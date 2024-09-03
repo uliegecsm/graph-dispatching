@@ -10,10 +10,15 @@
             "value" : "1.12.0"
         },
         "googletest" : {
-            "value" : "1.15.1"
+            "value" : "1.15.2"
         },
         "kokkos" : {
             "value" : "4.4.00"
+        },
+        "nvidia" : {
+            "stdexec" : {
+                "value" : "8bc7c7f06fe39831dea6852407ebe7f6be8fa9fd"
+            }
         }
     }
 }

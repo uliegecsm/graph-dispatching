@@ -105,6 +105,22 @@ RUN <<EOF
 
 EOF
 
+# Fetch https://github.com/NVIDIA/stdexec sources.
+FROM requirements AS nvidia-stdexec
+
+ARG NVIDIA_STDEXEC_REF
+
+RUN <<EOF
+
+    set -ex
+
+    git clone --branch main --shallow-since=2024-06-01 https://github.com/NVIDIA/stdexec /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
+
+    cd /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
+
+    git checkout ${NVIDIA_STDEXEC_REF}
+EOF
+
 # Build the final image from previous stages.
 FROM requirements AS final
 
@@ -112,10 +128,12 @@ ARG DOXYGEN_VERSION
 ARG GOOGLETEST_VERSION
 ARG KOKKOS_VERSION
 ARG KOKKOS_PRESET
+ARG NVIDIA_STDEXEC_REF
 
 COPY --from=doxygen-compile     /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
 COPY --from=google-test-compile /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
 COPY --from=kokkos-compile      /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+COPY --from=nvidia-stdexec      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
