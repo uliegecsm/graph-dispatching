@@ -1,0 +1,13 @@
+{
+    "dockerFile": "dockerfile",
+    "extensions" : [
+        "ms-vscode.cmake-tools",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "ms-azuretools.vscode-docker"
+    ],
+    "runArgs": [
+        "--privileged",
+    ],
+    "onCreateCommand": "git config --global --add safe.directory $PWD"
+}
