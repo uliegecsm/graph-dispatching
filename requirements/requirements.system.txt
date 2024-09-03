@@ -1,0 +1,12 @@
+# Utilities
+wget
+
+# Source control
+ca-certificates
+git
+
+# Builders
+make
+
+# Compilers
+g++
