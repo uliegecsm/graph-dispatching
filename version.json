@@ -6,6 +6,9 @@
         "cmake" : {
             "value" : "3.29.4"
         },
+        "doxygen" : {
+            "value" : "1.12.0"
+        },
         "googletest" : {
             "value" : "1.15.1"
         },

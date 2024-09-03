@@ -1,6 +1,6 @@
 ARG BASE_IMAGE
 
-FROM ${BASE_IMAGE} as requirements
+FROM ${BASE_IMAGE} AS requirements
 
 # Install APT requirements.
 RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
@@ -33,7 +33,7 @@ EOF
 ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
 
 # Compile Google Test.
-FROM requirements as google-test-compile
+FROM requirements AS google-test-compile
 
 ARG GOOGLETEST_VERSION
 
@@ -54,7 +54,7 @@ RUN <<EOF
 EOF
 
 # Compile Kokkos.
-FROM requirements as kokkos-compile
+FROM requirements AS kokkos-compile
 
 ARG KOKKOS_PRESET
 ARG KOKKOS_VERSION
@@ -78,15 +78,45 @@ RUN --mount=target=/cmake/presets,type=bind,source=cmake/presets <<EOF
 
 EOF
 
-# Build the final image from previous stages.
-FROM requirements as final
+# Compile Doxygen.
+FROM requirements AS doxygen-compile
 
+ARG DOXYGEN_VERSION
+
+RUN <<EOF
+
+    set -ex
+
+    apt update
+
+    apt --yes --no-install-recommends install flex bison python3
+
+    git clone --depth=1 --branch Release_$(echo ${DOXYGEN_VERSION} | tr . _) https://github.com/doxygen/doxygen doxygen
+
+    cd doxygen
+
+    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/opt/doxygen-${DOXYGEN_VERSION}
+
+    cmake --build build -j4
+
+    cmake --build build --target install
+
+    apt clean && rm -rf /var/lib/apt/lists/*
+
+EOF
+
+# Build the final image from previous stages.
+FROM requirements AS final
+
+ARG DOXYGEN_VERSION
 ARG GOOGLETEST_VERSION
 ARG KOKKOS_VERSION
 ARG KOKKOS_PRESET
 
+COPY --from=doxygen-compile     /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
 COPY --from=google-test-compile /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
 COPY --from=kokkos-compile      /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 
+ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}

@@ -47,6 +47,7 @@ jobs:
                   apk add jq
 
                   echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value      version.json -j)" >> $GITHUB_ENV
+                  echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value    version.json -j)" >> $GITHUB_ENV
                   echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value version.json -j)" >> $GITHUB_ENV
                   echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value     version.json -j)" >> $GITHUB_ENV
 
@@ -70,6 +71,7 @@ jobs:
                   build-args: |
                       BASE_IMAGE=${{ matrix.base_image }}
                       CMAKE_VERSION=${{ env.CMAKE_VERSION }}
+                      DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                       GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                       KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
                       KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
