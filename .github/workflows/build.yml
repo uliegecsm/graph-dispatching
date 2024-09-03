@@ -78,3 +78,36 @@ jobs:
                       KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
                       NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
                   labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
+
+    build-library-and-test:
+        needs: [set-vars, build-image]
+        runs-on: [ubuntu-latest]
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - backend        : OpenMP
+                      compiler_family: gcc
+        container:
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - run : |
+                  cmake -S .    --preset=${{ matrix.compiler_family }}-${{ matrix.backend }} --warn-uninitialized -Werror=dev
+                  cmake --build --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+
+            - run : |
+                  ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+
+    build-documentation:
+        needs: [set-vars, build-image]
+        runs-on: [ubuntu-latest]
+        container:
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
+        steps:
+            - uses: actions/checkout@v4
+
+            - run : |
+                  cmake -S .    --preset=gcc-OpenMP --warn-uninitialized -Werror=dev
+                  cmake --build --preset=gcc-OpenMP --target=docs

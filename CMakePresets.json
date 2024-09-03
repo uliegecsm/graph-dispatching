@@ -1,0 +1,49 @@
+{
+    "version"   : 3,
+    "configurePresets" : [
+        {
+            "name"          : "default",
+            "binaryDir"     : "${sourceDir}/build-with-${presetName}",
+            "cacheVariables" : {
+                "CMAKE_BUILD_TYPE"     : "Release",
+                "CMAKE_CXX_STANDARD"   : "20",
+                "CMAKE_CXX_EXTENSIONS" : "OFF",
+                "CMAKE_CXX_COMPILER"   : "g++"
+            }
+        },
+        {
+            "name"           : "gcc-OpenMP",
+            "inherits"       : "default"
+        }
+    ],
+    "buildPresets" : [
+        {
+            "name"            : "default",
+            "configurePreset" : "default",
+            "inheritConfigureEnvironment" : true
+        },
+        {
+            "name"            : "gcc-OpenMP",
+            "configurePreset" : "gcc-OpenMP",
+            "inherits"        : "default"
+        }
+    ],
+    "testPresets": [
+        {
+            "name"            : "default",
+            "configurePreset" : "default",
+            "inheritConfigureEnvironment" : true,
+            "output"          : {"outputOnFailure": true},
+            "execution"       : {
+                "noTestsAction"  : "error",
+                "stopOnFailure"  : false,
+                "scheduleRandom" : true
+            }
+        },
+        {
+            "name"            : "gcc-OpenMP",
+            "configurePreset" : "gcc-OpenMP",
+            "inherits"        : "default"
+        }
+    ]
+}
