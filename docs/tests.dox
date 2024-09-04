@@ -1,0 +1,6 @@
+/**
+ * @defgroup automatedtests Automated test suite
+ * @{
+ *      @defgroup unittests Unit tests
+ * @}
+ */
