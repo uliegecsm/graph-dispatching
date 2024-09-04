@@ -2,8 +2,8 @@
     "version"   : 3,
     "configurePresets" : [
         {
-            "name"          : "default",
-            "binaryDir"     : "${sourceDir}/build-with-${presetName}",
+            "name"           : "default",
+            "binaryDir"      : "${sourceDir}/build-with-${presetName}",
             "cacheVariables" : {
                 "CMAKE_BUILD_TYPE"     : "Release",
                 "CMAKE_CXX_STANDARD"   : "20",
@@ -15,8 +15,15 @@
             }
         },
         {
-            "name"        : "gcc-OpenMP",
-            "inherits"    : "default"
+            "name"     : "gcc-OpenMP",
+            "inherits" : "default"
+        },
+        {
+            "name"           : "clang-OpenMP",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "clang++"
+            }
         }
     ],
     "buildPresets" : [
@@ -28,6 +35,11 @@
         {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-OpenMP",
+            "configurePreset" : "clang-OpenMP",
             "inherits"        : "default"
         }
     ]
