@@ -39,6 +39,10 @@ jobs:
                       compiler_family: gcc
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                    - backend        : OpenMP
+                      compiler_family: clang
+                      base_image     : ubuntu:24.04
+                      platforms      : linux/amd64
         steps:
             - uses: actions/checkout@v4
 
@@ -71,6 +75,7 @@ jobs:
                   cache-to: type=inline
                   build-args: |
                       BASE_IMAGE=${{ matrix.base_image }}
+                      COMPILER_FAMILY=${{ matrix.compiler_family }}
                       CMAKE_VERSION=${{ env.CMAKE_VERSION }}
                       DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                       GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
