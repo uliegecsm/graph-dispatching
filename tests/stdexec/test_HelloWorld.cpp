@@ -4,8 +4,12 @@
 
 #include "gtest/gtest.h"
 
+#include "tests/IgnoreWarnings.hpp"
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
+PRAGMA_DIAGNOSTIC_POP
 
 /**
  * @addtogroup unittests

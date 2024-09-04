@@ -12,8 +12,15 @@
             }
         },
         {
-            "name"           : "gcc-OpenMP",
-            "inherits"       : "default"
+            "name"     : "gcc-OpenMP",
+            "inherits" : "default"
+        },
+        {
+            "name"           : "clang-OpenMP",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "clang++"
+            }
         }
     ],
     "buildPresets" : [
@@ -25,6 +32,11 @@
         {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-OpenMP",
+            "configurePreset" : "clang-OpenMP",
             "inherits"        : "default"
         }
     ],
@@ -43,6 +55,11 @@
         {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-OpenMP",
+            "configurePreset" : "clang-OpenMP",
             "inherits"        : "default"
         }
     ]
