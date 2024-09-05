@@ -52,6 +52,7 @@ jobs:
                   echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
                   echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
                   echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
+                  echo "KOKKOS_GIT_REF=$(    jq .dependencies.kokkos.ref           version.json -j)" >> $GITHUB_ENV
                   echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
                   echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
 
@@ -67,7 +68,8 @@ jobs:
               with:
                   context: .
                   platforms: ${{ matrix.platforms }}
-                  push: ${{ github.ref == 'refs/heads/main' }}
+                #   push: ${{ github.ref == 'refs/heads/main' }}
+                  push: true
                   file: docker/dockerfile
                   tags: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
                   cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
@@ -78,6 +80,7 @@ jobs:
                       CMAKE_VERSION=${{ env.CMAKE_VERSION }}
                       DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                       GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
+                      KOKKOS_GIT_REF=${{ env.KOKKOS_GIT_REF }}
                       KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
                       KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
                       NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}

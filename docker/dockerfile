@@ -69,6 +69,7 @@ EOF
 # Compile Kokkos.
 FROM requirements AS kokkos-compile
 
+ARG KOKKOS_GIT_REF
 ARG KOKKOS_PRESET
 ARG KOKKOS_VERSION
 
@@ -76,7 +77,7 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
 
     set -ex
 
-    git clone --depth=1 --branch=${KOKKOS_VERSION} https://github.com/kokkos/kokkos kokkos
+    git clone --depth=1 --branch=${KOKKOS_GIT_REF} https://github.com/kokkos/kokkos kokkos
 
     cd kokkos
 
