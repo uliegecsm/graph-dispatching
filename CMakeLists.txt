@@ -13,9 +13,6 @@ project(
     LANGUAGES CXX
 )
 
-#---- Whether to enable HPX or not.
-option(GraphDispatching_ENABLE_HPX "Enable HPX" OFF)
-
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 
@@ -25,6 +22,8 @@ find_package(
     CONFIG
     REQUIRED
 )
+
+kokkos_check(DEVICES "${EXPECTED_Kokkos_DEVICES}")
 
 # As 'stdexec' is an include-only library, we will not use a 'FetchContent' approach because the root 'CMakeLists.txt'
 # of 'stdexec' does a ton of things we just don't want at all.

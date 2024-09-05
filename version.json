@@ -16,7 +16,9 @@
             "value" : "1.10.0"
         },
         "kokkos" : {
-            "value" : "4.4.00"
+            "value"  : "4.4.99",
+            "ref"    : "develop",
+            "comment": "We want to build against the Kokkos develop branch."
         },
         "nvidia" : {
             "stdexec" : {

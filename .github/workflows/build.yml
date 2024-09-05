@@ -43,6 +43,10 @@ jobs:
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                    - backend        : HPX
+                      compiler_family: clang
+                      base_image     : ubuntu:24.04
+                      platforms      : linux/amd64
         steps:
             - uses: actions/checkout@v4
 
@@ -52,6 +56,8 @@ jobs:
                   echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
                   echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
                   echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
+                  echo "HPX_REF=v$(          jq .dependencies.hpx.value            version.json -j)" >> $GITHUB_ENV
+                  echo "KOKKOS_GIT_REF=$(    jq .dependencies.kokkos.ref           version.json -j)" >> $GITHUB_ENV
                   echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
                   echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
 
@@ -78,47 +84,11 @@ jobs:
                       CMAKE_VERSION=${{ env.CMAKE_VERSION }}
                       DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                       GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
+                      HPX_REF=${{ env.HPX_REF }}
+                      KOKKOS_GIT_REF=${{ env.KOKKOS_GIT_REF }}
                       KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
                       KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
                       NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
-                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
-
-    build-image-clang-hpx:
-        needs: [set-vars, build-base-images]
-        runs-on: [ubuntu-latest]
-        container:
-            image: docker:latest
-        permissions:
-            packages: write
-            contents: read
-        steps:
-            - uses: actions/checkout@v4
-
-            - run: |
-                  apk add jq
-
-                  echo "HPX_REF=v$(jq .dependencies.hpx.value version.json -j)" >> $GITHUB_ENV
-
-            - uses: docker/setup-buildx-action@v3
-
-            - uses: docker/login-action@v3
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-
-            - uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  platforms: linux/amd64
-                  push: ${{ github.ref == 'refs/heads/main' }}
-                  file: docker/dockerfile.hpx
-                  tags: ${{ needs.set-vars.outputs.CI_IMAGE }}:clang-HPX
-                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_IMAGE }}:clang-HPX
-                  cache-to: type=inline
-                  build-args: |
-                      BASE_IMAGE=${{ needs.set-vars.outputs.CI_IMAGE }}:clang-OpenMP
-                      HPX_REF=${{ env.HPX_REF }}
                   labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
 
     build-library-and-test:

@@ -29,3 +29,11 @@ We can think of a graph (*e.g.* `Kokkos::Graph`) as a **multi-shot sender chain*
     - `test_ABC.stdexec.cpp`
     - `test_ABC.kokkos.cpp`
     - `test_ABC.outlook.cpp`
+
+## `Docker` images
+
+This repository provides several `Docker` images. They have the same name, only the *tag* changes.
+
+1. `gcc-OpenMP` uses the `g++` compiler, and the `Kokkos::OpenMP` backend is enabled.
+2. `clang-OpenMP` uses the `clang++` compiler, and the `Kokkos::OpenMP` backend is enabled.
+3. `clang-HPX` uses the `clang++` compiler, and the `Kokkos::Experimental::HPX` backend is enabled.
