@@ -11,6 +11,7 @@
                 "BUILD_SHARED_LIBS"    : "ON",
                 "CMAKE_C_COMPILER"     : "should-not-be-needed",
                 "CMAKE_CXX_COMPILER"   : "g++",
+                "Kokkos_ENABLE_SERIAL" : "ON",
                 "Kokkos_ENABLE_OPENMP" : "ON"
             }
         },
