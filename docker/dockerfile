@@ -72,7 +72,7 @@ FROM requirements AS kokkos-compile
 ARG KOKKOS_PRESET
 ARG KOKKOS_VERSION
 
-RUN --mount=target=/cmake/presets,type=bind,source=cmake/presets <<EOF
+RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json <<EOF
 
     set -ex
 

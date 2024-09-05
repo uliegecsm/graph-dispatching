@@ -12,6 +12,9 @@
         "googletest" : {
             "value" : "1.15.2"
         },
+        "hpx" : {
+            "value" : "v1.10.0"
+        },
         "kokkos" : {
             "value" : "4.4.00"
         },
