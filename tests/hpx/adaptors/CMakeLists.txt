@@ -1,0 +1,1 @@
+add_one_test(NAME bulk ADDITIONAL_LINK_LIBRARIES HPX::hpx)

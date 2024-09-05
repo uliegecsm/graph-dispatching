@@ -111,7 +111,7 @@ TEST(stdexec, starts_on_B_once_after_schedule_on_A_is_a_no_op)
                 data[index] = ::utils::get_thread_id();
     });
 
-    ::stdexec::sync_wait(::stdexec::start_on(scheduler_B, chain));
+    ::stdexec::sync_wait(::stdexec::start_on(scheduler_B, std::move(chain)));
 
     ASSERT_THAT(data, ::testing::Each(pool_A_thread_ID));
 }
