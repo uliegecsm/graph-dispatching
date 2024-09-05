@@ -22,7 +22,8 @@ RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
 
     apt --yes --no-install-recommends install ${COMPILER_FAMILY_REQUIREMENTS}
 
-    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.txt | tr "\n" " ")
+    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.txt     | tr "\n" " ")
+    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.hpx.txt | tr "\n" " ")
 
     apt clean && rm -rf /var/lib/apt/lists/*
 
@@ -66,8 +67,29 @@ RUN <<EOF
 
 EOF
 
+# Fetch HPX sources, configure, build and install.
+FROM requirements AS hpx-compile
+
+ARG HPX_REF
+ARG HPX_SOURCE_DIR=/opt/hpx-${HPX_REF}-sources/
+
+RUN git clone --depth=1 --branch=${HPX_REF} -- https://github.com/STELLAR-GROUP/hpx.git ${HPX_SOURCE_DIR}
+
+RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.json <<EOF
+
+    set -ex
+
+    cd ${HPX_SOURCE_DIR}
+
+    cp /cmake/presets/hpx.json CMakePresets.json
+
+    cmake -S . --preset=${COMPILER_FAMILY}
+    cmake --build --preset=${COMPILER_FAMILY} -j4
+    cmake --install build-with-${COMPILER_FAMILY} --prefix=/opt/hpx-${HPX_REF}/
+EOF
+
 # Compile Kokkos.
-FROM requirements AS kokkos-compile
+FROM hpx-compile AS kokkos-compile
 
 ARG KOKKOS_GIT_REF
 ARG KOKKOS_PRESET
@@ -140,16 +162,19 @@ FROM requirements AS final
 
 ARG DOXYGEN_VERSION
 ARG GOOGLETEST_VERSION
+ARG HPX_REF
 ARG KOKKOS_VERSION
 ARG KOKKOS_PRESET
 ARG NVIDIA_STDEXEC_REF
 
 COPY --from=doxygen-compile     /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
 COPY --from=google-test-compile /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
+COPY --from=hpx-compile         /opt/hpx-${HPX_REF}                            /opt/hpx-${HPX_REF}
 COPY --from=kokkos-compile      /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 COPY --from=nvidia-stdexec      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
+ENV HPX_ROOT=/opt/hpx-${HPX_REF}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}

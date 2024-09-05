@@ -12,7 +12,7 @@
                 "HPX_WITH_CXX_STANDARD": "20",
                 "CMAKE_CXX_EXTENSIONS" : "OFF",
                 "CMAKE_C_COMPILER"     : "should-not-be-needed",
-                "CMAKE_CXX_COMPILER"   : "clang++",
+                "CMAKE_CXX_COMPILER"   : "g++",
                 "HPX_WITH_UNITY_BUILD" : "ON",
                 "HPX_WITH_MALLOC"      : "system",
                 "HPX_WITH_NETWORKING"  : "OFF",
@@ -21,8 +21,15 @@
             }
         },
         {
-            "name"     : "clang",
+            "name"     : "gcc",
             "inherits" : "default"
+        },
+        {
+            "name"           : "clang",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "clang++"
+            }
         }
     ],
     "buildPresets" : [
@@ -30,6 +37,11 @@
             "name"            : "default",
             "configurePreset" : "default",
             "inheritConfigureEnvironment" : true
+        },
+        {
+            "name"            : "gcc",
+            "configurePreset" : "gcc",
+            "inherits"        : "default"
         },
         {
             "name"            : "clang",

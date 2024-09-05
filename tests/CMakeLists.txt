@@ -81,8 +81,5 @@ endfunction()
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
-if(GraphDispatching_ENABLE_HPX)
-    add_subdirectory(hpx)
-endif()
-
+add_subdirectory(hpx)
 add_subdirectory(stdexec)

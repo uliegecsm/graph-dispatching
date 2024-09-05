@@ -25,6 +25,14 @@
             "cacheVariables" : {
                 "CMAKE_CXX_COMPILER" : "clang++"
             }
+        },
+        {
+            "name"           : "clang-HPX",
+            "inherits"       : "clang-OpenMP",
+            "cacheVariables" : {
+                "Kokkos_ENABLE_HPX"    : "ON",
+                "Kokkos_ENABLE_OPENMP" : "OFF"
+            }
         }
     ],
     "buildPresets" : [
@@ -41,6 +49,11 @@
         {
             "name"            : "clang-OpenMP",
             "configurePreset" : "clang-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX",
+            "configurePreset" : "clang-HPX",
             "inherits"        : "default"
         }
     ]

@@ -12,21 +12,25 @@
             }
         },
         {
-            "name"     : "gcc-OpenMP",
-            "inherits" : "default"
+            "name"           : "gcc-OpenMP",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
+            }
         },
         {
             "name"           : "clang-OpenMP",
             "inherits"       : "default",
             "cacheVariables" : {
-                "CMAKE_CXX_COMPILER" : "clang++"
+                "CMAKE_CXX_COMPILER"      : "clang++",
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-HPX",
             "inherits"       : "clang-OpenMP",
             "cacheVariables" : {
-                "GraphDispatching_ENABLE_HPX" : "ON"
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX"
             }
         }
     ],
