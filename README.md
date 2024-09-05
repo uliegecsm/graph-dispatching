@@ -1,4 +1,4 @@
-# graph-dispatching
+# Dispatching of asynchronous workloads using `Kokkos::Graph` under `std::execution` formalism
 
 This repository is a playground for graph-based dispatching of asynchronous workloads using `Kokkos` and the P2300 formalism.
 

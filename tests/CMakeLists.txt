@@ -50,7 +50,7 @@ function(add_one_test)
     target_link_libraries(
         ${EXECUTABLE_NAME}
         PRIVATE
-            GTest::gtest_main
+            test_common
             stdexec::stdexec
     )
 
@@ -77,9 +77,16 @@ function(add_one_test)
 
 endfunction()
 
+#---- Common test object library.
+add_library(test_common OBJECT)
+target_sources(test_common PRIVATE main.cpp)
+target_link_libraries(test_common PUBLIC GTest::gtest Kokkos::kokkoscore)
+
 # Add helper files to the documentation.
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
+add_subdirectory(graph)
 add_subdirectory(hpx)
 add_subdirectory(stdexec)
