@@ -1,0 +1,40 @@
+{
+    "version"   : 3,
+    "configurePresets" : [
+        {
+            "name"           : "default",
+            "binaryDir"      : "${sourceDir}/build-with-${presetName}",
+            "cacheVariables" : {
+                "CMAKE_BUILD_TYPE"     : "Release",
+                // Do not set CMAKE_CXX_STANDARD or you'll get:
+                //      You've set CMAKE_CXX_STANDARD manually, which is not recommended.
+                //      Please set HPX_WITH_CXX_STANDARD instead.
+                "HPX_WITH_CXX_STANDARD": "20",
+                "CMAKE_CXX_EXTENSIONS" : "OFF",
+                "CMAKE_C_COMPILER"     : "should-not-be-needed",
+                "CMAKE_CXX_COMPILER"   : "clang++",
+                "HPX_WITH_UNITY_BUILD" : "ON",
+                "HPX_WITH_MALLOC"      : "system",
+                "HPX_WITH_NETWORKING"  : "OFF",
+                "HPX_WITH_EXAMPLES"    : "OFF",
+                "HPX_WITH_TESTS"       : "OFF"
+            }
+        },
+        {
+            "name"     : "clang",
+            "inherits" : "default"
+        }
+    ],
+    "buildPresets" : [
+        {
+            "name"            : "default",
+            "configurePreset" : "default",
+            "inheritConfigureEnvironment" : true
+        },
+        {
+            "name"            : "clang",
+            "configurePreset" : "clang",
+            "inherits"        : "default"
+        }
+    ]
+}

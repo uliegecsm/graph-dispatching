@@ -1,0 +1,47 @@
+ARG BASE_IMAGE
+
+FROM ${BASE_IMAGE} AS base
+
+RUN <<EOF
+
+    set -ex
+
+    apt update
+
+    apt --yes --no-install-recommends install \
+        hwloc \
+        libasio-dev \
+        libboost-all-dev
+
+    apt clean && rm -rf /var/lib/apt/lists/*
+
+EOF
+
+ARG HPX_REF
+ARG HPX_INSTALL_DIR=/opt/hpx-${HPX_REF}/
+ARG HPX_SOURCE_DIR=/opt/hpx-${HPX_REF}-sources/
+
+FROM base AS prepare-hpx
+
+# Fetch HPX sources.
+RUN git clone --depth=1 --branch=${HPX_REF} -- https://github.com/STELLAR-GROUP/hpx.git ${HPX_SOURCE_DIR}
+
+# Configure, build and install HPX.
+RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.json <<EOF
+
+    set -ex
+
+    cd ${HPX_SOURCE_DIR}
+
+    cp /cmake/presets/hpx.json CMakePresets.json
+
+    cmake -S . --preset=clang
+    cmake --build --preset=clang -j4
+    cmake --install build-with-clang --prefix=${HPX_INSTALL_DIR}
+EOF
+
+FROM base AS final
+
+COPY --from=prepare-hpx ${HPX_INSTALL_DIR} ${HPX_INSTALL_DIR}
+
+ENV HPX_ROOT=${HPX_INSTALL_DIR}

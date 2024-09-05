@@ -23,7 +23,7 @@ jobs:
               run : |
                   echo "CI_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/graph-dispatching" >> $GITHUB_OUTPUT
 
-    build-image:
+    build-base-images:
         needs: [set-vars]
         runs-on: [ubuntu-latest]
         container:
@@ -46,8 +46,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Prepare.
-              run: |
+            - run: |
                   apk add jq
 
                   echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
@@ -84,8 +83,46 @@ jobs:
                       NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
                   labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
 
+    build-image-clang-hpx:
+        needs: [set-vars, build-base-images]
+        runs-on: [ubuntu-latest]
+        container:
+            image: docker:latest
+        permissions:
+            packages: write
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+
+            - run: |
+                  apk add jq
+
+                  echo "HPX_REF=$(jq .dependencies.hpx.value version.json -j)" >> $GITHUB_ENV
+
+            - uses: docker/setup-buildx-action@v3
+
+            - uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  platforms: linux/amd64
+                  push: ${{ github.ref == 'refs/heads/main' }}
+                  file: docker/dockerfile.hpx
+                  tags: ${{ needs.set-vars.outputs.CI_IMAGE }}:clang-HPX
+                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_IMAGE }}:clang-HPX
+                  cache-to: type=inline
+                  build-args: |
+                      BASE_IMAGE=${{ needs.set-vars.outputs.CI_IMAGE }}:clang-OpenMP
+                      HPX_REF=${{ env.HPX_REF }}
+                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
+
     build-library-and-test:
-        needs: [set-vars, build-image]
+        needs: [set-vars, build-base-images]
         runs-on: [ubuntu-latest]
         strategy:
             fail-fast: false
@@ -108,7 +145,7 @@ jobs:
                   ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
 
     build-documentation:
-        needs: [set-vars, build-image]
+        needs: [set-vars, build-base-images]
         runs-on: [ubuntu-latest]
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
