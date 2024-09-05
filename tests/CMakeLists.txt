@@ -14,7 +14,7 @@ find_package(
 #---- Function to add a test.
 function(add_one_test)
 
-    cmake_parse_arguments(aot_args "" "NAME" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
+    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
 
     # Set executable name and primary source file.
     cmake_path(SET SOURCE_FILE "test_${aot_args_NAME}.cpp")
@@ -46,13 +46,17 @@ function(add_one_test)
             -Werror
     )
 
-    # Link the executable to GTest.
-    target_link_libraries(
-        ${EXECUTABLE_NAME}
-        PRIVATE
-            test_common
-            stdexec::stdexec
-    )
+    # Link the executable to Google Test main
+    # if Kokkos is disabled, to 'test_common' otherwise.
+    # Always link to 'stdexec'.
+    if(aot_args_DISABLE_KOKKOS)
+        message(STATUS "Kokkos is disabled for '${EXECUTABLE_NAME}'.")
+        target_link_libraries(${EXECUTABLE_NAME} PRIVATE GTest::gtest_main)
+    else()
+        message(STATUS "Kokkos is enabled for '${EXECUTABLE_NAME}'.")
+        target_link_libraries(${EXECUTABLE_NAME} PRIVATE test_common)
+    endif()
+    target_link_libraries(${EXECUTABLE_NAME} PRIVATE stdexec::stdexec)
 
     if(DEFINED aot_args_ADDITIONAL_LINK_LIBRARIES)
         target_link_libraries(
