@@ -14,4 +14,4 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 # Add subdiretories.
 add_subdirectory(adaptors)
 
-add_one_test(NAME HelloWorld ADDITIONAL_LINK_LIBRARIES HPX::hpx)
+add_one_test(NAME HelloWorld DISABLE_KOKKOS ADDITIONAL_LINK_LIBRARIES HPX::hpx)

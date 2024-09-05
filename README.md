@@ -1,4 +1,4 @@
-# graph-dispatching
+# Dispatching of asynchronous workloads using `Kokkos::Graph` under `std::execution` formalism
 
 This repository is a playground for graph-based dispatching of asynchronous workloads using `Kokkos` and the P2300 formalism.
 
@@ -21,14 +21,14 @@ We can think of a graph (*e.g.* `Kokkos::Graph`) as a **multi-shot sender chain*
 * [tests](./tests)
   * [stdexec](./tests/stdexec) is dedicated to pure `stdexec` testing and exploration.
   * [graph](./tests/graph) is dedicated to implementing `Kokkos::Graph` *à la* `stdexec` (P2300).
-    Test files are always a triplet.
-    The `.stdexec` is the `stdexec` version of the test. It is compiled and tested.
-    The `.kokkos`is the `Kokkos` version of the test. It is compiled and tested.
-    The `.outlook` is the *drafted à la P2300* `Kokkos` version. It cannot be compiled and should be considered pseudo-code (for now).
+    Test files are always a triplet, and each use case lives in its own subdirectory.
+    The `test_stdexec.cpp` is the `stdexec` version of the test. It is compiled and tested.
+    The `test_kokkos.cpp`is the `Kokkos` version of the test. It is compiled and tested.
+    The `test_outlook.cpp` is the *drafted à la P2300* `Kokkos` version. It cannot be compiled and should be considered pseudo-code (for now).
     For instance:
-    - `test_ABC.stdexec.cpp`
-    - `test_ABC.kokkos.cpp`
-    - `test_ABC.outlook.cpp`
+    - `diamond/test_stdexec.cpp`
+    - `diamond/test_kokkos.cpp`
+    - `diamond/test_outlook.cpp`
 
 ## `Docker` images
 
