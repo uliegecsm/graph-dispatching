@@ -1,8 +1,7 @@
-#include "gtest/gtest.h"
-
 #include "hpx/execution.hpp"
-#include "hpx/init.hpp"
 #include "hpx/thread.hpp"
+
+#include "tests/hpx/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -17,32 +16,8 @@
 
 namespace tests::hpx
 {
-//! Initialize @c HPX. It could be a singleton.
-struct HPX
-{
-    HPX()
-    {
-        ::hpx::start(nullptr, 0, nullptr, ::hpx::init_params {});
-    }
 
-    ~HPX()
-    {
-        ::hpx::post([]() { ::hpx::finalize(); });
-        ::hpx::stop();
-    }
-};
-
-class HPXTest : public ::testing::Test
-{
-public:
-    void SetUp() override
-    {
-        this->hpx = std::make_shared<HPX>();
-    }
-protected:
-    //! Use a shared pointer to delay the initialization to @ref SetUp.
-    std::shared_ptr<HPX> hpx;
-};
+using ::utils::hpx::test::HPXTest;
 
 TEST_F(HPXTest, hello_world)
 {
@@ -56,7 +31,7 @@ TEST_F(HPXTest, hello_world)
     pool.print_pool(std::cout);
 
     //! Get a scheduler for that thread pool with asynchronous execution.
-    [[maybe_unused]]execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
+    execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
 
     //! Say hello to the world from within a chain of senders.
     std::atomic<std::size_t> count{0};
@@ -66,7 +41,7 @@ TEST_F(HPXTest, hello_world)
         ++count;
     });
 
-    ::hpx::this_thread::experimental::sync_wait(work);
+    ::hpx::this_thread::experimental::sync_wait(std::move(work));
 
     ASSERT_EQ(count, 1);
 }

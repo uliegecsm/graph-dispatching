@@ -20,22 +20,11 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c stdexec::bulk.
  *
- * The test can be found in @ref test_bulk.cpp.
+ * The test can be found in @ref stdexec/adaptors/test_bulk.cpp.
  */
 
 namespace tests::stdexec::adaptors
 {
-
-//! Simple functor that fills a @c std::vector with the thread ID.
-struct FillWithThreadID
-{
-    std::shared_ptr<std::vector<size_t>> ids;
-
-    template <std::integral T>
-    void operator()(const T index) {
-        ids->operator[](index) = ::utils::get_thread_id();
-    }
-};
 
 //! @test Simple @c stdexec::bulk that uses a functor.
 TEST(stdexec, bulk_with_functor)
@@ -52,8 +41,8 @@ TEST(stdexec, bulk_with_functor)
 
     ASSERT_NE(pool_thread_ID, 0);
 
-    /// The kernel will execute @ref FillWithThreadID.
-    FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
+    /// The kernel will execute @ref utils::FillWithThreadID.
+    ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
 
     ::stdexec::sender auto chain = ::stdexec::schedule(scheduler) | ::stdexec::bulk(size, functor);
 
