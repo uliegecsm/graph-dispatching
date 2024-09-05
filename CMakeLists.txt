@@ -13,6 +13,9 @@ project(
     LANGUAGES CXX
 )
 
+#---- Whether to enable HPX or not.
+option(GraphDispatching_ENABLE_HPX "Enable HPX" OFF)
+
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 

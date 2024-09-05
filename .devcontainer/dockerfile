@@ -1,4 +1,4 @@
-FROM ghcr.io/uliegecsm/graph-dispatching/graph-dispatching:gcc-openmp
+FROM ghcr.io/uliegecsm/graph-dispatching/graph-dispatching:clang-HPX
 
 # Install gpg and gnupg2 allows the container to use GPG keys to sign commits.
 # See also:

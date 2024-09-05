@@ -15,11 +15,11 @@ PRAGMA_DIAGNOSTIC_POP
  * @addtogroup unittests
  *
  * Simple "Hello, world !" example with @c stdexec
- -------------------------------------------------
+ * -----------------------------------------------
  *
  * Reproduce a slightly adapted version of the "Hello, world !" example from https://github.com/NVIDIA/stdexec/blob/main/examples/hello_world.cpp.
  *
- * The test can be found in @ref test_HelloWorld.cpp.
+ * The test can be found in @ref stdexec/test_HelloWorld.cpp.
  */
 
 namespace tests::stdexec
@@ -59,7 +59,7 @@ template <::stdexec::sender Sender>
 }
 
 //! @test Simple @c stdexec test that just aims at showing what can be done.
-TEST(hello, world)
+TEST(stdexec, hello_world)
 {
     //! Retrieve the NUMA configuration, and get the number of CPUs on the first node for sizing the thread pool.
     const exec::numa_policy  numa   (exec::no_numa_policy{});
