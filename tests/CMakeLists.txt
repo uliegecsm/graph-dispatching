@@ -1,4 +1,7 @@
-#--- Find GTest.
+#---- Helpers.
+include(${CMAKE_SOURCE_DIR}/cmake/functions/path.cmake)
+
+#---- Find GTest.
 string(JSON GTest_REQUIRED_VERSION GET "${VERSION_JSON}" dependencies googletest value)
 
 find_package(
@@ -8,16 +11,18 @@ find_package(
     REQUIRED
 )
 
-#--- Function to add a test.
+#---- Function to add a test.
 function(add_one_test)
 
-    cmake_parse_arguments(aot_args "" "NAME" "" ${ARGN})
+    cmake_parse_arguments(aot_args "" "NAME" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
 
-    # Set the test name, executable name and primary source file.
-    set(NAME            "test_${aot_args_NAME}")
-    set(EXECUTABLE_NAME "test_${aot_args_NAME}")
+    # Set executable name and primary source file.
     cmake_path(SET SOURCE_FILE "test_${aot_args_NAME}.cpp")
     cmake_path(ABSOLUTE_PATH SOURCE_FILE)
+
+    get_parent_relpath_repr(DIRECTORY "${PROJECT_SOURCE_DIR}" FILENAME "${SOURCE_FILE}")
+
+    set(EXECUTABLE_NAME "${gprr_PARENT_RELPATH_REPR}_${aot_args_NAME}")
 
     # Add source file to the documentation list.
     set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${SOURCE_FILE})
@@ -49,6 +54,14 @@ function(add_one_test)
             stdexec::stdexec
     )
 
+    if(DEFINED aot_args_ADDITIONAL_LINK_LIBRARIES)
+        target_link_libraries(
+            ${EXECUTABLE_NAME}
+            PRIVATE
+               ${aot_args_ADDITIONAL_LINK_LIBRARIES}
+        )
+    endif()
+
     # Allow tests to reference files in this repository directly.
     target_include_directories(
         ${EXECUTABLE_NAME}
@@ -63,5 +76,9 @@ function(add_one_test)
     )
 
 endfunction()
+
+if(GraphDispatching_ENABLE_HPX)
+    add_subdirectory(hpx)
+endif()
 
 add_subdirectory(stdexec)

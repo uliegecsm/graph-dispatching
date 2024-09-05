@@ -21,6 +21,13 @@
             "cacheVariables" : {
                 "CMAKE_CXX_COMPILER" : "clang++"
             }
+        },
+        {
+            "name"           : "clang-HPX",
+            "inherits"       : "clang-OpenMP",
+            "cacheVariables" : {
+                "GraphDispatching_ENABLE_HPX" : "ON"
+            }
         }
     ],
     "buildPresets" : [
@@ -37,6 +44,11 @@
         {
             "name"            : "clang-OpenMP",
             "configurePreset" : "clang-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX",
+            "configurePreset" : "clang-HPX",
             "inherits"        : "default"
         }
     ],
@@ -60,6 +72,11 @@
         {
             "name"            : "clang-OpenMP",
             "configurePreset" : "clang-OpenMP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX",
+            "configurePreset" : "clang-HPX",
             "inherits"        : "default"
         }
     ]
