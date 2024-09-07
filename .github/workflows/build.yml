@@ -23,11 +23,11 @@ jobs:
               run : |
                   echo "CI_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/graph-dispatching" >> $GITHUB_OUTPUT
 
-    build-base-images:
+    build-images:
         needs: [set-vars]
-        runs-on: [ubuntu-latest]
+        runs-on: ${{ fromJSON(matrix.runs-on || '["ubuntu-latest"]') }}
         container:
-            image: docker:latest
+            image: ${{ matrix.builder || 'docker:latest' }}
         permissions:
             packages: write
             contents: read
@@ -47,21 +47,17 @@ jobs:
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                    - backend        : HPX
+                      compiler_family: clang
+                      base_image     : ubuntu:24.04
+                      platforms      : linux/arm64
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
+                      builder        : sarouman.meca.ulg.ac.be:5000/trilinos-container/builder:ubuntu22.04-latest-arm64
         steps:
             - uses: actions/checkout@v4
 
-            - run: |
-                  apk add jq
-
-                  echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
-                  echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
-                  echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
-                  echo "HPX_REF=v$(          jq .dependencies.hpx.value            version.json -j)" >> $GITHUB_ENV
-                  echo "KOKKOS_GIT_REF=$(    jq .dependencies.kokkos.ref           version.json -j)" >> $GITHUB_ENV
-                  echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
-                  echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
-
-            - uses: docker/setup-buildx-action@v3
+            - if : ${{ matrix.builder == '' }}
+              run: apk add jq
 
             - uses: docker/login-action@v3
               with:
@@ -69,30 +65,16 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
-            - uses: docker/build-push-action@v5
+            - uses: ./.github/actions/build-image
               with:
-                  context: .
-                  platforms: ${{ matrix.platforms }}
-                  push: ${{ github.ref == 'refs/heads/main' }}
-                  file: docker/dockerfile
-                  tags: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
-                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
-                  cache-to: type=inline
-                  build-args: |
-                      BASE_IMAGE=${{ matrix.base_image }}
-                      COMPILER_FAMILY=${{ matrix.compiler_family }}
-                      CMAKE_VERSION=${{ env.CMAKE_VERSION }}
-                      DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
-                      GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
-                      HPX_REF=${{ env.HPX_REF }}
-                      KOKKOS_GIT_REF=${{ env.KOKKOS_GIT_REF }}
-                      KOKKOS_PRESET=${{ matrix.compiler_family }}-${{ matrix.backend }}
-                      KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
-                      NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
-                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
+                  backend        : ${{ matrix.backend }}
+                  base_image     : ${{ matrix.base_image }}
+                  compiler_family: ${{ matrix.compiler_family }}
+                  platforms      : ${{ matrix.platforms }}
+                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
 
     build-library-and-test:
-        needs: [set-vars, build-base-images]
+        needs: [set-vars, build-images]
         runs-on: [ubuntu-latest]
         strategy:
             fail-fast: false
@@ -117,7 +99,7 @@ jobs:
                   ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
 
     build-documentation:
-        needs: [set-vars, build-base-images]
+        needs: [set-vars, build-images]
         runs-on: [ubuntu-latest]
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP

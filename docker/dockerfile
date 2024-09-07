@@ -3,6 +3,7 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE} AS requirements
 
 ARG COMPILER_FAMILY
+ARG TARGETARCH
 
 # Install APT requirements and compiler.
 RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
@@ -33,7 +34,15 @@ ARG CMAKE_VERSION
 
 RUN <<EOF
 
-    INSTALLER=cmake-${CMAKE_VERSION}-linux-x86_64.sh
+    if [ "${TARGETARCH}" = "amd64" ];then
+        SUFFIX=x86_64
+    elif [ "${TARGETARCH}" = "arm64" ];then
+        SUFFIX=aarch64
+    else
+        echo "unsupported target arch ${TARGETARCH}"
+    fi
+
+    INSTALLER=cmake-${CMAKE_VERSION}-linux-${SUFFIX}.sh
 
     wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${INSTALLER}
 
@@ -79,11 +88,21 @@ RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.js
 
     set -ex
 
+    if [ "${TARGETARCH}" = "amd64" ];then
+        ADDITIONAL_CONFIG_ARGS=
+    elif [ "${TARGETARCH}" = "arm64" ];then
+        # This option seems needed for ARM.
+        # https://hpx-docs.stellar-group.org/latest/html/manual/building_hpx.html#cmdoption-arg-HPX_WITH_GENERIC_CONTEXT_COROUTINES
+        ADDITIONAL_CONFIG_ARGS=-DHPX_WITH_GENERIC_CONTEXT_COROUTINES:BOOL=ON
+    else
+        echo "unsupported target arch ${TARGETARCH}"
+    fi
+
     cd ${HPX_SOURCE_DIR}
 
     cp /cmake/presets/hpx.json CMakePresets.json
 
-    cmake -S . --preset=${COMPILER_FAMILY}
+    cmake -S . --preset=${COMPILER_FAMILY} ${ADDITIONAL_CONFIG_ARGS}
     cmake --build --preset=${COMPILER_FAMILY} -j4
     cmake --install build-with-${COMPILER_FAMILY} --prefix=/opt/hpx-${HPX_REF}/
 EOF
