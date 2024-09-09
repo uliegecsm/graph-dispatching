@@ -1,0 +1,73 @@
+name: 'Build Docker image'
+
+description: "Build a Docker image, specific to this repository's needs."
+
+inputs:
+    backend:
+        description: >
+            Kokkos-compatible backend.
+        required: true
+        type: string
+
+    compiler_family:
+        description: >
+            Compiler family for... compiling.
+        required: true
+        type: choice
+        options:
+            - gcc
+            - clang
+
+    base_image:
+        description: >
+            Docker base image to start from.
+        required: true
+
+    tag:
+        description: >
+            Tag of the resulting image.
+        required: true
+        type: string
+
+    platforms:
+        description: >
+            Platforms (for multi-platform Docker builds).
+        required: true
+        type: string
+
+runs:
+    using: "composite"
+    steps:
+        - shell: sh
+          run  : |
+            echo "CMAKE_VERSION=$(     jq .dependencies.cmake.value          version.json -j)" >> $GITHUB_ENV
+            echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
+            echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
+            echo "HPX_REF=v$(          jq .dependencies.hpx.value            version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_GIT_REF=$(    jq .dependencies.kokkos.ref           version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
+            echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
+
+        - uses: docker/setup-buildx-action@v3
+
+        - uses: docker/build-push-action@v6.7.0
+          with:
+              context: .
+              platforms: ${{ inputs.platforms }}
+              push: ${{ github.ref == 'refs/heads/main' }}
+              file: docker/dockerfile
+              tags: ${{ inputs.tag }}
+              cache-from: type=registry,ref=${{ inputs.tag }}
+              cache-to: type=inline
+              build-args: |
+                  BASE_IMAGE=${{ inputs.base_image }}
+                  COMPILER_FAMILY=${{ inputs.compiler_family }}
+                  CMAKE_VERSION=${{ env.CMAKE_VERSION }}
+                  DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
+                  GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
+                  HPX_REF=${{ env.HPX_REF }}
+                  KOKKOS_GIT_REF=${{ env.KOKKOS_GIT_REF }}
+                  KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
+                  KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
+                  NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
+              labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
