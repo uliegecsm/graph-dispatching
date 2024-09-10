@@ -43,10 +43,6 @@ struct PartialAlgorithm
             std::move(functor)
         );
     }
-
-    //! Helper for piping support.
-    template <typename Sender, typename PA>
-    friend constexpr decltype(auto) operator|(Sender&& input, PA&& partial);
 };
 
 template <typename Sender, typename PA>

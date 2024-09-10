@@ -46,30 +46,28 @@ TEST(graph, diamond_stdexec)
     view_t data("data");
 
     //! Define the graph. Use a simple syntax.
-    constexpr int value_A = 5, value_B = 42, value_C = 156, value_D = 453;
-
     ::stdexec::sender auto entry = ::stdexec::just();
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         size,
-        AddValueOffset{.data = data, .value = value_A})
+        AddValueOffset{.data = data, .value = Values::value_A})
         | ::stdexec::split();
 
     ::stdexec::sender auto node_B = node_A | ::stdexec::bulk(
         size / 2,
-        AddValueOffset{.data = data, .value = value_B});
+        AddValueOffset{.data = data, .value = Values::value_B});
     ::stdexec::sender auto node_C = node_A | ::stdexec::bulk(
         size / 2,
-        AddValueOffset{.data = data, .value = value_C, .offset = size / 2});
+        AddValueOffset{.data = data, .value = Values::value_C, .offset = size / 2});
 
     ::stdexec::sender auto node_D = ::stdexec::when_all(node_B, node_C) | ::stdexec::bulk(
         size,
-        AddValueOffset{.data = data, .value = value_D});
+        AddValueOffset{.data = data, .value = Values::value_D});
 
     //! Execute the graph and check results.
     ::stdexec::sync_wait(::stdexec::start_on(pool.get_scheduler(), node_D));
 
-    ASSERT_IT_WENT_FINE
+    ASSERT_TRUE(check_data(execution_space{}, data));
 }
 
 } // namespace tests::graph::diamond
