@@ -93,7 +93,7 @@ jobs:
 
             - run : |
                   cmake -S .    --preset=${{ matrix.compiler_family }}-${{ matrix.backend }} --warn-uninitialized -Werror=dev
-                  cmake --build --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  cmake --build --preset=${{ matrix.compiler_family }}-${{ matrix.backend }} -j$(nproc)
 
             - run : |
                   ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
