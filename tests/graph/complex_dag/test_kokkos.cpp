@@ -43,7 +43,7 @@ TEST(graph, complex_dag_kokkos)
     DEFINE_VALUES
     DEFINE_INDICES
 
-    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec, [](auto){}); // FIXME https://github.com/kokkos/kokkos/pull/7248
+    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec);
 
     auto root = Kokkos::Impl::GraphAccess::create_root_ref(graph);
 
