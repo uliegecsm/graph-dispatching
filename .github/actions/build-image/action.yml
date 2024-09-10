@@ -44,7 +44,8 @@ runs:
             echo "DOXYGEN_VERSION=$(   jq .dependencies.doxygen.value        version.json -j)" >> $GITHUB_ENV
             echo "GOOGLETEST_VERSION=$(jq .dependencies.googletest.value     version.json -j)" >> $GITHUB_ENV
             echo "HPX_REF=v$(          jq .dependencies.hpx.value            version.json -j)" >> $GITHUB_ENV
-            echo "KOKKOS_GIT_REF=$(    jq .dependencies.kokkos.ref           version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_BRANCH=$(     jq .dependencies.kokkos.branch        version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_SHA=$(        jq .dependencies.kokkos.sha           version.json -j)" >> $GITHUB_ENV
             echo "KOKKOS_VERSION=$(    jq .dependencies.kokkos.value         version.json -j)" >> $GITHUB_ENV
             echo "NVIDIA_STDEXEC_REF=$(jq .dependencies.nvidia.stdexec.value version.json -j)" >> $GITHUB_ENV
 
@@ -66,8 +67,9 @@ runs:
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}
-                  KOKKOS_GIT_REF=${{ env.KOKKOS_GIT_REF }}
+                  KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
                   KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
+                  KOKKOS_SHA=${{ env.KOKKOS_SHA }}
                   KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
                   NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
               labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"

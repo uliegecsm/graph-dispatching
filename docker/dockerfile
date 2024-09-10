@@ -110,17 +110,20 @@ EOF
 # Compile Kokkos.
 FROM hpx-compile AS kokkos-compile
 
-ARG KOKKOS_GIT_REF
+ARG KOKKOS_BRANCH
 ARG KOKKOS_PRESET
+ARG KOKKOS_SHA
 ARG KOKKOS_VERSION
+
+RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
 
 RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json <<EOF
 
     set -ex
 
-    git clone --depth=1 --branch=${KOKKOS_GIT_REF} https://github.com/kokkos/kokkos kokkos
+    cd /kokkos-sources
 
-    cd kokkos
+    git checkout ${KOKKOS_SHA}
 
     cp /cmake/presets/kokkos.json CMakePresets.json
 

@@ -43,7 +43,7 @@ TEST(graph, diamond_kokkos)
 
     constexpr int value_A = 5, value_B = 42, value_C = 156, value_D = 453;
 
-    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec, [](auto){}); // FIXME https://github.com/kokkos/kokkos/pull/7248
+    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec);
 
     auto root = Kokkos::Impl::GraphAccess::create_root_ref(graph);
 
