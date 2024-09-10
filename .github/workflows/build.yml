@@ -71,7 +71,7 @@ jobs:
                   base_image     : ${{ matrix.base_image }}
                   compiler_family: ${{ matrix.compiler_family }}
                   platforms      : ${{ matrix.platforms }}
-                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ runner.arch == 'ARM64' && '-arm64' || '' }}
 
     build-library-and-test:
         needs: [set-vars, build-images]
