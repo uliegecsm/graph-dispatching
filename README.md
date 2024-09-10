@@ -24,7 +24,9 @@ We can think of a graph (*e.g.* `Kokkos::Graph`) as a **multi-shot sender chain*
     Test files are always a triplet, and each use case lives in its own subdirectory.
     The `test_stdexec.cpp` is the `stdexec` version of the test. It is compiled and tested.
     The `test_kokkos.cpp`is the `Kokkos` version of the test. It is compiled and tested.
-    The `test_outlook.cpp` is the *drafted à la P2300* `Kokkos` version. It cannot be compiled and should be considered pseudo-code (for now).
+    The `test_outlook.cpp` is the *drafted à la P2300* `Kokkos` version. It possibly cannot be compiled and
+    should be considered drafted pseudo-code (for now).
+    Note that some things might remain to be decided or drafted or written and are marked with `FIXME`.
     For instance:
     - `diamond/test_stdexec.cpp`
     - `diamond/test_kokkos.cpp`
