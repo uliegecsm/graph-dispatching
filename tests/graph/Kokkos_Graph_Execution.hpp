@@ -2,6 +2,7 @@
 #define GRAPH_DISPATCHING_TESTS_GRAPH_KOKKOS_GRAPH_EXECUTION_HPP
 
 #include <concepts>
+#include <functional>
 
 /**
  * @file
@@ -95,6 +96,11 @@ struct ChainHandler
 template <typename Exec>
 constexpr decltype(auto) just(const Exec& exec) {
     return details::ChainHandler(exec);
+}
+
+//! For @c Kokkos::Graph, @c split is a no-op.
+constexpr decltype(auto) split() {
+    return std::identity{};
 }
 
 /**

@@ -44,7 +44,7 @@ TEST(graph, diamond_outlook)
 
     constexpr int value_A = 5, value_B = 42, value_C = 156, value_D = 453;
 
-    auto root = Kokkos::Experimental::graph::just(exec) /* FIXME I am missing a 'split' here. */;
+    auto root = Kokkos::Experimental::graph::just(exec) | Kokkos::Experimental::graph::split();
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
