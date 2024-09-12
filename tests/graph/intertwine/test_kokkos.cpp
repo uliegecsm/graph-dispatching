@@ -71,9 +71,9 @@ TEST(graph, intertwine_kokkos)
         policy_t(0, size),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
 
-    auto continued = library(node_A, data);
+    auto from_library = library(node_A, data);
 
-    auto node_D = continued.then_parallel_for(
+    auto node_D = from_library.then_parallel_for(
         policy_t(0, size),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
 

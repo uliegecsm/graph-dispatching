@@ -1,8 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "Kokkos_Core.hpp"
-#include "Kokkos_Graph.hpp"
-
 #include "tests/graph/Kokkos_Graph_Execution.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
@@ -75,9 +72,9 @@ TEST(graph, intertwine_outlook)
         policy_t(0, size),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
 
-    auto continued = library(node_A, data);
+    auto from_library = library(node_A, data);
 
-    auto node_D = continued | Kokkos::Experimental::graph::parallel_for(
+    auto node_D = from_library | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
 
