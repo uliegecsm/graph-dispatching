@@ -1,8 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "Kokkos_Core.hpp"
-#include "Kokkos_Graph.hpp"
-
 #include "tests/graph/Kokkos_Graph_Execution.hpp"
 #include "tests/graph/complex_dag/Helpers.hpp"
 
@@ -82,8 +79,9 @@ TEST(graph, complex_dag_outlook)
         policy_t(0, 1),
         FetchValuesAndContribute(data, {index_B2, index_B4}, index_C2, value_C2));
 
-    //! Execute the graph and check results.
-    Kokkos::Experimental::graph::submit(exec, node_C1 /* FIXME I am missing a 'when_all(C1, C2)' here. */);
+    /// Execute the graph and check results.
+    /// @todo I am missing a 'when_all(C1, C2)' here.
+    Kokkos::Experimental::graph::submit(exec, node_C1);
 
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, data);
 

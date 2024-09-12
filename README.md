@@ -26,7 +26,7 @@ We can think of a graph (*e.g.* `Kokkos::Graph`) as a **multi-shot sender chain*
     The `test_kokkos.cpp`is the `Kokkos` version of the test. It is compiled and tested.
     The `test_outlook.cpp` is the *drafted à la P2300* `Kokkos` version. It possibly cannot be compiled and
     should be considered drafted pseudo-code (for now).
-    Note that some things might remain to be decided or drafted or written and are marked with `FIXME`.
+    Note that some things might remain to be decided or drafted or written and are marked with `@todo`.
     For instance:
     - `diamond/test_stdexec.cpp`
     - `diamond/test_kokkos.cpp`
