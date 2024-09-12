@@ -14,7 +14,7 @@ env:
 jobs:
 
     set-vars:
-        runs-on: [ubuntu-latest]
+        runs-on: [self-hosted, linux, docker, amd64]
         outputs:
             CI_IMAGE : ${{ steps.common.outputs.CI_IMAGE }}
         steps:
@@ -39,14 +39,17 @@ jobs:
                       compiler_family: gcc
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : OpenMP
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
@@ -75,7 +78,7 @@ jobs:
 
     build-library-and-test:
         needs: [set-vars, build-images]
-        runs-on: [ubuntu-latest]
+        runs-on: [self-hosted, linux, docker, amd64]
         strategy:
             fail-fast: false
             matrix:
@@ -100,7 +103,7 @@ jobs:
 
     build-documentation:
         needs: [set-vars, build-images]
-        runs-on: [ubuntu-latest]
+        runs-on: [self-hosted, linux, docker, amd64]
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
         steps:
