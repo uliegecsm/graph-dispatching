@@ -1,8 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "Kokkos_Core.hpp"
-#include "Kokkos_Graph.hpp"
-
 #include "tests/graph/Kokkos_Graph_Execution.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 

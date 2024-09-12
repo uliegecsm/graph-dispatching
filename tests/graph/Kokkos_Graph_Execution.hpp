@@ -4,6 +4,9 @@
 #include <concepts>
 #include <functional>
 
+#include "Kokkos_Core.hpp"
+#include "Kokkos_Graph.hpp"
+
 /**
  * @file
  *
@@ -16,11 +19,19 @@
  * The functionalities can be found in @ref Kokkos_Graph_Execution.hpp.
  */
 
-namespace Kokkos::Experimental::graph
+namespace Kokkos::Experimental
+{
+
+namespace graph
 {
 
 namespace details
 {
+
+/// @todo This constraint ain't clear but should support the case of chaining
+///       without an underlying @c Kokkos::Graph.
+template <typename Sender>
+concept is_graph_sender = ! Kokkos::is_execution_space_v<Sender>;
 
 /**
  * @brief Helper for piping support.
@@ -35,7 +46,10 @@ struct PartialAlgorithm
     Policy policy;
     Functor functor;
 
-    template <typename Sender> requires (std::same_as<Tag, Kokkos::ParallelForTag>)
+    template <typename Sender> requires (
+        std::same_as<Tag, Kokkos::ParallelForTag> &&
+        is_graph_sender<std::remove_reference_t<Sender>>
+    )
     decltype(auto) operator()(Sender&& input)
     {
         return std::forward<Sender>(input).then_parallel_for(
@@ -134,6 +148,8 @@ template <typename Exec, typename Sender>
 constexpr void submit(const Exec& exec, Sender&& sender) {
     Kokkos::Impl::GraphAccess::get_graph_weak_ptr(sender).lock()->submit(exec);
 }
+
+} // namespace graph
 
 } // namespace Kokkos::Experimental
 

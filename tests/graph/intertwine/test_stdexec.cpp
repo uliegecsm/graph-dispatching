@@ -75,9 +75,9 @@ TEST(graph, intertwine_stdexec)
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A})
         | ::stdexec::split();
 
-    ::stdexec::sender auto continued = library(node_A, data);
+    ::stdexec::sender auto from_library = library(node_A, data);
 
-    ::stdexec::sender auto node_D = continued | ::stdexec::bulk(
+    ::stdexec::sender auto node_D = from_library | ::stdexec::bulk(
         size,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
 
