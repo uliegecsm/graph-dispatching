@@ -17,9 +17,13 @@ struct AddValueOffset
     typename ViewType::value_type value;
     typename ViewType::size_type offset = 0;
 
+    /**
+     * @note The @c noexcept is needed when using @c exec::any_receiver_ref (as of
+     *       https://github.com/NVIDIA/stdexec/blob/8bc7c7f06fe39831dea6852407ebe7f6be8fa9fd/include/exec/any_sender_of.hpp).
+     */
     template <std::integral T>
     KOKKOS_FUNCTION
-    void operator()(const T index) const {
+    void operator()(const T index) const noexcept{
         data(offset + index) += value;
     }
 };

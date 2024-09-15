@@ -4,3 +4,4 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 add_subdirectory(complex_dag)
 add_subdirectory(diamond)
 add_subdirectory(intertwine)
+add_subdirectory(runtime)
