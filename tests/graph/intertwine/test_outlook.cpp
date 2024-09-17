@@ -26,7 +26,7 @@ namespace tests::graph::intertwine
 template <typename Sender, typename ViewType>
 decltype(auto) library(Sender&& input, ViewType data)
 {
-    //! We need to expose our @c operator|, otherwise the compiler can't find a match.
+    //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
     using Kokkos::Experimental::graph::details::operator|;
 
     auto continued = std::forward<Sender>(input) | Kokkos::Experimental::graph::split();

@@ -57,6 +57,24 @@ struct PartialAlgorithm
             std::move(functor)
         );
     }
+
+    /// Case of input sender being a @c Kokkos execution space instance.
+    /// We do eager execution, to get as close as possible from what a user currently
+    /// expects with vanilla @c Kokkos code.
+    template <typename Sender> requires (
+        std::same_as<Tag, Kokkos::ParallelForTag> &&
+        ! is_graph_sender<std::remove_reference_t<Sender>>
+    )
+    decltype(auto) operator()(Sender&& exec)
+    {
+        /// @todo The policy should be modified to ensure we run the kernel on the given
+        ///       execution space instance. This is currently not possible.
+        Kokkos::parallel_for(
+            std::move(policy),
+            std::move(functor)
+        );
+        return std::forward<Sender>(exec);
+    }
 };
 
 template <typename Sender, typename PA>
@@ -150,6 +168,37 @@ constexpr void submit(const Exec& exec, Sender&& sender) {
 }
 
 } // namespace graph
+
+//! Fallback for @ref graph::just when we don't want the underlying graph but simply regular code.
+template <typename Exec>
+constexpr decltype(auto) just(Exec&& exec) {
+    return std::forward<Exec>(exec);
+}
+
+/**
+ * Fallback for @ref graph::submit when we don't want the underlying graph but simply regular code.
+ *
+ * @todo Decide what should be done here. Probably nothing is fine.
+ */
+template <typename... Args>
+void submit(Args&&...) {}
+
+/**
+ * @overload
+ *
+ * This is needed to support a chain of senders that are not graph-like senders.
+ * It is expected that in such a case, the objects passed to this function are
+ * execution space instances.
+ *
+ * To support eager execution, we arbitrarily fence all but the first one.
+ */
+template <typename Exec, typename... Args>
+requires (! graph::details::is_graph_sender<std::remove_reference_t<Args>> && ...)
+decltype(auto) when_all(Exec&& exec, Args&&... args)
+{
+    (args.fence() && ...);
+    return std::forward<Exec>(exec);
+}
 
 } // namespace Kokkos::Experimental
 
