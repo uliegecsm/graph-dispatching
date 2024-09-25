@@ -81,7 +81,8 @@ TEST(graph, runtime_stdexec)
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         1,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A}) | ::stdexec::split();
+        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A})
+        | ::stdexec::split();
 
     //! Define a type-erased sender type. See also https://github.com/NVIDIA/stdexec/issues/1411.
     using type_erased_sender_t = any_sender_of<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr const&), stdexec::set_stopped_t()>;
