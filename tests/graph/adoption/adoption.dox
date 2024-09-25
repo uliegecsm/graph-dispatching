@@ -1,0 +1,140 @@
+/** \page requirements-adoption Requirements for adoption
+
+\section requirements What do we need to ensure for a broad adoption of @c Graph ?
+
+The following requirements are mandatory if we ever want to get people more into
+@c Graph.
+
+\subsection kokkos-single-code-requirement Single source code @c Kokkos promise
+
+We must ensure that libraries that want to support
+both @c Graph and "regular" execution space modes
+need to write a single version of their source code.
+
+\subsection eti-requirement Heavily templated libraries resort to ETI
+
+Heavily templated libraries tend to use Explicit Template Instantiation (ETI).
+Supporting @c Graph mode should not add any burden to that.
+
+\subsection no-change-requirement Support existing libraries as is
+
+Libraries should actually not be required to rewrite anything to be usable in a graph.
+
+\section transition-to-graph How would people adopt @c Graph ?
+
+Given the requirements from @ref requirements, and given the following
+code snippet, how would people use @c Graph ?
+
+@code
+template <typename Exec, typename...>
+void axpby(const Exec& exec, ...)
+{
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Exec>(exec, ...),
+        Functor{...}
+    );
+}
+@endcode
+
+\subsection adoption-rewrite-api Modify the API
+
+A first solution would be to require libraries to modify their public API
+to support @c Graph (chain of sender-like nodes).
+It would typically require 2 changes:
+1. The template type should allow for either an execution space type (*e.g.*
+   @c Kokkos::Cuda) or the tail of sender-like chain of nodes.
+2. The function must return the new sender, which would be the execution space instance
+   or the new node-like sender.
+
+@code
+template <typename ExecOrGraph>
+auto axpby(const ExecOrGraph& exec, ...)
+{
+    return exec | Kokkos::graph::parallel_for(
+        Kokkos::RangePolicy<ExecOrGraph>(exec, ...),
+        Functor{...}
+    );
+}
+@endcode
+
+There are drawbacks to this approach:
+- The ETI matrix would probably explode, because you not only have to explicitly
+  instantiate for the space instance types, but also for the type-erased sender-like
+  node types (*e.g.* @c Kokkos::Experimental::GraphNodeRef<Kokkos::Cuda>).
+- For big libraries, it incurs a lot of changes (basically each and every public API function
+  but also probably internals).
+
+Therefore, this approach could be a good match for new libraries,
+but seems unrealistic for existing ones, especially that the rewritting needs to occurs
+prior to users can effectively use @c Graph with the libraries.
+
+@note In terms of impact on @c Kokkos core, this approach is very light. It only requires
+      that we extend a bit the API on the @c Graph side, but it's not intrusive.
+
+\subsection adoption-transparent Transparent adoption
+
+A possibility could be to make a sort of type-erased space instance type, that at runtime
+can either be a "regular" space instance or a @c Graph.
+
+The idea is that we don't want to require some libraries to rewrite anything,
+and make the @c Graph adoption **transparent** to them.
+
+So we're back again with the same library code as if @c Graph never existed. Only the user
+code explicitly asks for a @c Graph, and @c Kokkos does the rest under the hood.
+This is somewhat inspired from
+https://github.com/kokkos/kokkos/blob/b43f7dfbd0050fe30b12bccc816de8a48bc27074/core/unit_test/hpx/TestHPX_IndependentInstances.cpp#L90-L133.
+
+@code
+template <typename Exec, typename...>
+void axpby(const Exec& exec, ...)
+{
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Exec>(exec, ...),
+        Functor{...}
+    );
+}
+
+template <typename Exec, typename...>
+void Kokkos::parallel_for(const Exec& exec, ...) {
+    if(exec.is_sender()) {
+        // Append a new node to the graph, no execution yet.
+    } else {
+        // Regular @c Kokkos::parallel_for with an execution space instance and no graph.
+    }
+}
+@endcode
+
+There are pros and cons to this approach.
+
+The obvious good point is that this approach does not require any change in existing
+(big) libraries: it is transparent to them.
+
+There are drawbacks:
+1. Since we use type-erasure, we prevent any compile-time optimization (if any).
+2. The code for @c Kokkos::parallel_for gets much longer (bigger files, longer compiler time),
+   even if the end users of these libraries never use the @c Graph feature.
+
+@note Compared to the approach described in @ref adoption-rewrite-api, this one is much more
+      intrusice into the @c Kokkos core source code.
+
+\section reminder Why use @c Graph while still keeping compatibility with "regular" execution space instances ?
+
+\subsection runtime-overhead Creating a @c Graph adds overheads that need to be amortized
+
+Creating a @c Graph induces some runtime overhead.
+
+This overhead is amortized by re-submitting the graph many times.
+
+But if your workflow runs only once, creating a @c Graph might not be an option,
+especially if the workloads are small.
+
+\subsection resusable-elementary-blocks Building blocks are usable in many contexts
+
+Say you are responsible for a @c BLAS library.
+
+Some functions are very tiny building blocks, *e.g.* @c dot. These tiny building blocks can be
+expected to be used in many different user codes, and for sure some of these codes will just
+want "regular" execution space instance behavior while others will want to incorporate
+these blocks in their @c Graph.
+
+**/
