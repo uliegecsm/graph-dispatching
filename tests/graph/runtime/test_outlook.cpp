@@ -53,7 +53,7 @@ TEST(graph, runtime_outlook)
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    auto root = Kokkos::Experimental::graph::just(exec) | Kokkos::Experimental::graph::split();
+    auto root = Kokkos::Experimental::graph::create_graph(exec);
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),

@@ -32,6 +32,17 @@ We can think of a graph (*e.g.* `Kokkos::Graph`) as a **multi-shot sender chain*
     - `diamond/test_kokkos.cpp`
     - `diamond/test_outlook.cpp`
 
+## Naming
+
+### `just` or `create_graph` or `...` ?
+
+The function that creates the starting point for the chain of graph nodes has been
+named `create_graph`. A first attempt was to name it `just`, but it felt wrong.
+
+> In general, avoid naming things in an attempt to mimic `stdexec` if the intent
+  of the function is not strictly similar to the equivalent in `stdexec`. Otherwise,
+  it will just be confusing.
+
 ## `Docker` images
 
 This repository provides several `Docker` images. They have the same name, only the *tag* changes.

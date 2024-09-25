@@ -122,7 +122,7 @@ struct ChainHandler
  *       by @ref details::ChainHandler::graph.
  */
 template <typename Exec>
-constexpr decltype(auto) just(const Exec& exec) {
+constexpr decltype(auto) create_graph(const Exec& exec) {
     return details::ChainHandler(exec);
 }
 
