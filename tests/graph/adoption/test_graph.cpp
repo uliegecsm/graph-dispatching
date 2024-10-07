@@ -29,7 +29,7 @@ TEST(graph, adoption_graph)
 
     const execution_space exec {};
 
-    decltype(auto) root = Kokkos::Experimental::graph::just(exec);
+    decltype(auto) root = Kokkos::Experimental::graph::create_graph(exec);
 
     decltype(auto) from_user = user_code(root);
 

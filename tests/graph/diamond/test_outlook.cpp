@@ -20,6 +20,9 @@ namespace tests::graph::diamond
 //! @test Diamond graph using P2300-flavored @c Kokkos.
 TEST(graph, diamond_outlook)
 {
+    //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
+    using Kokkos::Experimental::graph::details::operator|;
+
     //! Use @c Kokkos::DefaultExecutionSpace because we can synchronize in this setup.
     using execution_space = Kokkos::DefaultExecutionSpace;
     using memory_space    = typename execution_space::memory_space;
@@ -39,11 +42,12 @@ TEST(graph, diamond_outlook)
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    auto root = Kokkos::Experimental::graph::just(exec) | Kokkos::Experimental::graph::split();
+    auto root = Kokkos::Experimental::graph::create_graph(exec);
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
-        AddValueOffset{.data = data, .value = Values::value_A});
+        AddValueOffset{.data = data, .value = Values::value_A})
+        | Kokkos::Experimental::graph::split();
 
     auto node_B = node_A | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size / 2),

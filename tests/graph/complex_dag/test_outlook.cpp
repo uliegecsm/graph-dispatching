@@ -41,7 +41,8 @@ TEST(graph, complex_dag_outlook)
     DEFINE_VALUES
     DEFINE_INDICES
 
-    auto root = Kokkos::Experimental::graph::just(exec) | Kokkos::Experimental::graph::split();
+    auto root = Kokkos::Experimental::graph::create_graph(exec)
+        | Kokkos::Experimental::graph::split();
 
     auto node_A1 = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),

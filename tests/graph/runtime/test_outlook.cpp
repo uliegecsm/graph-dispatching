@@ -25,6 +25,9 @@ namespace tests::graph::runtime
 //! @test Runtime graph using P2300-flavored @c Kokkos.
 TEST(graph, runtime_outlook)
 {
+    //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
+    using Kokkos::Experimental::graph::details::operator|;
+
     //! Use @c Kokkos::DefaultExecutionSpace because we can synchronize in this setup.
     using execution_space = Kokkos::DefaultExecutionSpace;
     using memory_space    = typename execution_space::memory_space;
@@ -53,11 +56,12 @@ TEST(graph, runtime_outlook)
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    auto root = Kokkos::Experimental::graph::just(exec) | Kokkos::Experimental::graph::split();
+    auto root = Kokkos::Experimental::graph::create_graph(exec);
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A});
+        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A})
+        | Kokkos::Experimental::graph::split();
 
     //! Define a type-erased sender type.
     using type_erased_sender_t = Kokkos::Experimental::GraphNodeRef<execution_space>;

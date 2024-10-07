@@ -122,7 +122,7 @@ struct ChainHandler
  *       by @ref details::ChainHandler::graph.
  */
 template <typename Exec>
-constexpr decltype(auto) just(const Exec& exec) {
+constexpr decltype(auto) create_graph(const Exec& exec) {
     return details::ChainHandler(exec);
 }
 
@@ -169,7 +169,13 @@ constexpr void submit(const Exec& exec, Sender&& sender) {
 
 } // namespace graph
 
-//! Fallback for @ref graph::just when we don't want the underlying graph but simply regular code.
+/**
+ * @brief Fallback for @ref graph::create_graph when we don't want the underlying graph but simply regular code.
+ *
+ * @todo The usage of this function is unclear and might be misleading. Indeed, the @p exec
+ *       is not passed to the following senders, as one would expect with @c stdexec::just.
+ *       We might want to simply get rid of this.
+ */
 template <typename Exec>
 constexpr decltype(auto) just(Exec&& exec) {
     return std::forward<Exec>(exec);
