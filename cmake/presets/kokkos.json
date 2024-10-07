@@ -12,7 +12,8 @@
                 "CMAKE_C_COMPILER"     : "should-not-be-needed",
                 "CMAKE_CXX_COMPILER"   : "g++",
                 "Kokkos_ENABLE_SERIAL" : "ON",
-                "Kokkos_ENABLE_OPENMP" : "ON"
+                "Kokkos_ENABLE_OPENMP" : "ON",
+                "Kokkos_ENABLE_TESTS"  : "OFF"
             }
         },
         {
@@ -32,6 +33,14 @@
             "cacheVariables" : {
                 "Kokkos_ENABLE_HPX"    : "ON",
                 "Kokkos_ENABLE_OPENMP" : "OFF"
+            }
+        },
+        {
+            "name"           : "gcc-Cuda",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "Kokkos_ENABLE_CUDA"  : "ON",
+                "Kokkos_ARCH_VOLTA70" : "ON"
             }
         }
     ],
@@ -54,6 +63,11 @@
         {
             "name"            : "clang-HPX",
             "configurePreset" : "clang-HPX",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "gcc-Cuda",
+            "configurePreset" : "gcc-Cuda",
             "inherits"        : "default"
         }
     ]
