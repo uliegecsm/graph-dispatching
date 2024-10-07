@@ -72,6 +72,10 @@ GraphExecutable::~GraphExecutable()
     CHECK_CALL(PREFIXED_API(GraphExecDestroy)(graph_exec));
 }
 
+void GraphExecutable::set_enabled(const GraphNode& node, const bool is_enabled) const {
+    CHECK_CALL(PREFIXED_API(GraphNodeSetEnabled)(graph_exec, node.node, is_enabled));
+}
+
 void GraphExecutable::submit(const Stream& stream)
 {
     printf("> Submitting executable graph %p on stream %p.\n", graph_exec, stream.stream);

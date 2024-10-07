@@ -103,6 +103,9 @@ struct GraphExecutable
 
     ~GraphExecutable();
 
+    //! Enable/disable @p node.
+    void set_enabled(const GraphNode& node, const bool is_enabled) const;
+
     void submit(const Stream& stream);
 };
 
