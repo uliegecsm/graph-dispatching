@@ -81,7 +81,7 @@ TEST(graph, intertwine_stdexec)
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
 
     //! Execute the graph and check results.
-    ::stdexec::sync_wait(::stdexec::start_on(pool.get_scheduler(), node_D));
+    ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), node_D));
 
     ASSERT_TRUE(diamond::check_data(execution_space{}, data));
 }
