@@ -31,6 +31,8 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::graph::runtime
 {
 
+DEFINE_TEST_SUITE
+
 /**
  * @brief Helper for defining a "any" sender type.
  *
@@ -49,7 +51,7 @@ using any_sender_of =
  *  - We must move them.
  *  - There is no "dynamic" @c when_all, so we need to create fake empty nodes (sse below).
  */
-TEST(graph, runtime_stdexec)
+TEST_P(graph, runtime_stdexec)
 {
     //! Use @c Kokkos::Serial because we have no mean to synchronize in this setup.
     using execution_space = Kokkos::Serial;
@@ -60,12 +62,9 @@ TEST(graph, runtime_stdexec)
 
     using view_t = Kokkos::View<int[size], memory_space>;
 
-    //! Randomizer to disable some nodes.
-    UniformDistribution randomizer{};
-    std::mt19937 gen(std::random_device{}());
-
-    const bool add_B = randomizer(gen);
-    const bool add_C = randomizer(gen);
+    //! Which nodes will be added.
+    const auto add_B = this->GetParam()[0];
+    const auto add_C = this->GetParam()[1];
 
     //! Get some execution context.
     ::exec::static_thread_pool pool{1};
@@ -116,5 +115,7 @@ TEST(graph, runtime_stdexec)
 
     ASSERT_IT_WENT_FINE(data)
 }
+
+INSTANTIATE_TEST_SUITE
 
 } // namespace tests::graph::runtime
