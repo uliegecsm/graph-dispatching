@@ -22,8 +22,10 @@
 namespace tests::graph::runtime
 {
 
+DEFINE_TEST_SUITE
+
 //! @test Runtime graph using P2300-flavored @c Kokkos.
-TEST(graph, runtime_outlook)
+TEST_P(graph, runtime_outlook)
 {
     //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
     using Kokkos::Experimental::graph::details::operator|;
@@ -37,12 +39,9 @@ TEST(graph, runtime_outlook)
 
     using view_t = Kokkos::View<int[size], memory_space>;
 
-    //! Randomizer to disable some nodes.
-    UniformDistribution randomizer{};
-    std::mt19937 gen(std::random_device{}());
-
-    const bool add_B = randomizer(gen);
-    const bool add_C = randomizer(gen);
+    //! Which nodes will be added.
+    const auto add_B = this->GetParam()[0];
+    const auto add_C = this->GetParam()[1];
 
     //! Get some execution context.
     const execution_space exec {};
@@ -96,5 +95,7 @@ TEST(graph, runtime_outlook)
 
     ASSERT_IT_WENT_FINE(data)
 }
+
+INSTANTIATE_TEST_SUITE
 
 } // namespace tests::graph::runtime
