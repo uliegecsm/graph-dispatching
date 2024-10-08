@@ -39,8 +39,9 @@
             "name"           : "gcc-Cuda",
             "inherits"       : "default",
             "cacheVariables" : {
-                "Kokkos_ENABLE_CUDA"  : "ON",
-                "Kokkos_ARCH_VOLTA70" : "ON"
+                "Kokkos_ENABLE_CUDA"           : "ON",
+                "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
+                "Kokkos_ARCH_VOLTA70"          : "ON"
             }
         }
     ],
