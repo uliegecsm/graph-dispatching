@@ -43,6 +43,13 @@ define_property(GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC
     BRIEF_DOCS "Files that will be added to the Doxygen documentation."
 )
 
+#---- Compilers like nvcc cannot compile stdexec.
+if(CUDA IN_LIST Kokkos_DEVICES)
+    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS OFF)
+else()
+    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS ON)
+endif()
+
 #---- Testing.
 enable_testing()
 add_subdirectory(tests)

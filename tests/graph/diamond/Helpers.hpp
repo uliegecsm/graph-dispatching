@@ -38,10 +38,12 @@ struct Values
 template <typename Exec, typename ViewType>
 bool check_data(const Exec& exec, const ViewType& data)
 {
+    using policy_t = Kokkos::RangePolicy<Exec>;
+
     bool result = false;
     Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Exec>(exec, 0, data.size()),
-        KOKKOS_LAMBDA(const auto index, bool& current) {
+        policy_t(exec, 0, data.size()),
+        KOKKOS_LAMBDA(const typename policy_t::index_type index, bool& current) {
             const auto expt_value = Values::value_A
                 + (index >= data.size() / 2 ? Values::value_C : Values::value_B)
                 + Values::value_D;

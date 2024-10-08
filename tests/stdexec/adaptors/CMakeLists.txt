@@ -1,2 +1,2 @@
-add_one_test(NAME bulk)
-add_one_test(NAME starts_on)
+add_one_test(NAME bulk      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+add_one_test(NAME starts_on ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
