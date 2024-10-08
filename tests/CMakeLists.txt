@@ -14,7 +14,13 @@ find_package(
 #---- Function to add a test.
 function(add_one_test)
 
-    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
+    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME;ENABLE" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
+
+    # Possibly disable this test. This also means the executable is not compiled.
+    if(DEFINED aot_args_ENABLE AND NOT aot_args_ENABLE)
+        message(WARNING "Skipping test ${aot_args_NAME}.")
+        return()
+    endif()
 
     # Set executable name and primary source file.
     cmake_path(SET SOURCE_FILE "test_${aot_args_NAME}.cpp")

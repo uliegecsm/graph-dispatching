@@ -93,7 +93,9 @@ TEST_P(graph, runtime_outlook)
     Kokkos::Experimental::graph::submit(exec, node_D);
     exec.fence();
 
-    ASSERT_IT_WENT_FINE(data)
+    const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, data);
+
+    ASSERT_IT_WENT_FINE(mirror)
 }
 
 INSTANTIATE_TEST_SUITE

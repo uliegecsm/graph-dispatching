@@ -83,7 +83,7 @@ jobs:
 
     build-library-and-test:
         needs: [set-vars, build-images]
-        runs-on: [self-hosted, linux, docker, amd64]
+        runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
         strategy:
             fail-fast: false
             matrix:
@@ -94,6 +94,9 @@ jobs:
                       compiler_family: clang
                     - backend        : HPX
                       compiler_family: clang
+                    - backend        : Cuda
+                      compiler_family: gcc
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
         steps:
