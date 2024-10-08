@@ -51,11 +51,11 @@ TEST(stdexec, starts_on_twice_with_just_a_bulk)
     });
 
     //! Run on pool A.
-    ::stdexec::sender auto moved_to_another_A = ::stdexec::start_on(scheduler_A, chain);
+    ::stdexec::sender auto moved_to_another_A = ::stdexec::starts_on(scheduler_A, chain);
     const auto [result_A] = ::stdexec::sync_wait(std::move(moved_to_another_A)).value();
 
     //! Run on pool B.
-    ::stdexec::sender auto moved_to_another_B = ::stdexec::start_on(scheduler_B, chain);
+    ::stdexec::sender auto moved_to_another_B = ::stdexec::starts_on(scheduler_B, chain);
     const auto [result_B] = ::stdexec::sync_wait(std::move(moved_to_another_B)).value();
 
     //! Since we used @c stdexec::just, we expect that each "executed chain" produced its own @c std::vector.
@@ -73,7 +73,7 @@ TEST(stdexec, starts_on_twice_with_just_a_bulk)
 
 /**
  * @test This test shows that if a chain is started using a @c stdexec::schedule
- *       sender, then using @c stdexec::start_on later on with another @c stdexec::schedule
+ *       sender, then using @c stdexec::starts_on later on with another @c stdexec::schedule
  *       sender is a no-op.
  */
 TEST(stdexec, starts_on_B_once_after_schedule_on_A_is_a_no_op)
@@ -111,7 +111,7 @@ TEST(stdexec, starts_on_B_once_after_schedule_on_A_is_a_no_op)
                 data[index] = ::utils::get_thread_id();
     });
 
-    ::stdexec::sync_wait(::stdexec::start_on(scheduler_B, std::move(chain)));
+    ::stdexec::sync_wait(::stdexec::starts_on(scheduler_B, std::move(chain)));
 
     ASSERT_THAT(data, ::testing::Each(pool_A_thread_ID));
 }

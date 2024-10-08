@@ -65,7 +65,7 @@ TEST(graph, diamond_stdexec)
         AddValueOffset{.data = data, .value = Values::value_D});
 
     //! Execute the graph and check results.
-    ::stdexec::sync_wait(::stdexec::start_on(pool.get_scheduler(), node_D));
+    ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), node_D));
 
     ASSERT_TRUE(check_data(execution_space{}, data));
 }

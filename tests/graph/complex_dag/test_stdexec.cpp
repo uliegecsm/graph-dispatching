@@ -89,7 +89,7 @@ TEST(graph, complex_dag_stdexec)
         FetchValuesAndContribute(data, {index_B2, index_B4}, index_C2, value_C2));
 
     //! Execute the graph and check results.
-    ::stdexec::sync_wait(::stdexec::start_on(pool.get_scheduler(), ::stdexec::when_all(node_C1, node_C2)));
+    ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), ::stdexec::when_all(node_C1, node_C2)));
 
     ASSERT_IT_WENT_FINE(data)
 }

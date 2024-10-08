@@ -112,7 +112,7 @@ TEST(graph, runtime_stdexec)
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D, .offset = index_D});
 
     //! Execute the graph and check results.
-    ::stdexec::sync_wait(::stdexec::start_on(pool.get_scheduler(), std::move(node_D)));
+    ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), std::move(node_D)));
 
     ASSERT_IT_WENT_FINE(data)
 }
