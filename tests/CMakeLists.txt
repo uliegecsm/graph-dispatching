@@ -14,7 +14,7 @@ find_package(
 #---- Function to add a test.
 function(add_one_test)
 
-    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME;ENABLE" "ADDITIONAL_LINK_LIBRARIES" ${ARGN})
+    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME;ENABLE;LAUNCHER" "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS" ${ARGN})
 
     # Possibly disable this test. This also means the executable is not compiled.
     if(DEFINED aot_args_ENABLE AND NOT aot_args_ENABLE)
@@ -52,6 +52,11 @@ function(add_one_test)
             -Werror
     )
 
+    # Compile definitions.
+    if(DEFINED aot_args_COMPILE_DEFINITIONS)
+        target_compile_definitions(${EXECUTABLE_NAME} PRIVATE ${aot_args_COMPILE_DEFINITIONS})
+    endif()
+
     # Link the executable to Google Test main
     # if Kokkos is disabled, to 'test_common' otherwise.
     # Always link to 'stdexec'.
@@ -80,10 +85,13 @@ function(add_one_test)
     )
 
     # Add the test to CTest.
-    add_test(
-        NAME    ${EXECUTABLE_NAME}
-        COMMAND $<TARGET_FILE:${EXECUTABLE_NAME}>
-    )
+    if(DEFINED aot_args_LAUNCHER)
+        set(TEST_COMMAND ${aot_args_LAUNCHER})
+    else()
+        set(TEST_COMMAND)
+    endif()
+    list(APPEND TEST_COMMAND $<TARGET_FILE:${EXECUTABLE_NAME}>)
+    add_test(NAME ${EXECUTABLE_NAME} COMMAND ${TEST_COMMAND})
 
 endfunction()
 
@@ -97,6 +105,9 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
+if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
+    add_subdirectory(cuda)
+endif()
 add_subdirectory(graph)
 add_subdirectory(hpx)
 add_subdirectory(stdexec)

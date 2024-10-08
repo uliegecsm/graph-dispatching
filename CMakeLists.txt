@@ -13,6 +13,9 @@ project(
     LANGUAGES CXX
 )
 
+#---- Building Doxygen documentation is OFF by default.
+option(ENABLE_DOXYGEN "Enable building Doxygen documentation" OFF)
+
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 
@@ -44,7 +47,7 @@ define_property(GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC
 )
 
 #---- Compilers like nvcc cannot compile stdexec.
-if(CUDA IN_LIST Kokkos_DEVICES)
+if(CUDA IN_LIST Kokkos_DEVICES AND NOT ENABLE_DOXYGEN)
     set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS OFF)
 else()
     set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS ON)
@@ -55,4 +58,6 @@ enable_testing()
 add_subdirectory(tests)
 
 #---- Documentation.
-add_subdirectory(docs)
+if(ENABLE_DOXYGEN)
+    add_subdirectory(docs)
+endif()

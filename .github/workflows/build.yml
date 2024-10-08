@@ -118,5 +118,5 @@ jobs:
             - uses: actions/checkout@v4
 
             - run : |
-                  cmake -S .    --preset=gcc-OpenMP --warn-uninitialized -Werror=dev
+                  cmake -S .    --preset=gcc-OpenMP -DENABLE_DOXYGEN:BOOL=ON --warn-uninitialized -Werror=dev
                   cmake --build --preset=gcc-OpenMP --target=docs
