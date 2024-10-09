@@ -120,6 +120,27 @@ void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNo
     ));
 }
 
+GraphNodeConditionalIf::GraphNodeConditionalIf(cudaGraphConditionalHandle handle)
+{
+    printf("> Creating a graph conditional if node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__);
+
+    params.type               = cudaGraphNodeTypeConditional;
+    params.conditional.handle = handle;
+    params.conditional.type   = cudaGraphCondTypeIf;
+    params.conditional.size   = 1;
+}
+
+void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph conditional node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        &params
+    ));
+}
+
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {

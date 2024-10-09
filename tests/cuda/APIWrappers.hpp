@@ -118,6 +118,23 @@ struct GraphNodeKernel : public GraphNode
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 };
 
+/**
+ * @brief Wrapper for a conditional if node.
+ *
+ * References:
+ *  - https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#conditional-if-nodes
+ */
+struct GraphNodeConditionalIf : public GraphNode
+{
+    PREFIXED_API(GraphNodeParams) params = {};
+
+    GraphNodeConditionalIf(cudaGraphConditionalHandle handle);
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
+
+    Graph get() const { return params.conditional.phGraph_out[0]; }
+};
+
 //! Similar to @c Kokkos driver (local memory launch).
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor);
