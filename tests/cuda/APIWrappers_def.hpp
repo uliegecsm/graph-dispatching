@@ -78,6 +78,48 @@ void GraphExecutable::submit(const Stream& stream)
     CHECK_CALL(PREFIXED_API(GraphLaunch)(graph_exec, stream.stream));
 }
 
+auto GraphNode::transform_to_impl(const std::vector<GraphNode>& ancestors)
+{
+    std::vector<PREFIXED_API(GraphNode_t)> ancestors_impl(ancestors.size());
+
+    std::transform(
+        ancestors.cbegin(), ancestors.cend(), ancestors_impl.begin(),
+        [](const auto& anc) -> PREFIXED_API(GraphNode_t) { return anc.node; }
+    );
+
+    return ancestors_impl;
+}
+
+template <typename Functor>
+GraphNodeKernel<Functor>::GraphNodeKernel(const Functor& functor, const size_t shape)
+{
+    printf("> Creating a kernel graph node with functor and size %zu (%s).\n", shape, __PRETTY_FUNCTION__);
+
+    params = {};
+
+    inputs.resize(1);
+    inputs[0] = (void*)&functor;
+
+    params.gridDim        = dim3(1,     1, 1);
+    params.blockDim       = dim3(1, shape, 1);
+    params.sharedMemBytes = 0;
+    params.func           = (void * )get_driver<Functor>();
+    params.kernelParams   = inputs.data();
+    params.extra          = nullptr;
+}
+
+template <typename Functor>
+void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph kernel node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddKernelNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        &params
+    ));
+}
+
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {

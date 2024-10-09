@@ -86,6 +86,14 @@ struct Graph
     ~Graph();
 };
 
+//! Wrapper for a graph node.
+struct GraphNode
+{
+    PREFIXED_API(GraphNode_t) node = nullptr;
+
+    auto transform_to_impl(const std::vector<GraphNode>& ancestors = {});
+};
+
 //! Wrapper for an executable graph.
 struct GraphExecutable
 {
@@ -96,6 +104,18 @@ struct GraphExecutable
     ~GraphExecutable();
 
     void submit(const Stream& stream);
+};
+
+//! Wrapper for a kernel node.
+template <typename Functor>
+struct GraphNodeKernel : public GraphNode
+{
+    PREFIXED_API(KernelNodeParams) params;
+    std::vector<void*> inputs;
+
+    GraphNodeKernel(const Functor& functor, const size_t shape);
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 };
 
 //! Similar to @c Kokkos driver (local memory launch).
