@@ -14,7 +14,13 @@ find_package(
 #---- Function to add a test.
 function(add_one_test)
 
-    cmake_parse_arguments(aot_args "DISABLE_KOKKOS" "NAME;ENABLE;LAUNCHER" "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS" ${ARGN})
+    cmake_parse_arguments(
+        aot_args
+        "DISABLE_KOKKOS;ADD_BINARY_DIR"
+        "NAME;ENABLE;LAUNCHER"
+        "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS"
+        ${ARGN}
+    )
 
     # Possibly disable this test. This also means the executable is not compiled.
     if(DEFINED aot_args_ENABLE AND NOT aot_args_ENABLE)
@@ -55,6 +61,10 @@ function(add_one_test)
     # Compile definitions.
     if(DEFINED aot_args_COMPILE_DEFINITIONS)
         target_compile_definitions(${EXECUTABLE_NAME} PRIVATE ${aot_args_COMPILE_DEFINITIONS})
+    endif()
+
+    if(DEFINED aot_args_ADD_BINARY_DIR)
+        target_compile_definitions(${EXECUTABLE_NAME} PRIVATE CMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}")
     endif()
 
     # Link the executable to Google Test main
