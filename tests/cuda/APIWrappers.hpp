@@ -57,6 +57,8 @@ struct View
     T* buffer = nullptr;
     bool owning = false;
 
+    View() = default;
+
     View(const Stream& stream, const size_t size_);
 
     //! This is the simplest approach. The original view is the only one that owns and frees.
@@ -136,6 +138,36 @@ struct GraphNodeConditionalIf : public GraphNode
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 
     Graph get() const { return params.conditional.phGraph_out[0]; }
+};
+
+/**
+ * @brief Wrapper for a host node.
+ *
+ * References:
+ *  - https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaHostNodeParams.html#structcudaHostNodeParams
+ */
+template <typename Functor>
+struct GraphNodeHost : public GraphNode
+{
+    //! Node parameters as needed by the backend.
+    PREFIXED_API(HostNodeParams) params = {};
+
+    /// User data whose sole purpose is to store the functor to be used
+    /// and pass it to the host callback.
+    struct NodeHostCallbackData {
+        Functor functor {};
+    };
+
+    NodeHostCallbackData data {};
+
+    //! Since @p functor will be stored in @ref data, allow move semantics.
+    template <typename T> requires std::same_as<std::remove_cvref_t<T>, Functor>
+    GraphNodeHost(T&& functor);
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
+
+    //! Callback that will be called by the backend during graph execution.
+    static void driver(void* data);
 };
 
 //! Similar to @c Kokkos driver (local memory launch).

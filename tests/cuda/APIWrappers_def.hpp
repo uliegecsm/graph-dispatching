@@ -145,6 +145,38 @@ void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode
     ));
 }
 
+template <typename Functor>
+void GraphNodeHost<Functor>::driver(void* data)
+{
+    const auto& functor = static_cast<NodeHostCallbackData*>(data)->functor;
+    functor.operator()();
+}
+
+template <typename Functor>
+template <typename T> requires std::same_as<std::remove_cvref_t<T>, Functor>
+GraphNodeHost<Functor>::GraphNodeHost(T&& functor)
+{
+    printf("> Creating a graph host node with functor (%s).\n", __PRETTY_FUNCTION__);
+
+    data = {.functor = std::forward<T>(functor)};
+
+    params          = {};
+    params.fn       = driver;
+    params.userData = &data;
+}
+
+template <typename Functor>
+void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph host node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddHostNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        &params
+    ));
+}
+
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {
