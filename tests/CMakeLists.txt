@@ -8,7 +8,7 @@ function(add_one_test)
         aot_args
         "DISABLE_KOKKOS;ADD_BINARY_DIR"
         "NAME;ENABLE;LAUNCHER"
-        "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS"
+        "LINK_LIBRARIES;COMPILE_DEFINITIONS"
         ${ARGN}
     )
 
@@ -69,11 +69,11 @@ function(add_one_test)
     endif()
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE stdexec::stdexec)
 
-    if(DEFINED aot_args_ADDITIONAL_LINK_LIBRARIES)
+    if(DEFINED aot_args_LINK_LIBRARIES)
         target_link_libraries(
             ${EXECUTABLE_NAME}
             PRIVATE
-               ${aot_args_ADDITIONAL_LINK_LIBRARIES}
+               ${aot_args_LINK_LIBRARIES}
         )
     endif()
 
@@ -108,6 +108,7 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
+add_subdirectory(ArborX)
 if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
     add_subdirectory(cuda)
 endif()

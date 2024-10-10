@@ -1,0 +1,4 @@
+[submodule "external/ArborX"]
+	path = external/ArborX
+	url = https://github.com/romintomasetti/ArborX
+	branch = graph
