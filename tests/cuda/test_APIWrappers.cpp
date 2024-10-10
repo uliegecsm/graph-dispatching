@@ -36,6 +36,12 @@ TEST(APIWrappers, stream)
     ASSERT_GT(stream_id, 0u);
 }
 
+//! @test Check that @ref tests::cuda::View is default constructible.
+TEST(APIWrappers, view_default_constructible)
+{
+    const View<double> data {};
+}
+
 //! @test Check that @ref tests::cuda::View construct does not crash.
 TEST(APIWrappers, view_constructor)
 {
