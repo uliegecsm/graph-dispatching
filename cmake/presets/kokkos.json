@@ -43,6 +43,14 @@
                 "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
                 "Kokkos_ARCH_VOLTA70"          : "ON"
             }
+        },
+        {
+            "name"           : "gcc-HPX-Cuda",
+            "inherits"       : "gcc-Cuda",
+            "cacheVariables" : {
+                "Kokkos_ENABLE_HPX"    : "ON",
+                "Kokkos_ENABLE_OPENMP" : "OFF"
+            }
         }
     ],
     "buildPresets" : [
@@ -69,6 +77,11 @@
         {
             "name"            : "gcc-Cuda",
             "configurePreset" : "gcc-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "gcc-HPX-Cuda",
+            "configurePreset" : "gcc-HPX-Cuda",
             "inherits"        : "default"
         }
     ]
