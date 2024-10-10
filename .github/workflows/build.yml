@@ -25,7 +25,7 @@ jobs:
 
     build-images:
         needs: [set-vars]
-        runs-on: ${{ fromJSON(matrix.runs-on || '["ubuntu-latest"]') }}
+        runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
         container:
             image: ${{ matrix.builder || 'docker:latest' }}
         permissions:
@@ -39,22 +39,18 @@ jobs:
                       compiler_family: gcc
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : OpenMP
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : Cuda
                       compiler_family: gcc
                       base_image     : nvidia/cuda:12.6.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64']"
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
