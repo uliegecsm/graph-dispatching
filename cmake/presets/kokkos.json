@@ -43,6 +43,13 @@
                 "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
                 "Kokkos_ARCH_VOLTA70"          : "ON"
             }
+        },
+        {
+            "name"           : "clang-Cuda",
+            "inherits"       : "gcc-Cuda",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "clang++"
+            }
         }
     ],
     "buildPresets" : [
@@ -69,6 +76,11 @@
         {
             "name"            : "gcc-Cuda",
             "configurePreset" : "gcc-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-Cuda",
+            "configurePreset" : "clang-Cuda",
             "inherits"        : "default"
         }
     ]

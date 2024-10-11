@@ -47,11 +47,13 @@ define_property(GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC
 )
 
 #---- Compilers like nvcc cannot compile stdexec.
-if(CUDA IN_LIST Kokkos_DEVICES AND NOT ENABLE_DOXYGEN)
+if(Kokkos_CXX_COMPILER_ID STREQUAL NVIDIA AND NOT ENABLE_DOXYGEN)
     set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS OFF)
 else()
     set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS ON)
 endif()
+
+message(STATUS "Kokkos_CXX_COMPILER_ID is '${Kokkos_CXX_COMPILER_ID}', so GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS is set to '${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS}'.")
 
 #---- Testing.
 enable_testing()

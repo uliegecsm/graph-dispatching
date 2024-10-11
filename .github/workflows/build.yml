@@ -57,6 +57,10 @@ jobs:
                       platforms      : linux/arm64
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                       builder        : sarouman.meca.ulg.ac.be:5000/trilinos-container/builder:ubuntu22.04-latest-arm64
+                    - backend        : Cuda
+                      compiler_family: clang
+                      base_image     : nvidia/cuda:12.6.1-devel-ubuntu24.04
+                      platforms      : linux/amd64
         steps:
             - uses: actions/checkout@v4
 
@@ -92,6 +96,9 @@ jobs:
                       compiler_family: clang
                     - backend        : Cuda
                       compiler_family: gcc
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                    - backend        : Cuda
+                      compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}

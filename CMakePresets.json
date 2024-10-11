@@ -39,6 +39,15 @@
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }
+        },
+        {
+            "name"           : "clang-Cuda",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER"      : "clang++",
+                "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
+            }
         }
     ],
     "buildPresets" : [
@@ -65,6 +74,11 @@
         {
             "name"            : "gcc-Cuda",
             "configurePreset" : "gcc-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-Cuda",
+            "configurePreset" : "clang-Cuda",
             "inherits"        : "default"
         }
     ],
@@ -98,6 +112,11 @@
         {
             "name"            : "gcc-Cuda",
             "configurePreset" : "gcc-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-Cuda",
+            "configurePreset" : "clang-Cuda",
             "inherits"        : "default"
         }
     ]
