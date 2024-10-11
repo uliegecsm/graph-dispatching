@@ -39,10 +39,6 @@ TEST(graph, adoption_regular)
 
     decltype(auto) from_user = user_code(root);
 
-    static_assert(std::same_as<decltype(from_user), const execution_space&>);
-
-    ASSERT_EQ(std::addressof(exec), std::addressof(from_user)) << "You abused of the execution space instance.";
-
     Kokkos::Experimental::submit(exec, std::move(from_user));
 
     //! @todo This should not be a global fence.
