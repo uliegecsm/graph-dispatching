@@ -2,7 +2,9 @@
     "version"   : 3,
     "configurePresets" : [
         {
+            // Configuration common to all available presets.
             "name"           : "default",
+            "hidden"         : true,
             "binaryDir"      : "${sourceDir}/build-with-${presetName}",
             "cacheVariables" : {
                 "CMAKE_BUILD_TYPE"     : "Release",
@@ -10,46 +12,63 @@
                 "CMAKE_CXX_EXTENSIONS" : "OFF",
                 "BUILD_SHARED_LIBS"    : "ON",
                 "CMAKE_C_COMPILER"     : "should-not-be-needed",
-                "CMAKE_CXX_COMPILER"   : "g++",
                 "Kokkos_ENABLE_SERIAL" : "ON",
-                "Kokkos_ENABLE_OPENMP" : "ON",
                 "Kokkos_ENABLE_TESTS"  : "OFF"
             }
         },
         {
+            // Inherit from this preset to use the gcc compiler family.
+            "name"           : "gcc",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
+        },
+        {
+            // Inherit from this preset to use the clang compiler family.
+            "name"           : "clang",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
+        },
+        {
+            // Inherit from this preset to use the OpenMP backend.
+            "name"           : "OpenMP",
+            "hidden"         : true,
+            "cacheVariables" : {"Kokkos_ENABLE_OPENMP" : "ON"}
+        },
+        {
+            // Inherit from this preset to use the HPX backend.
+            "name"           : "HPX",
+            "hidden"         : true,
+            "cacheVariables" : {"Kokkos_ENABLE_HPX" : "ON"}
+        },
+        {
+            // Inherit from this preset to use the Cuda backend.
+            "name"           : "Cuda",
+            "hidden"         : true,
+            "cacheVariables" : {
+                    "Kokkos_ENABLE_CUDA"           : "ON",
+                    "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
+                    "Kokkos_ARCH_VOLTA70"          : "ON"
+            }
+        },
+        {
             "name"     : "gcc-OpenMP",
-            "inherits" : "default"
+            "inherits" : ["default", "gcc", "OpenMP"]
         },
         {
-            "name"           : "clang-OpenMP",
-            "inherits"       : "default",
-            "cacheVariables" : {
-                "CMAKE_CXX_COMPILER" : "clang++"
-            }
+            "name"     : "clang-OpenMP",
+            "inherits" : ["default", "clang", "OpenMP"]
         },
         {
-            "name"           : "clang-HPX",
-            "inherits"       : "clang-OpenMP",
-            "cacheVariables" : {
-                "Kokkos_ENABLE_HPX"    : "ON",
-                "Kokkos_ENABLE_OPENMP" : "OFF"
-            }
+            "name"     : "clang-HPX",
+            "inherits" : ["default", "clang", "HPX"]
         },
         {
-            "name"           : "gcc-Cuda",
-            "inherits"       : "default",
-            "cacheVariables" : {
-                "Kokkos_ENABLE_CUDA"           : "ON",
-                "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
-                "Kokkos_ARCH_VOLTA70"          : "ON"
-            }
+            "name"     : "gcc-Cuda",
+            "inherits" : ["default", "gcc", "Cuda"]
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : "gcc-Cuda",
-            "cacheVariables" : {
-                "CMAKE_CXX_COMPILER" : "clang++"
-            }
+            "inherits"       : ["default", "clang", "Cuda"]
         }
     ],
     "buildPresets" : [
