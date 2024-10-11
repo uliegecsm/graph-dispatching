@@ -2,49 +2,69 @@
     "version"   : 3,
     "configurePresets" : [
         {
-            "name"          : "default",
-            "binaryDir"     : "${sourceDir}/build-with-${presetName}",
+            // Configuration common to all available presets.
+            "name"           : "default",
+            "hidden"         : true,
+            "binaryDir"      : "${sourceDir}/build-with-${presetName}",
             "cacheVariables" : {
                 "CMAKE_BUILD_TYPE"     : "Release",
                 "CMAKE_CXX_STANDARD"   : "20",
                 "CMAKE_CXX_EXTENSIONS" : "OFF",
-                "CMAKE_CXX_COMPILER"   : "g++"
+                "CMAKE_C_COMPILER"     : "should-not-be-needed"
+            },
+            "warnings" : {
+                "uninitialized" : true,
+                "unusedCli"     : true
+            },
+            "errors": {
+                "dev"        : true,
+                "deprecated" : true
             }
         },
         {
+            // Inherit from this preset to use the gcc compiler family.
+            "name"           : "gcc",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
+        },
+        {
+            // Inherit from this preset to use the clang compiler family.
+            "name"           : "clang",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
+        },
+        {
             "name"           : "gcc-OpenMP",
-            "inherits"       : "default",
+            "inherits"       : ["default", "gcc"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-OpenMP",
-            "inherits"       : "default",
+            "inherits"       : ["default", "clang"],
             "cacheVariables" : {
-                "CMAKE_CXX_COMPILER"      : "clang++",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-HPX",
-            "inherits"       : "clang-OpenMP",
+            "inherits"       : ["default", "clang"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX"
             }
         },
         {
             "name"           : "gcc-Cuda",
-            "inherits"       : "default",
+            "inherits"       : ["default", "gcc"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : "default",
+            "inherits"       : ["default", "clang"],
             "cacheVariables" : {
-                "CMAKE_CXX_COMPILER"      : "clang++",
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }
