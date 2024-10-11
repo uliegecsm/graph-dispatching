@@ -3,7 +3,7 @@
 
 #include "tests/IgnoreWarnings.hpp"
 
-#include "tests/graph/Kokkos_Graph_Execution.hpp"
+#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
 namespace tests::graph::adoption
 {

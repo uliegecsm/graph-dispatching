@@ -57,6 +57,7 @@ message(STATUS "Kokkos_CXX_COMPILER_ID is '${Kokkos_CXX_COMPILER_ID}', so GRAPH_
 
 #---- Testing.
 enable_testing()
+add_subdirectory(kokkos_ext)
 add_subdirectory(tests)
 
 #---- Documentation.
