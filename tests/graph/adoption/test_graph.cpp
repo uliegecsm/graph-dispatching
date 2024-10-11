@@ -34,8 +34,6 @@ TEST(graph, adoption_graph)
 
     decltype(auto) from_user = user_code(root);
 
-    static_assert(Kokkos::Impl::is_specialization_of<decltype(from_user), Kokkos::Experimental::GraphNodeRef>::value);
-
     Kokkos::Experimental::graph::submit(exec, std::move(from_user));
 
     //! @todo This should not be a global fence.

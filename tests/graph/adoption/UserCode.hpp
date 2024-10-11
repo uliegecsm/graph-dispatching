@@ -27,8 +27,7 @@ decltype(auto) user_code(Sender&& input)
               << Kokkos::Impl::demangle(typeid(decltype(input)).name())
               << std::endl;
 
-    //! @todo The execution space (instance) should come from the input sender ?
-    using policy_t = Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>;
+    using policy_t = Kokkos::RangePolicy<typename std::remove_cvref_t<Sender>::execution_space>;
 
     PRAGMA_DIAGNOSTIC_PUSH
     PRAGMA_DIAGNOSTIC_IGNORED_DANGLING_REFERENCE

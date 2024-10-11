@@ -93,6 +93,8 @@ constexpr decltype(auto) parallel(const Tag, Policy&& policy, Functor&& functor)
 template <typename Exec>
 struct ChainHandler
 {
+    using execution_space = Exec;
+
     using graph_t = Kokkos::Experimental::Graph<Exec>;
     using root_t  = decltype(Kokkos::Impl::GraphAccess::create_root_ref(std::declval<graph_t&>()));
 
