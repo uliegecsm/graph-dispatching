@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
-#include "tests/graph/Kokkos_Graph_Execution.hpp"
+#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
+
 #include "tests/graph/complex_dag/Helpers.hpp"
 
 /**
