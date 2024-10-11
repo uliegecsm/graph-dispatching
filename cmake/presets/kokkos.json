@@ -64,11 +64,15 @@
         },
         {
             "name"     : "gcc-Cuda",
-            "inherits" : ["default", "gcc", "Cuda"]
+            "inherits" : ["default", "gcc", "OpenMP", "Cuda"]
         },
         {
-            "name"           : "clang-Cuda",
-            "inherits"       : ["default", "clang", "Cuda"]
+            "name"     : "clang-Cuda",
+            "inherits" : ["default", "clang", "OpenMP", "Cuda"]
+        },
+        {
+            "name"     : "clang-HPX-Cuda",
+            "inherits" : ["default", "clang", "HPX", "Cuda"]
         }
     ],
     "buildPresets" : [
@@ -100,6 +104,11 @@
         {
             "name"            : "clang-Cuda",
             "configurePreset" : "clang-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX-Cuda",
+            "configurePreset" : "clang-HPX-Cuda",
             "inherits"        : "default"
         }
     ]
