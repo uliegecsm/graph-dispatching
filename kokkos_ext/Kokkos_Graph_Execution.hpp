@@ -8,6 +8,7 @@
 #include "Kokkos_Graph.hpp"
 
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
+#include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 
 /**
  * @file
@@ -29,7 +30,6 @@ namespace graph
 
 namespace details
 {
-
 
 template <typename Sender, typename PA>
 constexpr decltype(auto) operator|(Sender&& input, PA&& partial) {
@@ -64,6 +64,11 @@ struct ChainHandler
     decltype(auto) then_parallel_for(Args&&... args) const {
         return root.then_parallel_for(std::forward<Args>(args)...);
     }
+
+    template <typename... Args>
+    decltype(auto) then_parallel_reduce(Args&&... args) const {
+        return root.then_parallel_reduce(std::forward<Args>(args)...);
+    }
 };
 
 } // namespace details
@@ -94,6 +99,17 @@ constexpr decltype(auto) parallel_for(Policy&& policy, Functor&& functor)
     return details::parallel<Kokkos::ParallelForTag>(
         std::forward<Policy>(policy),
         std::forward<Functor>(functor)
+    );
+}
+
+//! Pipable @c Kokkos parallel-reduce, with partially-specified algorithm.
+template <typename Policy, typename Functor, typename Reducer>
+constexpr decltype(auto) parallel_reduce(Policy&& policy, Functor&& functor, Reducer&& reducer)
+{
+    return details::parallel<Kokkos::ParallelReduceTag>(
+        std::forward<Policy>(policy),
+        std::forward<Functor>(functor),
+        std::forward<Reducer>(reducer)
     );
 }
 
