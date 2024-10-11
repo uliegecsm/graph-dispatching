@@ -1,5 +1,5 @@
-#ifndef GRAPH_DISPATCHING_TESTS_GRAPH_KOKKOS_GRAPH_EXECUTION_HPP
-#define GRAPH_DISPATCHING_TESTS_GRAPH_KOKKOS_GRAPH_EXECUTION_HPP
+#ifndef GRAPH_DISPATCHING_KOKKOS_EXT_KOKKOS_GRAPH_EXECUTION_HPP
+#define GRAPH_DISPATCHING_KOKKOS_EXT_KOKKOS_GRAPH_EXECUTION_HPP
 
 #include <concepts>
 #include <functional>
@@ -133,20 +133,6 @@ constexpr decltype(auto) split() {
     return std::identity{};
 }
 
-/**
- * @name Parallel-for redirections.
- */
-///@{
-//! Regular @c Kokkos parallel-for with fully-specified algorithm.
-template <typename Sender, typename Policy, typename Functor>
-constexpr decltype(auto) parallel_for(Sender&& input, Policy&& policy, Functor&& functor)
-{
-    return std::forward<Sender>(input).then_parallel_for(
-        std::forward<Policy>(policy),
-        std::forward<Functor>(functor)
-    );
-}
-
 //! Pipable @c Kokkos parallel-for, with partially-specified algorithm.
 template <typename Policy, typename Functor>
 constexpr decltype(auto) parallel_for(Policy&& policy, Functor&& functor)
@@ -157,7 +143,6 @@ constexpr decltype(auto) parallel_for(Policy&& policy, Functor&& functor)
         std::forward<Functor>(functor)
     );
 }
-///@}
 
 /**
  * @brief Submit a graph-based sender.
@@ -210,4 +195,4 @@ decltype(auto) when_all(Exec&& exec, Args&&... args)
 
 } // namespace Kokkos::Experimental
 
-#endif // GRAPH_DISPATCHING_TESTS_GRAPH_KOKKOS_GRAPH_EXECUTION_HPP
+#endif // GRAPH_DISPATCHING_KOKKOS_EXT_KOKKOS_GRAPH_EXECUTION_HPP
