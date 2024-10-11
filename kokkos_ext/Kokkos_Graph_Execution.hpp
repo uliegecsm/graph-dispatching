@@ -7,6 +7,8 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
+
 /**
  * @file
  *
@@ -28,54 +30,6 @@ namespace graph
 namespace details
 {
 
-/// @todo This constraint ain't clear but should support the case of chaining
-///       without an underlying @c Kokkos::Graph.
-template <typename Sender>
-concept is_graph_sender = ! Kokkos::is_execution_space_v<Sender>;
-
-/**
- * @brief Helper for piping support.
- *
- * Before the @c operator| is called, we have a *partial* algorithm because we
- * don't know the *parent* yet.
- */
-template <typename Tag, typename Policy, typename Functor>
-struct PartialAlgorithm
-{
-    Tag tag;
-    Policy policy;
-    Functor functor;
-
-    template <typename Sender> requires (
-        std::same_as<Tag, Kokkos::ParallelForTag> &&
-        is_graph_sender<std::remove_reference_t<Sender>>
-    )
-    decltype(auto) operator()(Sender&& input)
-    {
-        return std::forward<Sender>(input).then_parallel_for(
-            std::move(policy),
-            std::move(functor)
-        );
-    }
-
-    /// Case of input sender being a @c Kokkos execution space instance.
-    /// We do eager execution, to get as close as possible from what a user currently
-    /// expects with vanilla @c Kokkos code.
-    template <typename Sender> requires (
-        std::same_as<Tag, Kokkos::ParallelForTag> &&
-        ! is_graph_sender<std::remove_reference_t<Sender>>
-    )
-    decltype(auto) operator()(Sender&& exec)
-    {
-        /// @todo The policy should be modified to ensure we run the kernel on the given
-        ///       execution space instance. This is currently not possible.
-        Kokkos::parallel_for(
-            std::move(policy),
-            std::move(functor)
-        );
-        return std::forward<Sender>(exec);
-    }
-};
 
 template <typename Sender, typename PA>
 constexpr decltype(auto) operator|(Sender&& input, PA&& partial) {
@@ -83,10 +37,10 @@ constexpr decltype(auto) operator|(Sender&& input, PA&& partial) {
 }
 
 //! Pipable @c parallel whatever.
-template <typename Tag, typename Policy, typename Functor>
-constexpr decltype(auto) parallel(const Tag, Policy&& policy, Functor&& functor)
+template <typename Tag, typename... Args>
+constexpr decltype(auto) parallel(Args&&... args)
 {
-    return PartialAlgorithm(Tag{}, std::forward<Policy>(policy), std::forward<Functor>(functor));
+    return PartialAlgorithm<Tag, Args...>(std::forward<Args>(args)...);
 }
 
 //! Helper class to avoid exposing @c Kokkos::Graph itself to the user.
@@ -137,8 +91,7 @@ constexpr decltype(auto) split() {
 template <typename Policy, typename Functor>
 constexpr decltype(auto) parallel_for(Policy&& policy, Functor&& functor)
 {
-    return details::parallel(
-        Kokkos::ParallelForTag{},
+    return details::parallel<Kokkos::ParallelForTag>(
         std::forward<Policy>(policy),
         std::forward<Functor>(functor)
     );
