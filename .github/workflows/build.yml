@@ -61,6 +61,10 @@ jobs:
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.6.1-devel-ubuntu24.04
                       platforms      : linux/amd64
+                    - backend        : HPX-Cuda
+                      compiler_family: clang
+                      base_image     : nvidia/cuda:12.6.1-devel-ubuntu24.04
+                      platforms      : linux/amd64
         steps:
             - uses: actions/checkout@v4
 
