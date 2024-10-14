@@ -103,6 +103,9 @@ function(add_one_test)
     list(APPEND TEST_COMMAND $<TARGET_FILE:${EXECUTABLE_NAME}>)
     add_test(NAME ${EXECUTABLE_NAME} COMMAND ${TEST_COMMAND})
 
+    # Ensure that GTest will shuffle the tests.
+    set_property(TEST ${EXECUTABLE_NAME} APPEND PROPERTY ENVIRONMENT "GTEST_SHUFFLE=1")
+    set_property(TEST ${EXECUTABLE_NAME} APPEND PROPERTY ENVIRONMENT "GTEST_RANDOM_SEED=0")
 endfunction()
 
 #---- Common test object library.
