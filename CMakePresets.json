@@ -68,6 +68,14 @@
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }
+        },
+        {
+            "name"           : "clang-HPX-Cuda",
+            "inherits"       : ["default", "clang"],
+            "cacheVariables" : {
+                "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX;CUDA"
+            }
         }
     ],
     "buildPresets" : [
@@ -99,6 +107,11 @@
         {
             "name"            : "clang-Cuda",
             "configurePreset" : "clang-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX-Cuda",
+            "configurePreset" : "clang-HPX-Cuda",
             "inherits"        : "default"
         }
     ],
@@ -137,6 +150,11 @@
         {
             "name"            : "clang-Cuda",
             "configurePreset" : "clang-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "clang-HPX-Cuda",
+            "configurePreset" : "clang-HPX-Cuda",
             "inherits"        : "default"
         }
     ]
