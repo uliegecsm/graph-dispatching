@@ -1,16 +1,6 @@
 #---- Helpers.
 include(${CMAKE_SOURCE_DIR}/cmake/functions/path.cmake)
 
-#---- Find GTest.
-string(JSON GTest_REQUIRED_VERSION GET "${VERSION_JSON}" dependencies googletest value)
-
-find_package(
-    GTest
-    ${GTest_REQUIRED_VERSION}
-    CONFIG
-    REQUIRED
-)
-
 #---- Function to add a test.
 function(add_one_test)
 

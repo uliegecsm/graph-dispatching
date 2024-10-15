@@ -55,6 +55,18 @@ endif()
 
 message(STATUS "Kokkos_CXX_COMPILER_ID is '${Kokkos_CXX_COMPILER_ID}', so GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS is set to '${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS}'.")
 
+#---- Find GTest.
+#     Note that we need GTest targets in both the 'docs' and 'tests' subdirectories,
+#     so we search for it here.
+string(JSON GTest_REQUIRED_VERSION GET "${VERSION_JSON}" dependencies googletest value)
+
+find_package(
+    GTest
+    ${GTest_REQUIRED_VERSION}
+    CONFIG
+    REQUIRED
+)
+
 #---- Testing.
 enable_testing()
 add_subdirectory(kokkos_ext)

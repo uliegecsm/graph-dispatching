@@ -1,0 +1,136 @@
+#include "gtest/gtest.h"
+
+#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
+
+/**
+ * @addtogroup unittests
+ *
+ * @c Kokkos extensions for graph-compatible parallel-reduce construct
+ * -------------------------------------------------------------------
+ *
+ * This group of tests check that @ref Kokkos_Graph_Execution.hpp effectively
+ * makes it possible to use a parallel-reduce construct in a templated code in either
+ * graph or execution space instance mode transparently.
+ *
+ * The tests can be found in @ref kokkos_ext/test_parallel_reduce.cpp.
+ */
+
+using execution_space = Kokkos::DefaultExecutionSpace;
+using memory_space    = typename Kokkos::DefaultExecutionSpace::memory_space;
+
+namespace tests::kokkos_ext
+{
+
+template <typename ViewType>
+struct MyDummyFunctor
+{
+    ViewType data;
+
+    template <std::integral T, typename R>
+    KOKKOS_FUNCTION
+    void operator()(const T index, R& current) const {
+        current += data(index);
+    }
+};
+
+//! Dummy function that can be transparently used with graph or execution space instance.
+template <typename Sender, typename ViewType, typename ReducerType>
+decltype(auto) my_function(Sender&& sender, const ViewType& data, ReducerType&& reducer)
+{
+    using policy_t = Kokkos::RangePolicy<typename std::remove_reference_t<Sender>::execution_space>;
+
+    return std::forward<Sender>(sender) | Kokkos::Experimental::graph::parallel_reduce(
+        policy_t(0, data.size()),
+        MyDummyFunctor{.data = data},
+        std::forward<ReducerType>(reducer)
+    );
+}
+
+class ParallelReduceTest : public ::testing::Test
+{
+public:
+    static constexpr size_t size = 2<<9;
+
+    using view_t = Kokkos::View<const int[size], memory_space>;
+
+    using result_t = typename view_t::non_const_value_type;
+
+public:
+    void SetUp() override
+    {
+        this->execs = Kokkos::Experimental::partition_space(execution_space {}, 1, 1);
+
+        typename view_t::non_const_type tmp(Kokkos::view_alloc("data", Kokkos::WithoutInitializing, execs.at(0)));
+        Kokkos::parallel_for(
+            "IOTA for the data",
+            Kokkos::RangePolicy(execs.at(0), 0, size),
+            KOKKOS_LAMBDA(const int index) { tmp(index) = index; }
+        );
+        this->data = std::move(tmp);
+        execs.at(0).fence("Ensure that the setup is finished before running the test.");
+    }
+protected:
+    std::vector<execution_space> execs;
+    view_t                       data;
+};
+
+//! Call @ref tests::kokkos_ext::my_function with a given reducer in @p __mem__ targeting @p __target__, scheduled on @p __on__.
+#define CALL_FUNCTION(__on__, __mem__, __target__) \
+    using sum_t = Kokkos::Sum<result_t, __mem__>;  \
+    decltype(auto) tail = my_function(             \
+        __on__, data,                              \
+        sum_t(__target__));
+
+/**
+ * @test Check the execution space instance mode for the parallel-reduce construct.
+ *
+ * @note It is fine to build the reduction target view from the host scalar. In fact, this is even required
+ *       for this test to be semantically legal. Indeed, since @ref Kokkos::Experimental::graph::details::PartialAlgorithm
+ *       cannot modify the policy to pass it the execution space instance, relying on the reduction target
+ *       being a scalar ensures that @c Kokkos will internally fence before returning control flow.
+ */
+TEST_F(ParallelReduceTest, exec)
+{
+    result_t reduced_sum = 0;
+    CALL_FUNCTION(execs.at(0), Kokkos::HostSpace, reduced_sum)
+
+    static_assert(std::same_as<decltype(tail), execution_space&>);
+
+    ASSERT_EQ(std::addressof(execs.at(0)), std::addressof(tail)) << "You abused of the execution space instance.";
+
+    Kokkos::Experimental::submit(execs.at(1), std::move(tail));
+
+    execs.at(1).fence("Ensure reduction is finished before checking the result.");
+    ASSERT_EQ(reduced_sum, size * (size - 1) / 2);
+}
+
+/**
+ * @test Check the graph mode for the parallel-reduce construct.
+ *
+ * @note Compared to @ref ParallelReduceTest_exec_Test, we must store the result in a device view
+ *       that is not built from a host pointer on our @c VOLTA70 machine.
+ *       For our @c AMPERE86 machine, it would be fine using the same approach as in @ref ParallelReduceTest_exec_Test
+ *       because it supports pageable memory access (see https://docs.nvidia.com/cuda/cuda-c-programming-guide/#system-requirements-for-unified-memory).
+ *       Note that it's probably through HMM, see https://developer.nvidia.com/blog/simplifying-gpu-application-development-with-heterogeneous-memory-management/.
+ *       See also https://gist.github.com/romintomasetti/b8472f574e1407096466e55aede8bfd7.
+ */
+TEST_F(ParallelReduceTest, graph)
+{
+    decltype(auto) root = Kokkos::Experimental::graph::create_graph(execs.at(0));
+
+    result_t reduced_sum = 0;
+    Kokkos::View<result_t, memory_space> reduction_result(Kokkos::view_alloc("reduction result on device", execs.at(0)));
+    CALL_FUNCTION(root, memory_space, reduction_result)
+
+    static_assert(Kokkos::Impl::is_specialization_of<decltype(tail), Kokkos::Experimental::GraphNodeRef>::value);
+
+    execs.at(0).fence("Ensure that the graph is ready to be submitted.");
+
+    Kokkos::Experimental::graph::submit(execs.at(1), std::move(tail));
+
+    Kokkos::deep_copy(execs.at(1), reduced_sum, reduction_result);
+    execs.at(1).fence();
+    ASSERT_EQ(reduced_sum, size * (size - 1) / 2);
+}
+
+} // namespace tests::kokkos_ext
