@@ -22,6 +22,9 @@
  * The functionalities can be found in @ref Kokkos_Graph_Execution.hpp.
  */
 
+//! Default label if none provided.
+#define DEFAULT_LABEL_IF_NONE_PROVIDED std::string("no label provided")
+
 namespace Kokkos::Experimental
 {
 
@@ -36,11 +39,16 @@ constexpr decltype(auto) operator|(Sender&& input, PA&& partial) {
     return std::invoke(std::forward<PA>(partial), std::forward<Sender>(input));
 }
 
-//! Pipable @c parallel whatever.
+/**
+ * @brief Pipable @c parallel whatever.
+ *
+ * @note We allow anything to be passed for the label, but it must be transformed to a
+ *       @c std::string ultimately. Moving a @c std::string should perfect-forward though.
+ */
 template <typename Tag, typename... Args>
-constexpr decltype(auto) parallel(Args&&... args)
+constexpr decltype(auto) parallel(std::string&& label, Args&&... args)
 {
-    return PartialAlgorithm<Tag, Args...>(std::forward<Args>(args)...);
+    return PartialAlgorithm<Tag, std::string, Args...>(std::move(label), std::forward<Args>(args)...);
 }
 
 //! Helper class to avoid exposing @c Kokkos::Graph itself to the user.
@@ -93,20 +101,45 @@ constexpr decltype(auto) split() {
 }
 
 //! Pipable @c Kokkos parallel-for, with partially-specified algorithm.
+template <typename Label, typename Policy, typename Functor>
+constexpr decltype(auto) parallel_for(Label&& label, Policy&& policy, Functor&& functor)
+{
+    return details::parallel<Kokkos::ParallelForTag>(
+        std::forward<Label>(label),
+        std::forward<Policy>(policy),
+        std::forward<Functor>(functor)
+    );
+}
+
+//! @overload
 template <typename Policy, typename Functor>
 constexpr decltype(auto) parallel_for(Policy&& policy, Functor&& functor)
 {
-    return details::parallel<Kokkos::ParallelForTag>(
+    return parallel_for(
+        DEFAULT_LABEL_IF_NONE_PROVIDED,
         std::forward<Policy>(policy),
         std::forward<Functor>(functor)
     );
 }
 
 //! Pipable @c Kokkos parallel-reduce, with partially-specified algorithm.
+template <typename Label, typename Policy, typename Functor, typename Reducer>
+constexpr decltype(auto) parallel_reduce(Label&& label, Policy&& policy, Functor&& functor, Reducer&& reducer)
+{
+    return details::parallel<Kokkos::ParallelReduceTag>(
+        std::forward<Label>(label),
+        std::forward<Policy>(policy),
+        std::forward<Functor>(functor),
+        std::forward<Reducer>(reducer)
+    );
+}
+
+//! @overload
 template <typename Policy, typename Functor, typename Reducer>
 constexpr decltype(auto) parallel_reduce(Policy&& policy, Functor&& functor, Reducer&& reducer)
 {
-    return details::parallel<Kokkos::ParallelReduceTag>(
+    return parallel_reduce(
+        DEFAULT_LABEL_IF_NONE_PROVIDED,
         std::forward<Policy>(policy),
         std::forward<Functor>(functor),
         std::forward<Reducer>(reducer)
