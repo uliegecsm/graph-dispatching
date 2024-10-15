@@ -34,18 +34,23 @@ struct MyDummyFunctor
 };
 
 //! Dummy function that can be transparently used with graph or execution space instance.
-template <typename Sender, typename ViewType, typename ReducerType>
+template <bool label, typename Sender, typename ViewType, typename ReducerType>
 decltype(auto) my_function(Sender&& sender, const ViewType& data, ReducerType&& reducer)
 {
     using policy_t = Kokkos::RangePolicy<typename std::remove_reference_t<Sender>::execution_space>;
 
-    return std::forward<Sender>(sender) | Kokkos::Experimental::graph::parallel_reduce(
-        policy_t(0, data.size()),
-        MyDummyFunctor{.data = data},
-        std::forward<ReducerType>(reducer)
-    );
+    #define MY_FUNCTION_CORE(...)                                                           \
+        return std::forward<Sender>(sender) | Kokkos::Experimental::graph::parallel_reduce( \
+            __VA_ARGS__ __VA_OPT__(,)                                                       \
+            policy_t(0, data.size()),                                                       \
+            MyDummyFunctor{.data = data},                                                   \
+            std::forward<ReducerType>(reducer)                                              \
+        );
+    if constexpr (label) MY_FUNCTION_CORE("this is a test parallel-reduce")
+    else                 MY_FUNCTION_CORE()
 }
 
+template <typename T>
 class ParallelReduceTest : public ::testing::Test
 {
 public:
@@ -74,11 +79,18 @@ protected:
     view_t                       data;
 };
 
+using ParallelReduceTestTypes = ::testing::Types<
+    std::integral_constant<bool, true>,
+    std::integral_constant<bool, false>
+>;
+
+TYPED_TEST_SUITE(ParallelReduceTest, ParallelReduceTestTypes);
+
 //! Call @ref tests::kokkos_ext::my_function with a given reducer in @p __mem__ targeting @p __target__, scheduled on @p __on__.
-#define CALL_FUNCTION(__on__, __mem__, __target__) \
-    using sum_t = Kokkos::Sum<result_t, __mem__>;  \
-    decltype(auto) tail = my_function(             \
-        __on__, data,                              \
+#define CALL_FUNCTION(__on__, __mem__, __target__)                      \
+    using sum_t = Kokkos::Sum<typename TestFixture::result_t, __mem__>; \
+    decltype(auto) tail = my_function<TypeParam::value>(                \
+        __on__, this->data,                                             \
         sum_t(__target__));
 
 /**
@@ -89,19 +101,20 @@ protected:
  *       cannot modify the policy to pass it the execution space instance, relying on the reduction target
  *       being a scalar ensures that @c Kokkos will internally fence before returning control flow.
  */
-TEST_F(ParallelReduceTest, exec)
+TYPED_TEST(ParallelReduceTest, exec)
 {
-    result_t reduced_sum = 0;
-    CALL_FUNCTION(execs.at(0), Kokkos::HostSpace, reduced_sum)
+    typename TestFixture::result_t reduced_sum = 0;
+    CALL_FUNCTION(this->execs.at(0), Kokkos::HostSpace, reduced_sum)
 
     static_assert(std::same_as<decltype(tail), execution_space&>);
 
-    ASSERT_EQ(std::addressof(execs.at(0)), std::addressof(tail)) << "You abused of the execution space instance.";
+    ASSERT_EQ(std::addressof(this->execs.at(0)), std::addressof(tail)) << "You abused of the execution space instance.";
 
-    Kokkos::Experimental::submit(execs.at(1), std::move(tail));
+    Kokkos::Experimental::submit(this->execs.at(1), std::move(tail));
 
-    execs.at(1).fence("Ensure reduction is finished before checking the result.");
-    ASSERT_EQ(reduced_sum, size * (size - 1) / 2);
+    this->execs.at(1).fence("Ensure reduction is finished before checking the result.");
+
+    ASSERT_EQ(reduced_sum, TestFixture::size * (TestFixture::size - 1) / 2);
 }
 
 /**
@@ -114,23 +127,23 @@ TEST_F(ParallelReduceTest, exec)
  *       Note that it's probably through HMM, see https://developer.nvidia.com/blog/simplifying-gpu-application-development-with-heterogeneous-memory-management/.
  *       See also https://gist.github.com/romintomasetti/b8472f574e1407096466e55aede8bfd7.
  */
-TEST_F(ParallelReduceTest, graph)
+TYPED_TEST(ParallelReduceTest, graph)
 {
-    decltype(auto) root = Kokkos::Experimental::graph::create_graph(execs.at(0));
+    decltype(auto) root = Kokkos::Experimental::graph::create_graph(this->execs.at(0));
 
-    result_t reduced_sum = 0;
-    Kokkos::View<result_t, memory_space> reduction_result(Kokkos::view_alloc("reduction result on device", execs.at(0)));
+    typename TestFixture::result_t reduced_sum = 0;
+    Kokkos::View<typename TestFixture::result_t, memory_space> reduction_result(Kokkos::view_alloc("reduction result on device", this->execs.at(0)));
     CALL_FUNCTION(root, memory_space, reduction_result)
 
     static_assert(Kokkos::Impl::is_specialization_of<decltype(tail), Kokkos::Experimental::GraphNodeRef>::value);
 
-    execs.at(0).fence("Ensure that the graph is ready to be submitted.");
+    this->execs.at(0).fence("Ensure that the graph is ready to be submitted.");
 
-    Kokkos::Experimental::graph::submit(execs.at(1), std::move(tail));
+    Kokkos::Experimental::graph::submit(this->execs.at(1), std::move(tail));
 
-    Kokkos::deep_copy(execs.at(1), reduced_sum, reduction_result);
-    execs.at(1).fence();
-    ASSERT_EQ(reduced_sum, size * (size - 1) / 2);
+    Kokkos::deep_copy(this->execs.at(1), reduced_sum, reduction_result);
+    this->execs.at(1).fence();
+    ASSERT_EQ(reduced_sum, TestFixture::size * (TestFixture::size - 1) / 2);
 }
 
 } // namespace tests::kokkos_ext
