@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "kokkos_ext/Algorithms.hpp"
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
 /**
@@ -66,11 +67,7 @@ public:
         this->execs = Kokkos::Experimental::partition_space(execution_space {}, 1, 1);
 
         typename view_t::non_const_type tmp(Kokkos::view_alloc("data", Kokkos::WithoutInitializing, execs.at(0)));
-        Kokkos::parallel_for(
-            "IOTA for the data",
-            Kokkos::RangePolicy(execs.at(0), 0, size),
-            KOKKOS_LAMBDA(const int index) { tmp(index) = index; }
-        );
+        KokkosExt::fill_sequence(execs.at(0), tmp, 0);
         this->data = std::move(tmp);
         execs.at(0).fence("Ensure that the setup is finished before running the test.");
     }
@@ -110,9 +107,9 @@ TYPED_TEST(ParallelReduceTest, exec)
 
     ASSERT_EQ(std::addressof(this->execs.at(0)), std::addressof(tail)) << "You abused of the execution space instance.";
 
-    Kokkos::Experimental::submit(this->execs.at(1), std::move(tail));
+    Kokkos::Experimental::submit(this->execs.at(0), std::move(tail));
 
-    this->execs.at(1).fence("Ensure reduction is finished before checking the result.");
+    this->execs.at(0).fence("Ensure reduction is finished before checking the result.");
 
     ASSERT_EQ(reduced_sum, TestFixture::size * (TestFixture::size - 1) / 2);
 }
@@ -144,6 +141,54 @@ TYPED_TEST(ParallelReduceTest, graph)
     Kokkos::deep_copy(this->execs.at(1), reduced_sum, reduction_result);
     this->execs.at(1).fence();
     ASSERT_EQ(reduced_sum, TestFixture::size * (TestFixture::size - 1) / 2);
+}
+
+#define CHECK_RESULT_AFTER_SUBMIT(__on__, __plus__)     \
+    {                                                   \
+        value_t tmp = 0;                                \
+        Kokkos::deep_copy(__on__, tmp, result);         \
+        exec.fence();                                   \
+        std::cout << tmp << std::endl;                  \
+        ASSERT_EQ(tmp, size * (size - 1) / 2 __plus__); \
+    }
+
+/**
+ * @test Submit the graph twice, and ensure that the reducer behaves correctly.
+ *
+ * This test seeks to ensure that the reducer value from the first submission will be "reset" (or overriden)
+ * during the second submission (they won't add up).
+ */
+TEST(ParallelReduce, submit_twice)
+{
+    constexpr size_t size = 2<<9;
+
+    using value_t = int;
+    using  view_t = Kokkos::View<value_t[size], memory_space>;
+
+    const execution_space exec {};
+
+    view_t data(Kokkos::view_alloc(Kokkos::WithoutInitializing, "data", exec));
+    KokkosExt::fill_sequence(exec, data, 0);
+
+    Kokkos::View<value_t, memory_space> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", exec));
+
+    decltype(auto) root = Kokkos::Experimental::graph::create_graph(exec);
+
+    decltype(auto) reduce = root | Kokkos::Experimental::graph::parallel_reduce(
+        Kokkos::RangePolicy<execution_space>(0, size),
+        MyDummyFunctor{.data = data},
+        Kokkos::Sum<value_t, memory_space>(result)
+    );
+
+    Kokkos::Experimental::graph::submit(exec, reduce);
+
+    CHECK_RESULT_AFTER_SUBMIT(exec,)
+
+    KokkosExt::fill_sequence(exec, data, 10);
+
+    Kokkos::Experimental::graph::submit(exec, reduce);
+
+    CHECK_RESULT_AFTER_SUBMIT(exec, + size * 10)
 }
 
 } // namespace tests::kokkos_ext
