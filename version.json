@@ -18,7 +18,7 @@
         "kokkos" : {
             "value"  : "4.4.99",
             "branch" : "develop",
-            "sha"    : "4e88587265240078b2d6d94261d118e7a4a15cea",
+            "sha"    : "f26de9909fdc2539e36bee54ce57638c3a1eb92a",
             "comment": "We want to build against the Kokkos develop branch. Providing a SHA is a convenient way to force image rebuild."
         },
         "nvidia" : {
