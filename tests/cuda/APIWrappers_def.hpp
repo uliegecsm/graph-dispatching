@@ -177,6 +177,52 @@ void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode
     ));
 }
 
+template <typename T>
+GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const Stream& stream)
+{
+    printf("> Creating a graph memory node of size %zu of %s (%s).\n", size, typeid(T).name(), __PRETTY_FUNCTION__);
+
+    //! Retrieve device ID from stream.
+    CUcontext context;
+    int device_id = -1;
+    CHECK_CALL(cudaError_t(cuStreamGetCtx(stream.stream, &context)));
+    CHECK_CALL(cudaError_t(cuCtxPushCurrent(context)));
+    CHECK_CALL(cudaError_t(cuCtxGetDevice(&device_id)));
+
+    /// See https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemAllocNodeParams.html#structcudaMemAllocNodeParams.
+    /// For the pool properties, see https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemPoolProps.html#structcudaMemPoolProps.
+    params.bytesize = size * sizeof(T);
+
+    params.poolProps.allocType     = cudaMemAllocationTypePinned;
+    params.poolProps.location.type = cudaMemLocationTypeDevice;
+    params.poolProps.location.id   = device_id;
+}
+
+template <typename T>
+void GraphNodeMemoryAllocation<T>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph memory allocation node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddMemAllocNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        &params
+    ));
+
+    this->ptr = static_cast<T*>(params.dptr);
+}
+
+void GraphNodeMemoryFree::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph memory free node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddMemFreeNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        ptr
+    ));
+}
+
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {

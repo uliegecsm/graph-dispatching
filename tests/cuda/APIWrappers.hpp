@@ -61,6 +61,9 @@ struct View
 
     View(const Stream& stream, const size_t size_);
 
+    //! Similar to @c Kokkos unmanaged view.
+    View(const size_t size_, T* buffer_) : size(size_), buffer(buffer_), owning(false) {}
+
     //! This is the simplest approach. The original view is the only one that owns and frees.
     View(const View& other) : size(other.size), buffer(other.buffer), owning(false) {}
 
@@ -168,6 +171,32 @@ struct GraphNodeHost : public GraphNode
 
     //! Callback that will be called by the backend during graph execution.
     static void driver(void* data);
+};
+
+//! Memory allocation node.
+template <typename T>
+struct GraphNodeMemoryAllocation : public GraphNode
+{
+    PREFIXED_API(MemAllocNodeParams) params {};
+
+    //! Address of the node memory allocation (with graph semantics for validity).
+    T* ptr = nullptr;
+
+    //! The @p stream is used to identify the resident device.
+    GraphNodeMemoryAllocation(const size_t size, const Stream& stream);
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
+};
+
+//! Memory deallocation node.
+struct GraphNodeMemoryFree : public GraphNode
+{
+    void* ptr = nullptr;
+
+    template <typename T>
+    GraphNodeMemoryFree(T* ptr_) : ptr(ptr_) {}
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 };
 
 //! Similar to @c Kokkos driver (local memory launch).
