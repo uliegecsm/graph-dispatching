@@ -1,13 +1,15 @@
 #ifndef GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_HPP
 #define GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_HPP
 
+#include <span>
+#include <vector>
+
 /**
  * @file
  *
  * This file contains wrappers for the @c Cuda API.
  *
  * @note It can easily be used for @c HIP as well, see @ref PREFIXED_API.
- * 
  */
 
 //! Same behavior as @c Kokkos conterpart.
@@ -25,17 +27,24 @@
     #error "You must enable HIP or Cuda."
 #endif
 
-//! Check the return code of an API call.
-#define CHECK_CALL(call)                                      \
-    {                                                         \
-        const auto error_code = call;                         \
-        if(error_code != PREFIXED_API(Success))               \
-        {                                                     \
-            printf("Failure of statement %s: %s\n", #call,    \
-                   PREFIXED_API(GetErrorString)(error_code)); \
-            std::abort();                                     \
-        }                                                     \
+#define CHECK_CALL_IMPL(call, success, get_error)               \
+    {                                                           \
+        const auto error_code = call;                           \
+        if(error_code != success)                               \
+        {                                                       \
+            printf("%s:%d: failure of statement %s: %s (%d)\n", \
+                __FUNCTION__, __LINE__,                         \
+                #call,                                          \
+                get_error(error_code), error_code);             \
+            std::abort();                                       \
+        }                                                       \
     }
+
+//! Check the return code of an API call.
+#define CHECK_CALL(call) CHECK_CALL_IMPL(call, PREFIXED_API(Success), PREFIXED_API(GetErrorString))
+
+//! Check the return code of a sparse API call (*e.g.* @c cuSPARSE).
+#define CHECK_SPARSE_CALL(call) CHECK_CALL_IMPL(call, CUSPARSE_STATUS_SUCCESS, cusparseGetErrorString)
 
 namespace tests::cuda
 {
@@ -67,8 +76,14 @@ struct View
     //! This is the simplest approach. The original view is the only one that owns and frees.
     View(const View& other) : size(other.size), buffer(other.buffer), owning(false) {}
 
+    //! Build a device view from a @c std::vector.
+    View(const Stream& stream, const std::span<const T>& values) requires ( ! std::same_as<T, void> );
+
     //! Get a host copy of the buffer.
-    auto get_host_copy(const Stream& stream) const;
+    std::vector<T> get_host_copy(const Stream& stream) const requires ( ! std::same_as<T, void> );
+
+    //! @overload
+    void get_host_copy(const Stream& stream, T* ptr) const;
 
     KOKKOS_FUNCTION
     auto& operator()(const unsigned int index) const { return buffer[index]; }
