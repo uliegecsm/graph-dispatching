@@ -13,21 +13,35 @@ void Stream::fence() const {
     CHECK_CALL(PREFIXED_API(StreamSynchronize)(stream));
 }
 
+//! If the type is @c void, its "size" is considered equal to 1.
+template <typename T>
+struct BufferSize
+{
+    static auto get(const size_t size) requires std::same_as<T, void> { return size; }
+    static auto get(const size_t size)                                { return size * sizeof(T); }
+};
+
 template <typename T>
 View<T>::View(const Stream& stream, const size_t size_) : size(size_), owning(true)
 {
-    const auto raw_size = size * sizeof(T);
-    printf("> Allocating data of size %zu, memset it to 0.\n", raw_size);
+    const auto raw_size = BufferSize<T>::get(size);
+    printf("> Allocating data of raw size %zu bytes, memset it to 0.\n", raw_size);
     CHECK_CALL(PREFIXED_API(MallocAsync)(&buffer,    raw_size, stream.stream));
     CHECK_CALL(PREFIXED_API(MemsetAsync)( buffer, 0, raw_size, stream.stream));
 }
 
 template <typename T>
-auto View<T>::get_host_copy(const Stream& stream) const
+std::vector<T> View<T>::get_host_copy(const Stream& stream) const requires ( ! std::same_as<T, void> )
 {
     std::vector<T> host_copy(size);
-    CHECK_CALL(PREFIXED_API(MemcpyAsync)(host_copy.data(), buffer, size * sizeof(T), PREFIXED_API(MemcpyDeviceToHost), stream.stream));
+    CHECK_CALL(PREFIXED_API(MemcpyAsync)(host_copy.data(), buffer, BufferSize<T>::get(size), PREFIXED_API(MemcpyDeviceToHost), stream.stream));
     return host_copy;
+}
+
+template <typename T>
+void View<T>::get_host_copy(const Stream& stream, T* ptr) const
+{
+    CHECK_CALL(PREFIXED_API(MemcpyAsync)(ptr, buffer, BufferSize<T>::get(size), PREFIXED_API(MemcpyDeviceToHost), stream.stream));
 }
 
 template <typename T>
@@ -35,9 +49,18 @@ View<T>::~View()
 {
     if(owning)
     {
-        printf("> Deallocating data of size %zu at %p.\n", size, buffer);
+        printf("> Deallocation of buffer of raw size %zu bytes at %p.\n", BufferSize<T>::get(size), buffer);
         CHECK_CALL(PREFIXED_API(Free)(buffer));
     }
+}
+
+template <typename T>
+View<T>::View(const Stream& stream, const std::span<const T>& values) requires ( ! std::same_as<T, void> ) : size(values.size()), owning(true)
+{
+    const auto raw_size = BufferSize<T>::get(size);
+    printf("> Allocating data of raw size %zu bytes, memset it to values of a std::vector at %p.\n", raw_size, values.data());
+    CHECK_CALL(PREFIXED_API(MallocAsync)(&buffer, raw_size, stream.stream));
+    CHECK_CALL(PREFIXED_API(MemcpyAsync)(buffer, values.data(), raw_size, PREFIXED_API(MemcpyHostToDevice), stream.stream));
 }
 
 Graph::Graph()
