@@ -2,9 +2,8 @@
 
 #include "gtest/gtest.h"
 
-#include "cusparse.h"
-
 #include "tests/cuda/APIWrappers_def.hpp"
+#include "tests/cuda/APIWrappers_sparse.hpp"
 #include "tests/cuda/Helpers.hpp"
 
 /**
@@ -13,108 +12,267 @@
  * Graph capture
  * -------------
  *
- * This test shows how one can combine "regular" graph definition and graph capture, following
+ * This group of tests show how one can combine "regular" graph definition and graph capture, following
  * a modified version of the @c cuSPARSE example at
  * https://github.com/NVIDIA/CUDALibrarySamples/blob/5cd2c16eb63ca861a34faaf099c1a9e80a500d56/cuSPARSE/graph_capture/graph_capture_example.c.
  *
- * The test can be found in @ref cuda/test_graph_capture.cpp.
+ * In @ref tests::cuda::Mode::SINGLE mode, the captured nodes are embedded directly into the main application graph.
+ * In @ref tests::cuda::Mode::SUBGRAPH mode, the captured nodes are added to a separated graph, that is later on grafted
+ * to the main application graph.
+ *
+ * Both modes are valid, but @ref tests::cuda::Mode::SINGLE requires a bit more plumbing to connect the main application
+ * to the captured nodes.
+ *
+ * The tests can be found in @ref cuda/test_graph_capture.cpp.
  */
 
 namespace tests::cuda
 {
 
-namespace sparse
-{
+//! Check that @p __node__ is of type @p __type__.
+#define EXPECT_NODE_TYPE_EQ(__node__, __type__)                           \
+    {                                                                     \
+        PREFIXED_API(GraphNodeType) node_type;                            \
+        CHECK_CALL(PREFIXED_API(GraphNodeGetType)(__node__, &node_type)); \
+        EXPECT_EQ(node_type, cudaGraphNodeType##__type__);                \
+    }
 
-struct Handle
+enum class Mode
 {
-    cusparseHandle_t handle = nullptr;
-    Handle()  { CHECK_SPARSE_CALL(cusparseCreate(&handle)); }
-    ~Handle() { CHECK_SPARSE_CALL(cusparseDestroy(handle)); }
-    void set_stream(const Stream& stream) const { CHECK_SPARSE_CALL(cusparseSetStream(handle, stream.stream)); }
+    SINGLE,  //!< Embed the external library call directly into the main application graph.
+    SUBGRAPH //!< Embed the external library call as a subgraph into the main application graph.
 };
 
-struct SparseVectorDescriptor
+class GraphCaptureTest : public ::testing::Test
 {
-    cusparseSpVecDescr_t descr = nullptr;
-    ~SparseVectorDescriptor() { CHECK_SPARSE_CALL(cusparseDestroySpVec(descr)); }
-};
-
-struct DenseVectorDescriptor
-{
-    cusparseDnVecDescr_t descr = nullptr;
-    ~DenseVectorDescriptor() { CHECK_SPARSE_CALL(cusparseDestroyDnVec(descr)); }
-};
-
-} // namespace sparse
-
-//! @test Use graph capture with @c cuSPARSE. The captured nodes are directly added to the main graph.
-TEST(cuda, graph_capture)
-{
+public:
     using value_t   = double;
     using view_t    = View<value_t>;
     using functor_t = MyFunctor<view_t>;
 
-    constexpr size_t size = 5;
+    using buffer_t = View<void>;
 
+    static constexpr size_t size = 5;
+
+public:
+    void SetUp() override
+    {
+        //! Create data on device.
+        this->dense_val  = view_t    (stream, std::array{0., 1., 2., 3., 4.});
+        this->sparse_val = view_t    (stream, std::array{1., 2., 3., 4., 5.});
+        this->sparse_ind = View<int> (stream, std::array{0 , 1 , 2 , 3 , 4 });
+
+        ASSERT_EQ(dense_val .size, size);
+        ASSERT_EQ(sparse_val.size, size);
+        ASSERT_EQ(sparse_ind.size, size);
+
+        //! Initialize @c cuSPARSE descriptors.
+        sparse_descr = sparse::SparseVectorDescriptor<value_t>(sparse_val, sparse_ind);
+        dense_descr  = sparse::DenseVectorDescriptor <value_t>(dense_val);
+
+        //! Allocate buffer memory for @c cusparseSpVV.
+        size_t buffer_size = 0;
+        CHECK_SPARSE_CALL(cusparseSpVV_bufferSize(
+            handle.handle,
+            CUSPARSE_OPERATION_NON_TRANSPOSE,
+            sparse_descr.descr, dense_descr.descr,
+            &result,
+            sparse::DataType<value_t>::type,
+            &buffer_size
+        ));
+
+        //! Check buffer size. It's used for the result of @c cusparseSpVV (see @ref result).
+        ASSERT_EQ(buffer_size, sizeof(value_t));
+        this->buffer = buffer_t(stream, buffer_size);
+    }
+
+    //! Debug print @p graph.
+    void print(const Graph& graph) const
+    {
+        const std::string test_name = std::string(::testing::UnitTest::GetInstance()->current_test_suite()->name())
+                                                + '_'
+                                                + ::testing::UnitTest::GetInstance()->current_test_info()->name();
+        const auto        file_name = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / (test_name + ".dot");
+
+        printf("> Writing graph as DOT in %s.\n", file_name.c_str());
+
+        graph.print(file_name.c_str(), cudaGraphDebugDotFlagsVerbose);
+    }
+
+    /// Check content of the graph (its topology).
+    /// Since the @ref result is on host, there will be a @c memcpy
+    /// node (added by @c cusparseSpVV) in addition to the kernel nodes.
+    template <Mode mode>
+    auto check_topology(const Graph& graph) const;
+
+    /// Check value of @ref result (sum of squares of natural numbers).
+    /// Check content of the dense vector @ref dense_val (2 kernels have atomically add one to each element).
+    void check_results() const
+    {
+        ASSERT_EQ(result, size * (size + 1) * (2 * size + 1) / 6);
+
+        ASSERT_EQ(dense_val.get_host_copy(stream), (std::vector<value_t>{2., 3., 4., 5., 6.}));
+    }
+
+    /// Ensure that the buffer was used to store the result of the dot product on device, and
+    /// that the @c memcpy node used it to transfer to the host.
+    template <Mode mode, typename T>
+    void check_buffer(const T& nodes) const
+    {
+        value_t buffer_value;
+        buffer.get_host_copy(stream, &buffer_value);
+
+        ASSERT_EQ(buffer_value, result);
+
+        cudaMemcpy3DParms node_memcpy_params;
+        if constexpr (mode == Mode::SINGLE) {
+            CHECK_CALL(PREFIXED_API(GraphMemcpyNodeGetParams)(nodes.at(2), &node_memcpy_params));
+        } else {
+            //! In @ref Mode::SUBGRAPH mode, we need to retrieve the @c memcpy node from the child graph node.
+            Graph graph(nullptr);
+            CHECK_CALL(PREFIXED_API(GraphChildGraphNodeGetGraph)(nodes.at(1), &graph.graph));
+
+            std::array<PREFIXED_API(GraphNode_t), 2> child_graph_nodes;
+            size_t num_nodes = 2;
+            CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, child_graph_nodes.data(), &num_nodes)));
+
+            CHECK_CALL(PREFIXED_API(GraphMemcpyNodeGetParams)(child_graph_nodes.at(1), &node_memcpy_params));
+        }
+
+        ASSERT_EQ(node_memcpy_params.dstPtr.ptr, &result);
+        ASSERT_EQ(node_memcpy_params.srcPtr.ptr, buffer.buffer);
+    }
+
+    //! Create the graph and its first node.
+    std::tuple<Graph, functor_t, GraphNodeKernel<functor_t>> create_graph() const
+    {
+        Graph graph;
+
+        functor_t functor{.data = dense_val};
+        GraphNodeKernel node(functor, size);
+        node.add(graph);
+
+        return {std::move(graph), std::move(functor), std::move(node)};
+    }
+
+    /// Add one last node, that follows the captured nodes.
+    /// Once the graph is defined, instantiate it, submit it and check everything.
+    template <Mode mode>
+    void run(const Graph& graph, const GraphNode& captured) const
+    {
+        functor_t functor_end{.data = dense_val};
+        GraphNodeKernel node_end(functor_end, size);
+        node_end.add(graph, {captured});
+
+        this->print(graph);
+
+        const auto nodes = this->check_topology<mode>(graph);
+
+        GraphExecutable graph_exec(graph);
+
+        graph_exec.submit(stream);
+
+        this->check_results();
+
+        this->check_buffer<mode>(nodes);
+    }
+
+    //! Call @c cusparseSpVV on @p stream.
+    void cusparseSpVV(const Stream& stream)
+    {
+        handle.set_stream(stream);
+
+        CHECK_SPARSE_CALL(::cusparseSpVV(
+            handle.handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            sparse_descr.descr, dense_descr.descr,
+            &result, sparse::DataType<value_t>::type,
+            buffer.buffer
+        ));
+    }
+
+protected:
     Stream stream;
 
-    //! Create data on device.
-    view_t    dense_val (stream, std::array{0., 1., 2., 3., 4.});
-    view_t    sparse_val(stream, std::array{1., 2., 3., 4., 5.});
-    View<int> sparse_ind(stream, std::array{0 , 1 , 2 , 3 , 4 });
+    sparse::Handle handle; //!< @c cuSPARSE handle.
 
-    ASSERT_EQ(dense_val .size, size);
-    ASSERT_EQ(sparse_val.size, size);
-    ASSERT_EQ(sparse_ind.size, size);
+    view_t    dense_val;  //!< Dense vector values.
+    view_t    sparse_val; //!< Sparse vector values.
+    View<int> sparse_ind; //!< Sparse vector indices.
 
-    //! Placeholder for the result.
-    value_t result = 0.;
+    sparse::SparseVectorDescriptor<value_t> sparse_descr;
+    sparse::DenseVectorDescriptor <value_t> dense_descr;
 
-    //! Create a @c cuSPARSE handle.
-    sparse::Handle handle;
+    buffer_t buffer; //!< Buffer that will be used by @c cusparseSpVV.
 
-    //! Describe vectors to @c cuSPARSE.
-    sparse::SparseVectorDescriptor sparse_descr;
-    sparse::DenseVectorDescriptor  dense_descr;
+    value_t result = 0.; //!< Placeholder for the result of @c cusparseSpVV.
+};
 
-    CHECK_SPARSE_CALL(cusparseCreateSpVec(
-        &sparse_descr.descr,
-        size, size, sparse_ind.buffer, sparse_val.buffer,
-        CUSPARSE_INDEX_32I,
-        CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F
-    ));
-    CHECK_SPARSE_CALL(cusparseCreateDnVec(
-        &dense_descr.descr,
-        size, dense_val.buffer,
-        CUDA_R_64F
-    ));
+template <>
+auto GraphCaptureTest::check_topology<Mode::SINGLE>(const Graph& graph) const
+{
+    size_t num_nodes = 0;
+    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nullptr, &num_nodes)));
+    EXPECT_EQ(num_nodes, 4);
 
-    //! Allocate buffer memory for @c cusparseSpVV.
-    size_t buffer_size = 0;
-    CHECK_SPARSE_CALL(cusparseSpVV_bufferSize(
-        handle.handle,
-        CUSPARSE_OPERATION_NON_TRANSPOSE,
-        sparse_descr.descr, dense_descr.descr,
-        &result,
-        CUDA_R_64F,
-        &buffer_size
-    ));
-    View<void> buffer(stream, buffer_size);
+    std::array<PREFIXED_API(GraphNode_t), 4> nodes;
+    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
 
-    //! Check buffer size. It's used for the result of @c cusparseSpVV (see below).
-    ASSERT_EQ(buffer_size, 8);
+    EXPECT_NODE_TYPE_EQ(nodes.at(0), Kernel);
+    EXPECT_NODE_TYPE_EQ(nodes.at(1), Kernel);
+    EXPECT_NODE_TYPE_EQ(nodes.at(2), Memcpy);
+    EXPECT_NODE_TYPE_EQ(nodes.at(3), Kernel);
 
-    //! Create the graph.
-    Graph graph;
+    size_t num_edges = 0;
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
+    EXPECT_EQ(num_edges, 3);
 
-    //! Add a node "in a regular way".
-    functor_t functor{.data = dense_val};
-    GraphNodeKernel node(functor, size);
-    node.add(graph);
+    std::array<PREFIXED_API(GraphNode_t), 3> edges_from, edges_to;
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
 
-    //! Enable graph capture, telling the capture logic where to add captured nodes.
-    handle.set_stream(stream);
+    EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
+    EXPECT_EQ(edges_from.at(1), nodes.at(1)); EXPECT_EQ(edges_to.at(1), nodes.at(2));
+    EXPECT_EQ(edges_from.at(2), nodes.at(2)); EXPECT_EQ(edges_to.at(2), nodes.at(3));
+
+    return nodes;
+}
+
+template <>
+auto GraphCaptureTest::check_topology<Mode::SUBGRAPH>(const Graph& graph) const
+{
+    size_t num_nodes = 0;
+    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nullptr, &num_nodes)));
+    EXPECT_EQ(num_nodes, 3);
+
+    std::array<PREFIXED_API(GraphNode_t), 3> nodes;
+    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
+
+    EXPECT_NODE_TYPE_EQ(nodes.at(0), Kernel);
+    EXPECT_NODE_TYPE_EQ(nodes.at(1), Graph );
+    EXPECT_NODE_TYPE_EQ(nodes.at(2), Kernel);
+
+    size_t num_edges = 0;
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
+    EXPECT_EQ(num_edges, 2);
+
+    std::array<PREFIXED_API(GraphNode_t), 2> edges_from, edges_to;
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
+
+    EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
+    EXPECT_EQ(edges_from.at(1), nodes.at(1)); EXPECT_EQ(edges_to.at(1), nodes.at(2));
+
+    return nodes;
+}
+
+//! Check that the @p __stream__ status is @p __status__.
+#define CHECK_STREAM_CAPTURE_STATUS(__stream__, __status__)                            \
+    PREFIXED_API(StreamCaptureStatus) stream_capturing = cudaStreamCaptureStatusNone;  \
+    CHECK_CALL(PREFIXED_API(StreamIsCapturing)(__stream__.stream, &stream_capturing)); \
+    ASSERT_EQ(stream_capturing, cudaStreamCaptureStatus##__status__);
+
+//! @test Use graph capture with @c cuSPARSE. The captured nodes are directly added to the main graph.
+TEST_F(GraphCaptureTest, into_main_graph_directly)
+{
+    auto [graph, functor, node] = this->create_graph();
 
     const std::vector<cudaGraphNode_t> dependencies {node.node};
     CHECK_CALL(PREFIXED_API(StreamBeginCaptureToGraph)(
@@ -123,17 +281,9 @@ TEST(cuda, graph_capture)
         PREFIXED_API(StreamCaptureModeGlobal)
     ));
 
-    //! Check that the stream status is "actively capturing".
-    PREFIXED_API(StreamCaptureStatus) stream_capturing = cudaStreamCaptureStatusNone;
-    CHECK_CALL(PREFIXED_API(StreamIsCapturing)(stream.stream, &stream_capturing));
-    ASSERT_EQ(stream_capturing, cudaStreamCaptureStatusActive);
+    CHECK_STREAM_CAPTURE_STATUS(stream, Active);
 
-    //! Add @c cuSPARSE call to the graph.
-    CHECK_SPARSE_CALL(cusparseSpVV(
-        handle.handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-        sparse_descr.descr, dense_descr.descr,
-        &result, CUDA_R_64F, buffer.buffer
-    ));
+    this->cusparseSpVV(stream);
 
     //! Get the "tail node of captured graph branch" before stopping the capture, so we can add nodes later on.
     const cudaGraphNode_t* capture_dependencies_out_nodes = nullptr;
@@ -148,74 +298,32 @@ TEST(cuda, graph_capture)
     ASSERT_EQ(stream_capturing, cudaStreamCaptureStatusActive);
     ASSERT_EQ(capture_dependencies_out_count, 1);
 
-    //! Stop graph capture.
     CHECK_CALL(PREFIXED_API(StreamEndCapture)(stream.stream, &graph.graph));
 
-    //! Add one last node, that follows the captured nodes.
-    GraphNode node_capture_out {.node = capture_dependencies_out_nodes[0] };
-    functor_t functor_end{.data = dense_val};
-    GraphNodeKernel node_end(functor_end, size);
-    node_end.add(graph, {node_capture_out});
+    this->run<Mode::SINGLE>(graph, GraphNode {.node = capture_dependencies_out_nodes[0]});
+}
 
-    /// Check content of the graph.
-    /// Since the result is on host, there will be a @c memcpy node in addition to the kernel nodes.
-    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_graph_capture.dot").c_str(), cudaGraphDebugDotFlagsVerbose);
+/**
+ * @test Similar to @ref GraphCaptureTest_into_main_graph_directly_Test, but the captured nodes are added to a
+ *       subgraph that will be grafted to the main graph.
+ */
+TEST_F(GraphCaptureTest, as_a_subgraph)
+{
+    auto [graph, functor, node] = this->create_graph();
 
-    size_t num_nodes = 0;
-    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nullptr, &num_nodes)));
-    ASSERT_EQ(num_nodes, 4);
+    CHECK_CALL(PREFIXED_API(StreamBeginCapture)(stream.stream, PREFIXED_API(StreamCaptureModeGlobal)));
 
-    std::array<PREFIXED_API(GraphNode_t), 4> nodes;
-    CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
+    CHECK_STREAM_CAPTURE_STATUS(stream, Active);
 
-    PREFIXED_API(GraphNodeType) node_type;
+    this->cusparseSpVV(stream);
 
-    CHECK_CALL(PREFIXED_API(GraphNodeGetType)(nodes.at(0), &node_type));
-    ASSERT_EQ(node_type, cudaGraphNodeTypeKernel);
+    Graph library(nullptr);
 
-    CHECK_CALL(PREFIXED_API(GraphNodeGetType)(nodes.at(1), &node_type));
-    ASSERT_EQ(node_type, cudaGraphNodeTypeKernel);
+    CHECK_CALL(PREFIXED_API(StreamEndCapture)(stream.stream, &library.graph));
 
-    CHECK_CALL(PREFIXED_API(GraphNodeGetType)(nodes.at(2), &node_type));
-    ASSERT_EQ(node_type, cudaGraphNodeTypeMemcpy);
+    const auto library_as_node = library.add(graph, {node});
 
-    CHECK_CALL(PREFIXED_API(GraphNodeGetType)(nodes.at(3), &node_type));
-    ASSERT_EQ(node_type, cudaGraphNodeTypeKernel);
-
-    size_t num_edges = 0;
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
-    ASSERT_EQ(num_edges, 3);
-
-    std::array<PREFIXED_API(GraphNode_t), 3> edges_from, edges_to;
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
-
-    ASSERT_EQ(edges_from.at(0), nodes.at(0)); ASSERT_EQ(edges_to.at(0), nodes.at(1));
-    ASSERT_EQ(edges_from.at(1), nodes.at(1)); ASSERT_EQ(edges_to.at(1), nodes.at(2));
-    ASSERT_EQ(edges_from.at(2), nodes.at(2)); ASSERT_EQ(edges_to.at(2), nodes.at(3));
-
-    //! Instantiate and submit.
-    GraphExecutable graph_exec(graph);
-
-    graph_exec.submit(stream);
-
-    //! Check result (sum of squares of natural numbers).
-    ASSERT_EQ(result, size * (size + 1) * (2 * size + 1) / 6);
-
-    //! Check content of the dense vector (2 kernels have atomically add one to each element).
-    ASSERT_EQ(dense_val.get_host_copy(stream), (std::vector<value_t>{2., 3., 4., 5., 6.}));
-
-    /// Ensure that the buffer was used to store the result of the dot product on device, and
-    /// that the @c memcpy node used it to transfer to the host.
-    value_t buffer_value;
-    buffer.get_host_copy(stream, &buffer_value);
-
-    ASSERT_EQ(buffer_value, result);
-
-    cudaMemcpy3DParms node_memcpy_params;
-    CHECK_CALL(PREFIXED_API(GraphMemcpyNodeGetParams)(nodes.at(2), &node_memcpy_params));
-
-    ASSERT_EQ(node_memcpy_params.dstPtr.ptr, &result);
-    ASSERT_EQ(node_memcpy_params.srcPtr.ptr, buffer.buffer);
+    this->run<Mode::SUBGRAPH>(graph, library_as_node);
 }
 
 } // namespace tests::cuda

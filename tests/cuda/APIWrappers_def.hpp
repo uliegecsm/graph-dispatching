@@ -31,6 +31,16 @@ View<T>::View(const Stream& stream, const size_t size_) : size(size_), owning(tr
 }
 
 template <typename T>
+View<T>& View<T>::operator=(View<T>&& other)
+{
+    this->size   = other.size;
+    this->buffer = other.buffer;
+    this->owning = other.owning;
+    if(other.owning) other.owning = false;
+    return *this;
+}
+
+template <typename T>
 std::vector<T> View<T>::get_host_copy(const Stream& stream) const requires ( ! std::same_as<T, void> )
 {
     std::vector<T> host_copy(size);
@@ -78,7 +88,7 @@ Graph::~Graph()
     }
 }
 
-void Graph::print(const char* path, const unsigned int flags)
+void Graph::print(const char* path, const unsigned int flags) const
 {
     CHECK_CALL(cudaGraphDebugDotPrint(graph, path, flags));
 }

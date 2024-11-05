@@ -43,9 +43,6 @@
 //! Check the return code of an API call.
 #define CHECK_CALL(call) CHECK_CALL_IMPL(call, PREFIXED_API(Success), PREFIXED_API(GetErrorString))
 
-//! Check the return code of a sparse API call (*e.g.* @c cuSPARSE).
-#define CHECK_SPARSE_CALL(call) CHECK_CALL_IMPL(call, CUSPARSE_STATUS_SUCCESS, cusparseGetErrorString)
-
 namespace tests::cuda
 {
 //! Wrapper for a stream.
@@ -72,6 +69,9 @@ struct View
 
     //! Similar to @c Kokkos unmanaged view.
     View(const size_t size_, T* buffer_) : size(size_), buffer(buffer_), owning(false) {}
+
+    //! Move-assignment operator. @note We need to set the @p other to non-owning to ensure it won't free the @ref buffer.
+    View& operator=(View&& other);
 
     //! This is the simplest approach. The original view is the only one that owns and frees.
     View(const View& other) : size(other.size), buffer(other.buffer), owning(false) {}
@@ -102,14 +102,17 @@ struct GraphNode
 //! Wrapper for a graph.
 struct Graph
 {
-    PREFIXED_API(Graph_t) graph;
+    PREFIXED_API(Graph_t) graph = nullptr;
     bool owning = true;
 
     Graph();
 
     Graph(const PREFIXED_API(Graph_t) graph_) : graph(graph_), owning(false) {}
 
-    void print(const char* path, const unsigned int flags);
+    //! Move constructor. @note We need to set the @p other to non-owning to ensure it won't free the @ref graph.
+    Graph(Graph&& other) : graph(other.graph), owning(other.owning) { if(other.owning) other.owning = false; }
+
+    void print(const char* path, const unsigned int flags) const;
 
     //! Add this graph as a subgraph of @c other.
     [[nodiscard]] GraphNode add(const Graph& other, const std::vector<GraphNode>& ancestors = {}) const;
@@ -120,7 +123,7 @@ struct Graph
 //! Wrapper for an executable graph.
 struct GraphExecutable
 {
-    PREFIXED_API(GraphExec_t) graph_exec;
+    PREFIXED_API(GraphExec_t) graph_exec = nullptr;
 
     GraphExecutable(const Graph& graph);
 
