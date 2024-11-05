@@ -91,6 +91,14 @@ struct View
     ~View();
 };
 
+//! Wrapper for a graph node.
+struct GraphNode
+{
+    PREFIXED_API(GraphNode_t) node = nullptr;
+
+    static std::vector<PREFIXED_API(GraphNode_t)> transform_to_impl(const std::vector<GraphNode>& ancestors = {});
+};
+
 //! Wrapper for a graph.
 struct Graph
 {
@@ -103,15 +111,10 @@ struct Graph
 
     void print(const char* path, const unsigned int flags);
 
+    //! Add this graph as a subgraph of @c other.
+    [[nodiscard]] GraphNode add(const Graph& other, const std::vector<GraphNode>& ancestors = {}) const;
+
     ~Graph();
-};
-
-//! Wrapper for a graph node.
-struct GraphNode
-{
-    PREFIXED_API(GraphNode_t) node = nullptr;
-
-    auto transform_to_impl(const std::vector<GraphNode>& ancestors = {});
 };
 
 //! Wrapper for an executable graph.
