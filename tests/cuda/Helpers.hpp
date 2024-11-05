@@ -4,14 +4,19 @@
 namespace tests::cuda
 {
 
-template <typename view_t>
+template <typename view_t, bool Atomic = true>
 struct MyFunctor
 {
     view_t data;
 
     KOKKOS_FUNCTION
-    void operator()(const unsigned int index) const {
+    void operator()(const unsigned int index) const  requires Atomic {
         atomicAdd(&data(index), 1);
+    }
+
+    KOKKOS_FUNCTION
+    void operator()(const unsigned int index) const requires ( !Atomic ) {
+        ++data(index);
     }
 };
 

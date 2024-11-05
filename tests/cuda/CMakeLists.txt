@@ -9,6 +9,7 @@ add_one_test(NAME graph_capture  COMPILE_DEFINITIONS GRAPH_DISPATCHING_ENABLE_CU
 add_one_test(NAME host_node      COMPILE_DEFINITIONS GRAPH_DISPATCHING_ENABLE_CUDA LAUNCHER compute-sanitizer ADD_BINARY_DIR)
 add_one_test(NAME memory_node    COMPILE_DEFINITIONS GRAPH_DISPATCHING_ENABLE_CUDA LAUNCHER compute-sanitizer ADD_BINARY_DIR)
 add_one_test(NAME node_enable    COMPILE_DEFINITIONS GRAPH_DISPATCHING_ENABLE_CUDA LAUNCHER compute-sanitizer ADD_BINARY_DIR)
+add_one_test(NAME subgraph       COMPILE_DEFINITIONS GRAPH_DISPATCHING_ENABLE_CUDA LAUNCHER compute-sanitizer ADD_BINARY_DIR)
 
 # Jobs that enable Doxygen might not have 'CUDA::cusparse' available.
 if(TARGET CUDA::cusparse)

@@ -48,7 +48,7 @@ struct DenseVectorDescriptor
 
 } // namespace sparse
 
-//! @test Use graph capture with @c cuSPARSE.
+//! @test Use graph capture with @c cuSPARSE. The captured nodes are directly added to the main graph.
 TEST(cuda, graph_capture)
 {
     using value_t   = double;

@@ -83,6 +83,22 @@ void Graph::print(const char* path, const unsigned int flags)
     CHECK_CALL(cudaGraphDebugDotPrint(graph, path, flags));
 }
 
+GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors) const
+{
+    GraphNode child;
+
+    const auto ancestors_impl = GraphNode::transform_to_impl(ancestors);
+
+    CHECK_CALL(PREFIXED_API(GraphAddChildGraphNode)(
+        &child.node,
+        other.graph,
+        ancestors.size() > 0 ? ancestors_impl.data() : nullptr, ancestors.size(),
+        this->graph
+    ));
+
+    return child;
+}
+
 GraphExecutable::GraphExecutable(const Graph& graph)
 {
     printf("> Instantiating an executable graph from %p.\n", graph.graph);
@@ -105,7 +121,7 @@ void GraphExecutable::submit(const Stream& stream)
     CHECK_CALL(PREFIXED_API(GraphLaunch)(graph_exec, stream.stream));
 }
 
-auto GraphNode::transform_to_impl(const std::vector<GraphNode>& ancestors)
+std::vector<PREFIXED_API(GraphNode_t)> GraphNode::transform_to_impl(const std::vector<GraphNode>& ancestors)
 {
     std::vector<PREFIXED_API(GraphNode_t)> ancestors_impl(ancestors.size());
 
