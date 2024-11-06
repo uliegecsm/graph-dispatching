@@ -46,9 +46,10 @@ enum class Mode
 class GraphCaptureTest : public ::testing::Test
 {
 public:
-    using value_t   = double;
-    using view_t    = View<value_t>;
-    using functor_t = MyFunctor<view_t>;
+    using value_t       = double;
+    using dense_view_t  = View<value_t>;
+    using sparse_view_t = sparse::View<value_t>;
+    using functor_t     = MyFunctor<dense_view_t>;
 
     using buffer_t = View<void>;
 
@@ -58,17 +59,19 @@ public:
     void SetUp() override
     {
         //! Create data on device.
-        this->dense_val  = view_t    (stream, std::array{0., 1., 2., 3., 4.});
-        this->sparse_val = view_t    (stream, std::array{1., 2., 3., 4., 5.});
-        this->sparse_ind = View<int> (stream, std::array{0 , 1 , 2 , 3 , 4 });
+        this->dense  = dense_view_t(stream, std::array{0., 1., 2., 3., 4.});
+        this->sparse = sparse_view_t {
+            .indices = View<int>   (stream, std::array{0 , 1 , 2 , 3 , 4 }),
+            .values  = dense_view_t(stream, std::array{1., 2., 3., 4., 5.})
+        };
 
-        ASSERT_EQ(dense_val .size, size);
-        ASSERT_EQ(sparse_val.size, size);
-        ASSERT_EQ(sparse_ind.size, size);
+        ASSERT_EQ(dense         .size, size);
+        ASSERT_EQ(sparse.indices.size, size);
+        ASSERT_EQ(sparse.values .size, size);
 
         //! Initialize @c cuSPARSE descriptors.
-        sparse_descr = sparse::SparseVectorDescriptor<value_t>(sparse_val, sparse_ind);
-        dense_descr  = sparse::DenseVectorDescriptor <value_t>(dense_val);
+        sparse_descr = sparse::SparseVectorDescriptor<value_t>(sparse);
+        dense_descr  = sparse::DenseVectorDescriptor <value_t>(dense);
 
         //! Allocate buffer memory for @c cusparseSpVV.
         size_t buffer_size = 0;
@@ -106,12 +109,12 @@ public:
     auto check_topology(const Graph& graph) const;
 
     /// Check value of @ref result (sum of squares of natural numbers).
-    /// Check content of the dense vector @ref dense_val (2 kernels have atomically add one to each element).
+    /// Check content of the dense vector @ref dense (2 kernels have atomically add one to each element).
     void check_results() const
     {
         ASSERT_EQ(result, size * (size + 1) * (2 * size + 1) / 6);
 
-        ASSERT_EQ(dense_val.get_host_copy(stream), (std::vector<value_t>{2., 3., 4., 5., 6.}));
+        ASSERT_EQ(dense.get_host_copy(stream), (std::vector<value_t>{2., 3., 4., 5., 6.}));
     }
 
     /// Ensure that the buffer was used to store the result of the dot product on device, and
@@ -148,7 +151,7 @@ public:
     {
         Graph graph;
 
-        functor_t functor{.data = dense_val};
+        functor_t functor{.data = dense};
         GraphNodeKernel node(functor, size);
         node.add(graph);
 
@@ -160,7 +163,7 @@ public:
     template <Mode mode>
     void run(const Graph& graph, const GraphNode& captured) const
     {
-        functor_t functor_end{.data = dense_val};
+        functor_t functor_end{.data = dense};
         GraphNodeKernel node_end(functor_end, size);
         node_end.add(graph, {captured});
 
@@ -195,9 +198,8 @@ protected:
 
     sparse::Handle handle; //!< @c cuSPARSE handle.
 
-    view_t    dense_val;  //!< Dense vector values.
-    view_t    sparse_val; //!< Sparse vector values.
-    View<int> sparse_ind; //!< Sparse vector indices.
+    dense_view_t  dense;  //!< Dense view.
+    sparse_view_t sparse; //!< Sparse view.
 
     sparse::SparseVectorDescriptor<value_t> sparse_descr;
     sparse::DenseVectorDescriptor <value_t> dense_descr;
@@ -263,12 +265,6 @@ auto GraphCaptureTest::check_topology<Mode::SUBGRAPH>(const Graph& graph) const
     return nodes;
 }
 
-//! Check that the @p __stream__ status is @p __status__.
-#define CHECK_STREAM_CAPTURE_STATUS(__stream__, __status__)                            \
-    PREFIXED_API(StreamCaptureStatus) stream_capturing = cudaStreamCaptureStatusNone;  \
-    CHECK_CALL(PREFIXED_API(StreamIsCapturing)(__stream__.stream, &stream_capturing)); \
-    ASSERT_EQ(stream_capturing, cudaStreamCaptureStatus##__status__);
-
 //! @test Use graph capture with @c cuSPARSE. The captured nodes are directly added to the main graph.
 TEST_F(GraphCaptureTest, into_main_graph_directly)
 {
@@ -281,13 +277,15 @@ TEST_F(GraphCaptureTest, into_main_graph_directly)
         PREFIXED_API(StreamCaptureModeGlobal)
     ));
 
-    CHECK_STREAM_CAPTURE_STATUS(stream, Active);
+    ASSERT_TRUE(stream.capturing());
 
     this->cusparseSpVV(stream);
 
     //! Get the "tail node of captured graph branch" before stopping the capture, so we can add nodes later on.
     const cudaGraphNode_t* capture_dependencies_out_nodes = nullptr;
     size_t capture_dependencies_out_count = 0;
+
+    PREFIXED_API(StreamCaptureStatus) stream_capturing = cudaStreamCaptureStatusNone;
 
     CHECK_CALL(cudaStreamGetCaptureInfo_v3(
         stream.stream, &stream_capturing, nullptr,
@@ -313,7 +311,7 @@ TEST_F(GraphCaptureTest, as_a_subgraph)
 
     CHECK_CALL(PREFIXED_API(StreamBeginCapture)(stream.stream, PREFIXED_API(StreamCaptureModeGlobal)));
 
-    CHECK_STREAM_CAPTURE_STATUS(stream, Active);
+    ASSERT_TRUE(stream.capturing());
 
     this->cusparseSpVV(stream);
 

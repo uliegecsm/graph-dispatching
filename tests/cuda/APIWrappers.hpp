@@ -33,7 +33,7 @@
         if(error_code != success)                               \
         {                                                       \
             printf("%s:%d: failure of statement %s: %s (%d)\n", \
-                __FUNCTION__, __LINE__,                         \
+                __FILE__, __LINE__,                             \
                 #call,                                          \
                 get_error(error_code), error_code);             \
             std::abort();                                       \
@@ -49,10 +49,17 @@ namespace tests::cuda
 struct Stream
 {
     PREFIXED_API(Stream_t) stream;
+    bool owning = true;
 
     Stream();
 
+    Stream(const PREFIXED_API(Stream_t) stream_) : stream(stream_), owning(false) {}
+
+    ~Stream();
+
     void fence() const;
+
+    bool capturing() const;
 };
 
 //! Wrapper for a view over data.
