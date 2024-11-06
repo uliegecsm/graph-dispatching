@@ -7,8 +7,8 @@ function(add_one_test)
     cmake_parse_arguments(
         aot_args
         "DISABLE_KOKKOS;ADD_BINARY_DIR"
-        "NAME;ENABLE;LAUNCHER"
-        "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS"
+        "NAME;ENABLE"
+        "ADDITIONAL_LINK_LIBRARIES;COMPILE_DEFINITIONS;LAUNCHER"
         ${ARGN}
     )
 

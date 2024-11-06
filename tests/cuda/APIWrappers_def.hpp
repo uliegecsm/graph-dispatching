@@ -9,8 +9,19 @@ Stream::Stream() {
     CHECK_CALL(PREFIXED_API(StreamCreateWithFlags)(&stream, PREFIXED_API(StreamNonBlocking)));
 }
 
+Stream::~Stream() {
+    if(owning) CHECK_CALL(PREFIXED_API(StreamDestroy)(stream));
+}
+
 void Stream::fence() const {
     CHECK_CALL(PREFIXED_API(StreamSynchronize)(stream));
+}
+
+bool Stream::capturing() const
+{
+    PREFIXED_API(StreamCaptureStatus) status = cudaStreamCaptureStatusNone;
+    CHECK_CALL(PREFIXED_API(StreamIsCapturing)(stream, &status));
+    return status == PREFIXED_API(StreamCaptureStatusActive);
 }
 
 //! If the type is @c void, its "size" is considered equal to 1.

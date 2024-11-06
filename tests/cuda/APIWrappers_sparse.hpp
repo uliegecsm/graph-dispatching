@@ -11,7 +11,14 @@
 namespace tests::cuda::sparse
 {
 
-//! Wrapper for @c cusparseHandle_t.
+/**
+ * @brief Wrapper for @c cusparseHandle_t.
+ *
+ * @warning As of @c Cuda 12.6, trying to create a handle while stream capturing is activated results in an initialization error:
+ *          @code
+ *          On entry to cusparseCreate(): CUDA context cannot be initialized
+ *          @endcode
+ */
 struct Handle
 {
     cusparseHandle_t handle = nullptr;
@@ -20,6 +27,14 @@ struct Handle
     ~Handle() { CHECK_SPARSE_CALL(cusparseDestroy(handle)); }
 
     void set_stream(const Stream& stream) const { CHECK_SPARSE_CALL(cusparseSetStream(handle, stream.stream)); }
+};
+
+//! Small helper to deal with a sparse view defined by the non-zero indices and their values.
+template <typename T>
+struct View
+{
+    ::tests::cuda::View<int> indices;
+    ::tests::cuda::View<T>   values;
 };
 
 template <typename T>
@@ -37,11 +52,11 @@ struct SparseVectorDescriptor
 
     SparseVectorDescriptor() = default;
 
-    SparseVectorDescriptor(const View<T>& values, const View<int>& indices) : owning(true)
+    SparseVectorDescriptor(const View<T>& data) : owning(true)
     {
         CHECK_SPARSE_CALL(cusparseCreateSpVec(
             &this->descr,
-            values.size, indices.size, indices.buffer, values.buffer,
+            data.values.size, data.indices.size, data.indices.buffer, data.values.buffer,
             CUSPARSE_INDEX_32I,
             CUSPARSE_INDEX_BASE_ZERO, DataType<T>::type
         ));
@@ -67,7 +82,7 @@ struct DenseVectorDescriptor
 
     DenseVectorDescriptor() = default;
 
-    DenseVectorDescriptor(const View<T>& values) : owning(true)
+    DenseVectorDescriptor(const ::tests::cuda::View<T>& values) : owning(true)
     {
         CHECK_SPARSE_CALL(cusparseCreateDnVec(
             &this->descr,
