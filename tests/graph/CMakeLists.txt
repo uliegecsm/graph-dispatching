@@ -1,4 +1,5 @@
 add_subdirectory(adoption)
+add_subdirectory(capture)
 add_subdirectory(complex_dag)
 add_subdirectory(diamond)
 add_subdirectory(intertwine)

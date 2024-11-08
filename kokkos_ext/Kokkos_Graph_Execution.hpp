@@ -8,6 +8,8 @@
 #include "Kokkos_Graph.hpp"
 
 #include "kokkos_ext/impl/ChainHandler.hpp"
+#include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
+#include "kokkos_ext/impl/GraphCapture.hpp"
 #include "kokkos_ext/impl/GraphContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
@@ -150,9 +152,24 @@ constexpr decltype(auto) then(Label&& label, Exec&& exec, Functor&& functor)
  * @warning Non-blocking.
  */
 template <typename Exec, typename Sender>
-constexpr void submit(const Exec& exec, Sender&& sender) {
+constexpr void submit(const Exec& exec, const Sender& sender) {
     Kokkos::Impl::GraphAccess::get_graph_weak_ptr(sender).lock()->submit(exec);
 }
+
+//! @overload
+template <typename Exec>
+constexpr void submit(const Exec& exec, const details::ChainHandler<Exec>& chain) {
+    chain.graph.submit(exec);
+}
+
+//! @name Extract the execution space instance.
+///@{
+template <typename T> requires ( ! details::is_graph_sender<T> )
+decltype(auto) get_exec(T&& obj) { return std::forward<T>(obj); }
+
+template <details::is_graph_sender T>
+decltype(auto) get_exec(const T& obj) { return obj.graph.get_execution_space(); }
+///@}
 
 } // namespace graph
 
