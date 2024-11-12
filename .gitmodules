@@ -1,0 +1,4 @@
+[submodule "external/kokkos"]
+	path = external/kokkos
+	url = https://github.com/romintomasetti/kokkos
+	branch = graph-capture

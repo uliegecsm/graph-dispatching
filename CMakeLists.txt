@@ -40,7 +40,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 #---- Find Kokkos.
-string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
+string(JSON Kokkos_REQUIRED_VERSION GET "${VERSION_JSON}" dependencies kokkos value)
 
 find_package(
     Kokkos

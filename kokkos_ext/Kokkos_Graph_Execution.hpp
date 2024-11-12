@@ -164,11 +164,17 @@ constexpr void submit(const Exec& exec, const details::ChainHandler<Exec>& chain
 
 //! @name Extract the execution space instance.
 ///@{
-template <typename T> requires ( ! details::is_graph_sender<T> )
-decltype(auto) get_exec(T&& obj) { return std::forward<T>(obj); }
+//! If @p T is a @c Kokkos execution space instance, return it.
+template <typename T> requires Kokkos::is_execution_space_v<T>
+decltype(auto) get_exec(T&& exec) { return std::forward<T>(exec); }
 
-template <details::is_graph_sender T>
-decltype(auto) get_exec(const T& obj) { return obj.graph.get_execution_space(); }
+//! If @c T is a @c Kokkos graph node, return the execution space instance attached to its graph.
+template <typename T> requires Kokkos::Impl::is_specialization_of<std::remove_cvref_t<T>, Kokkos::Experimental::GraphNodeRef>::value
+decltype(auto) get_exec(const T& node) { return Kokkos::Impl::GraphAccess::get_graph_weak_ptr(node).lock()->get_execution_space(); }
+
+//! Otherwise, it's probably a @ref ChainHandler.
+template <typename T>
+decltype(auto) get_exec(const T& sender) { return sender.graph.get_execution_space(); }
 ///@}
 
 } // namespace graph

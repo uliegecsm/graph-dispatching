@@ -20,6 +20,16 @@
 namespace tests::graph::capture
 {
 
+template <typename ViewType>
+struct Increment
+{
+    ViewType data;
+
+    template <std::integral T>
+    KOKKOS_FUNCTION
+    void operator()(const T index) const { ++data(index); }
+};
+
 namespace external
 {
 //! Helper for @ref SumWithState.
@@ -33,8 +43,22 @@ void sum_with_state_impl(T const * data, T* sum, T const * buffer)
     );
 }
 
+//! We reset the @p result to 0, to make it work when we re-submit.
+template <typename Exec, typename ViewType, typename ResultType, typename BufferType>
+void sum_with_state_impl(const Exec& exec, const ViewType& data, const ResultType& result, const BufferType& buffer)
+{
+    if(data.size() < 128 || data.size() > 1024) Kokkos::abort("Unsupported size.");
+
+    const dim3 block(1, data.size(), 1);
+    const dim3 grid (1,           1, 1);
+
+    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaMemsetAsync(result.data(), 0, sizeof(typename ResultType::value_type), exec.cuda_stream()));
+    external::sum_with_state_impl<<<grid, block, 0, exec.cuda_stream()>>>(data.data(), result.data(), buffer.data());
+}
 } // namespace external
 
+namespace impl
+{
 //! Helper for @ref SumWithState.
 template <typename ViewType, typename BufferType>
 struct SumWithStateImpl
@@ -48,8 +72,19 @@ struct SumWithStateImpl
         current += state(index) + data(index);
     }
 };
+} // namespace impl
 
-//! Sum of @ref data. We use @ref SumWithState so @ref buffer must be kept alive.
+/**
+ * @brief Sum of @ref data.
+ *
+ * If @c UseKokkos is @c true, we use the functor @ref impl::SumWithState. Therefore, @ref buffer will be kept alive
+ * implicitly through @ref impl::SumWithState as long as the @c Kokkos node will live.
+ *
+ * If @c UseKokkos is @c false, we use the function @ref external::sum_with_state. Therefore, the @ref buffer ownership
+ * has to be extended somehow.
+ *
+ * See definition of @ref apply for more details.
+ */
 template <
     bool UseKokkos,
     typename ViewType,
@@ -66,24 +101,19 @@ struct SumWithState
         //! Due to capture constraints, allocation must be done outside of capture scope.
         state = BufferType(Kokkos::view_alloc(Kokkos::Experimental::graph::get_exec(exec), "state"), data.size());
 
-        std::cout << "> In class, state ptr is " << state.data() << std::endl;
-
         /// When we use @c Kokkos, the @c Kokkos parallel constructs will always create a graph node that stores the functor.
         /// Therefore, keeping the graph node alive is sufficient for @ref state to stay alive.
         if constexpr (UseKokkos) {
             return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_reduce(
                 Kokkos::RangePolicy(0, data.size()),
-                SumWithStateImpl{.data = data, .state = state},
+                impl::SumWithStateImpl{.data = data, .state = state},
                 Kokkos::Sum(std::forward<Result>(result))
             );
-        /// Otherwise, we mimic graph capture
-        // using kkkos tools I see that the memory is deallocated but it still runs fine on Cuda.
+        /// Otherwise, we mimic graph capture.
         } else {
-            const dim3 block(1, 128, 1);
-            const dim3 grid (1,   1, 1);
-            if(data.size() != 128) std::abort();
-            external::sum_with_state_impl<<<grid, block, 0, Kokkos::Experimental::graph::get_exec(exec).cuda_stream()>>>(data.data(), result.data(), state.data());
-            return std::forward<Exec>(exec);
+            return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Cuda>([data_=data, result_=result, state_=state](const Exec::execution_space& exec_){
+                external::sum_with_state_impl(exec_, data_, result_, state_);
+            });
         }
     }
 };
@@ -125,28 +155,27 @@ TYPED_TEST(GraphCaptureTest, outlook)
 {
     decltype(auto) root = Kokkos::Experimental::graph::create_graph(this->exec);
 
+    decltype(auto) add = std::forward<decltype(root)>(root) | Kokkos::Experimental::graph::parallel_for(
+        Kokkos::RangePolicy(0, this->data.size()),
+        Increment{.data = this->data}
+    );
+
     Kokkos::View<typename TestFixture::value_t, Kokkos::SharedSpace> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", this->exec));
 
-    void * ptr;
+    auto tmp = SumWithState<TypeParam::value, typename TestFixture::data_t>{.data = this->data};
+    [[maybe_unused]]decltype(auto) node = tmp.apply(std::forward<decltype(add)>(add), result);
 
-    {
-        auto tmp = SumWithState<TypeParam::value, typename TestFixture::data_t>{.data = this->data};
-        [[maybe_unused]]decltype(auto) node = tmp.apply(std::move(root), result);
-        ptr = tmp.state.data();
-    }
-
-    std::cout << "> PTR is " << ptr << std::endl;
-    cudaPointerAttributes attrs;
-    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaPointerGetAttributes(&attrs, ptr));
-    ASSERT_EQ(attrs.devicePointer, nullptr);
-
-    for(size_t irep = 0 ; irep < 1; ++irep)
+    for(size_t irep = 0 ; irep < 10; ++irep)
     {
         Kokkos::Experimental::graph::submit(this->exec, root);
 
         this->exec.fence("Waiting for the graph to complete.");
 
-        ASSERT_EQ(result(), (TestFixture::size - 1) * TestFixture::size / 2);
+        auto sum_in_interval = [] <typename T, typename U> (const T bound_a, const U bound_b) {
+            return bound_b * ( bound_b + 1 ) / 2 - bound_a * ( bound_a + 1 ) / 2 + bound_a;
+        };
+
+        ASSERT_EQ(result(), sum_in_interval(1 + irep, TestFixture::size + irep));
     }
 }
 
@@ -186,3 +215,34 @@ decltype(auto) Kokkos::graph::task(const Exec& exec, Task&& task, Data&& data)
 #endif
 
 } // namespace tests::graph::capture
+
+
+// Pseudo code - 0 - no graph
+// --------------------------
+
+// cuSparseSpVV(...)
+
+// cuBLAS(...)
+
+// Pseudo code - 1 - native graph capture
+// --------------------------------------
+
+// cudaGraph_t graph;
+
+// stream_capture_start(...)
+//     cuSparseSpVV(...)
+//     cuBLAS(...)
+// stream_capture_stop(...)
+
+// gaph.add_node(captured_subgraph)
+
+// Pseudo code - 2 - Kokkos captured
+// ---------------------------------
+
+// Kokkos::Graph graph;
+
+// root = gaph.root;
+
+// node_1 = root | then( cuSparseSpVV(...) )
+
+// node_2 = node_1 | then( cuBLAS(...) )
