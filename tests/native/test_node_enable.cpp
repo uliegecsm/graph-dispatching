@@ -2,8 +2,8 @@
 
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -14,7 +14,7 @@
  * This test shows how a @c Cuda graph node can be enabled/disabled from the host
  * in-between graph submissions.
  *
- * The test can be found in @ref cuda/test_node_enable.cpp.
+ * The test can be found in @ref native/test_node_enable.cpp.
  */
 
 namespace tests::cuda
@@ -57,7 +57,7 @@ TEST_P(cuda, node_enable)
 
     ASSERT_EQ(mirror.at(0), expected);
 
-    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_node_enable.dot").c_str(), cudaGraphDebugDotFlagsVerbose);
+    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_node_enable.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 }
 
 INSTANTIATE_TEST_SUITE_P(

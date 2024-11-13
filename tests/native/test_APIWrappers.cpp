@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
+#include "tests/native/APIWrappers_def.hpp"
 
 /**
  * @addtogroup unittests
@@ -9,9 +9,9 @@
  * ---------------------------------------
  *
  * This group of tests check the behavior of the @c Cuda API wrappers provided in
- * @ref cuda/APIWrappers.hpp.
+ * @ref native/APIWrappers.hpp.
  *
- * The tests can be found in @ref cuda/test_APIWrappers.cpp.
+ * The tests can be found in @ref native/test_APIWrappers.cpp.
  */
 
 namespace tests::cuda
@@ -30,10 +30,16 @@ TEST(APIWrappers, stream)
 
     ASSERT_NE(stream.stream, nullptr);
 
+#if defined(GRAPH_DISPATCHING_ENABLE_CUDA)
     unsigned long long stream_id;
     PREFIXED_API(StreamGetId)(stream.stream, &stream_id);
 
     ASSERT_GT(stream_id, 0u);
+#endif
+
+    ASSERT_GE(stream.device(), 0);
+
+    ASSERT_FALSE(stream.capturing());
 }
 
 //! @test Check that @ref tests::cuda::View is default constructible.

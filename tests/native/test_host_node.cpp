@@ -3,8 +3,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -14,7 +14,7 @@
  *
  * This test shows how a @c Cuda graph host node can be added.
  *
- * The test can be found in @ref cuda/test_host_node.cpp.
+ * The test can be found in @ref native/test_host_node.cpp.
  */
 
 namespace tests::cuda
@@ -68,7 +68,7 @@ TEST(cuda, host_node)
         "Hello from void tests::cuda::MyHostFunctor::operator()() const: data is 42"
     ));
 
-    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_host_node.dot").c_str(), cudaGraphDebugDotFlagsVerbose);
+    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_host_node.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 }
 
 } // namespace tests::cuda

@@ -2,8 +2,8 @@
 
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -14,7 +14,7 @@
  * This test shows how graphs can be combined to create new graphs, using the
  * notion of "child graph node" (see @c cudaGraphAddChildGraphNode).
  *
- * The test can be found in @ref cuda/test_subgraph.cpp.
+ * The test can be found in @ref native/test_subgraph.cpp.
  */
 
 namespace tests::cuda
@@ -66,7 +66,7 @@ TEST(cuda, subgraph)
 
     CREATE_KERNEL_NODE(h, data, graph, {subgraph_A_embedded, subgraph_B_embedded})
 
-    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_subgraph.dot").c_str(), cudaGraphDebugDotFlagsVerbose);
+    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_subgraph.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 
     //! Execute the graph.
     GraphExecutable graph_exec(graph);
