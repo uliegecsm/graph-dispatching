@@ -30,6 +30,13 @@
             "cacheVariables" : {
                 "CMAKE_CXX_COMPILER" : "clang++"
             }
+        },
+        {
+            "name"           : "ROCm",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "hipcc"
+            }
         }
     ],
     "buildPresets" : [
@@ -46,6 +53,11 @@
         {
             "name"            : "clang",
             "configurePreset" : "clang",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "ROCm",
+            "configurePreset" : "ROCm",
             "inherits"        : "default"
         }
     ]

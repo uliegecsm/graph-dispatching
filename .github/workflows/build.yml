@@ -51,6 +51,10 @@ jobs:
                       compiler_family: gcc
                       base_image     : nvidia/cuda:12.6.1-devel-ubuntu24.04
                       platforms      : linux/amd64
+                    - backend        : HIP
+                      compiler_family: ROCm
+                      base_image     : rocm/dev-ubuntu-22.04:6.2.4
+                      platforms      : linux/amd64
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04

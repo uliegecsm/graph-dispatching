@@ -16,12 +16,16 @@ RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
         COMPILER_FAMILY_REQUIREMENTS=g++
     elif [ "${COMPILER_FAMILY}" = "clang" ];then
         COMPILER_FAMILY_REQUIREMENTS="clang libomp-dev"
+    elif [ "${COMPILER_FAMILY}" = "ROCm" ];then
+        COMPILER_FAMILY_REQUIREMENTS=
     else
         echo "unsupported compiler family ${COMPILER_FAMILY}"
         exit -1
     fi
 
-    apt --yes --no-install-recommends install ${COMPILER_FAMILY_REQUIREMENTS}
+    if [ ! -z "${COMPILER_FAMILY_REQUIREMENTS}" ];then
+        apt --yes --no-install-recommends install ${COMPILER_FAMILY_REQUIREMENTS}
+    fi
 
     apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.txt     | tr "\n" " ")
     apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.hpx.txt | tr "\n" " ")
@@ -94,6 +98,7 @@ RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.js
         ADDITIONAL_CONFIG_ARGS=-DHPX_WITH_GENERIC_CONTEXT_COROUTINES:BOOL=ON
     else
         echo "unsupported target arch ${TARGETARCH}"
+        exit -1
     fi
 
     cd ${HPX_SOURCE_DIR}
