@@ -131,6 +131,24 @@ struct SumWithState
         }); 
     }
 
+#if defined(KOKKOS_ENABLE_OPENMP)
+    /// @brief For @c OpenMP and not using @c Kokkos.
+    /// The lambda will be the node's workload.
+    template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::OpenMP> && !UseKokkos)
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::OpenMP>(
+            [data_ = data, result_ = std::forward<Result>(result), state_ = state](const Kokkos::OpenMP&) {
+                typename std::remove_cvref_t<Result>::value_type acc = 0;
+                #pragma omp parallel for reduction(+:acc)
+                for(size_t ielem = 0; ielem < data_.size(); ++ielem)
+                    acc += data_(ielem) + state_(ielem);
+                result_() = acc;
+        }); 
+    }
+#endif
+
+#if defined(KOKKOS_ENABLE_CUDA)
     /// @brief For @c Cuda and not using @c Kokkos.
     /// We use graph capture to define the node's workload.
     template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::Cuda> && !UseKokkos)
@@ -141,6 +159,7 @@ struct SumWithState
             external::sum_with_state_impl(exec_, data_, result_, state_);
         });
     }
+#endif
 };
 
 template <typename T>
@@ -171,8 +190,8 @@ protected:
 };
 
 using GraphCaptureTestTypes = ::testing::Types<
-    std::tuple<std::integral_constant<bool, true> , Kokkos::Serial>,
-    std::tuple<std::integral_constant<bool, false> , Kokkos::Serial>,
+    std::tuple<std::integral_constant<bool, true> , Kokkos::OpenMP>,
+    std::tuple<std::integral_constant<bool, false> , Kokkos::OpenMP>,
     std::tuple<std::integral_constant<bool, true> , Kokkos::DefaultExecutionSpace>,
     std::tuple<std::integral_constant<bool, false>, Kokkos::DefaultExecutionSpace>
 >;
@@ -189,7 +208,16 @@ TYPED_TEST(GraphCaptureTest, outlook)
         Increment{.data = this->data}
     );
 
-    using result_mem_t = std::conditional_t<std::same_as<typename TestFixture::execution_space, Kokkos::Serial>, Kokkos::HostSpace, Kokkos::SharedSpace>;
+    /// For a reduction, the result memory space must be accesible by the view memory space (weird).
+    /// See:
+    ///     - https://github.com/kokkos/kokkos/blob/7ff4042fd2dc1d1fe6ae280179fc693ad6dac6ac/core/src/Serial/Kokkos_Serial_Parallel_Range.hpp#L151-L155
+    ///     - https://github.com/kokkos/kokkos/blob/7ff4042fd2dc1d1fe6ae280179fc693ad6dac6ac/core/src/OpenMP/Kokkos_OpenMP_Parallel_Reduce.hpp#L174-L178
+    using result_mem_t = std::conditional_t<
+        Kokkos::Impl::MemorySpaceAccess<Kokkos::SharedSpace,
+                                        typename TestFixture::execution_space::memory_space>::accessible,
+        Kokkos::SharedSpace,
+        typename TestFixture::execution_space::memory_space
+    >;
     Kokkos::View<typename TestFixture::value_t, result_mem_t> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", this->exec));
 
     [[maybe_unused]]decltype(auto) node = SumWithState<
