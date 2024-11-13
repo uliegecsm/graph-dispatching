@@ -59,7 +59,7 @@ void sum_with_state_impl(const Exec& exec, const ViewType& data, const ResultTyp
 
 namespace impl
 {
-//! Helper for @ref SumWithState.
+//! Helper for @ref SumWithState, when we use a @c Kokkos parallel construct.
 template <typename ViewType, typename BufferType>
 struct SumWithStateImpl
 {
@@ -101,20 +101,45 @@ struct SumWithState
         //! Due to capture constraints, allocation must be done outside of capture scope.
         state = BufferType(Kokkos::view_alloc(Kokkos::Experimental::graph::get_exec(exec), "state"), data.size());
 
-        /// When we use @c Kokkos, the @c Kokkos parallel constructs will always create a graph node that stores the functor.
-        /// Therefore, keeping the graph node alive is sufficient for @ref state to stay alive.
-        if constexpr (UseKokkos) {
-            return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_reduce(
-                Kokkos::RangePolicy(0, data.size()),
-                impl::SumWithStateImpl{.data = data, .state = state},
-                Kokkos::Sum(std::forward<Result>(result))
-            );
-        /// Otherwise, we mimic graph capture.
-        } else {
-            return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Cuda>([data_=data, result_=result, state_=state](const Exec::execution_space& exec_){
-                external::sum_with_state_impl(exec_, data_, result_, state_);
-            });
-        }
+        return apply_impl(std::forward<Exec>(exec), std::forward<Result>(result));
+    }
+
+    /// @brief For any execution space and using @c Kokkos.
+    /// When we use @c Kokkos, the @c Kokkos parallel constructs will always create a graph node that stores the functor.
+    /// Therefore, keeping the graph node alive is sufficient for @ref state to stay alive.
+    template <typename Exec, typename Result> requires UseKokkos
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_reduce(
+            Kokkos::RangePolicy<typename std::remove_cvref_t<Exec>::execution_space>(0, data.size()),
+            impl::SumWithStateImpl{.data = data, .state = state},
+            Kokkos::Sum(std::forward<Result>(result))
+        );
+    }
+
+    /// @brief For @c Serial and not using @c Kokkos.
+    /// The lambda will be the node's workload.
+    template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::Serial> && !UseKokkos)
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Serial>(
+            [data_ = data, result_ = std::forward<Result>(result), state_ = state](const Kokkos::Serial&) {
+                typename std::remove_cvref_t<Result>::value_type acc = 0;
+                for(size_t ielem = 0; ielem < data_.size(); ++ielem)
+                    acc += data_(ielem) + state_(ielem);
+                result_() = acc;
+        }); 
+    }
+
+    /// @brief For @c Cuda and not using @c Kokkos.
+    /// We use graph capture to define the node's workload.
+    template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::Cuda> && !UseKokkos)
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Cuda>(
+            [data_ = data, result_ = result, state_ = state](const Kokkos::Cuda& exec_){
+            external::sum_with_state_impl(exec_, data_, result_, state_);
+        });
     }
 };
 
@@ -122,12 +147,14 @@ template <typename T>
 class GraphCaptureTest : public ::testing::Test
 {
 public:
-    using execution_space = Kokkos::DefaultExecutionSpace;
+    using execution_space = std::tuple_element_t<1, T>;
     using memory_space    = typename execution_space::memory_space;
 
     using value_t = int;
 
     using data_t = Kokkos::View<value_t*, memory_space>;
+
+    static constexpr bool use_kokkos_par = std::tuple_element_t<0, T>::value;
 
     static constexpr size_t size = 128;
 
@@ -144,8 +171,10 @@ protected:
 };
 
 using GraphCaptureTestTypes = ::testing::Types<
-    std::integral_constant<bool, true>,
-    std::integral_constant<bool, false>
+    std::tuple<std::integral_constant<bool, true> , Kokkos::Serial>,
+    std::tuple<std::integral_constant<bool, false> , Kokkos::Serial>,
+    std::tuple<std::integral_constant<bool, true> , Kokkos::DefaultExecutionSpace>,
+    std::tuple<std::integral_constant<bool, false>, Kokkos::DefaultExecutionSpace>
 >;
 
 TYPED_TEST_SUITE(GraphCaptureTest, GraphCaptureTestTypes);
@@ -156,14 +185,17 @@ TYPED_TEST(GraphCaptureTest, outlook)
     decltype(auto) root = Kokkos::Experimental::graph::create_graph(this->exec);
 
     decltype(auto) add = std::forward<decltype(root)>(root) | Kokkos::Experimental::graph::parallel_for(
-        Kokkos::RangePolicy(0, this->data.size()),
+        Kokkos::RangePolicy<typename TestFixture::execution_space>(0, this->data.size()),
         Increment{.data = this->data}
     );
 
-    Kokkos::View<typename TestFixture::value_t, Kokkos::SharedSpace> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", this->exec));
+    using result_mem_t = std::conditional_t<std::same_as<typename TestFixture::execution_space, Kokkos::Serial>, Kokkos::HostSpace, Kokkos::SharedSpace>;
+    Kokkos::View<typename TestFixture::value_t, result_mem_t> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", this->exec));
 
-    auto tmp = SumWithState<TypeParam::value, typename TestFixture::data_t>{.data = this->data};
-    [[maybe_unused]]decltype(auto) node = tmp.apply(std::forward<decltype(add)>(add), result);
+    [[maybe_unused]]decltype(auto) node = SumWithState<
+        TestFixture::use_kokkos_par,
+        typename TestFixture::data_t
+    >{.data = this->data}.apply(std::forward<decltype(add)>(add), result);
 
     for(size_t irep = 0 ; irep < 10; ++irep)
     {
