@@ -29,6 +29,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
         },
         {
+            // Inherit from this preset to use the ROCm compiler family.
+            "name"           : "ROCm",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
+        },
+        {
             // Inherit from this preset to use the OpenMP backend.
             "name"           : "OpenMP",
             "hidden"         : true,
@@ -48,6 +54,16 @@
                     "Kokkos_ENABLE_CUDA"           : "ON",
                     "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
                     "Kokkos_ARCH_VOLTA70"          : "ON"
+            }
+        },
+        {
+            // Inherit from this preset to use the HIP backend.
+            "name"           : "HIP",
+            "hidden"         : true,
+            "cacheVariables" : {
+                "Kokkos_ENABLE_HIP"       : "ON",
+                "Kokkos_ENABLE_ROCTHRUST" : "OFF",
+                "Kokkos_ARCH_AMD_GFX906"  : "ON"
             }
         },
         {
@@ -73,6 +89,10 @@
         {
             "name"     : "clang-HPX-Cuda",
             "inherits" : ["default", "clang", "HPX", "Cuda"]
+        },
+        {
+            "name"     : "ROCm-HIP",
+            "inherits" : ["default", "ROCm", "HIP"]
         }
     ],
     "buildPresets" : [
@@ -109,6 +129,11 @@
         {
             "name"            : "clang-HPX-Cuda",
             "configurePreset" : "clang-HPX-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "ROCm-HIP",
+            "configurePreset" : "ROCm-HIP",
             "inherits"        : "default"
         }
     ]
