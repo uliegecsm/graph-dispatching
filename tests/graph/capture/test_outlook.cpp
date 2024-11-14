@@ -52,8 +52,16 @@ void sum_with_state_impl(const Exec& exec, const ViewType& data, const ResultTyp
     const dim3 block(1, data.size(), 1);
     const dim3 grid (1,           1, 1);
 
-    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaMemsetAsync(result.data(), 0, sizeof(typename ResultType::value_type), exec.cuda_stream()));
-    external::sum_with_state_impl<<<grid, block, 0, exec.cuda_stream()>>>(data.data(), result.data(), buffer.data());
+    const auto stream =
+#if defined(KOKKOS_ENABLE_CUDA)
+        exec.cuda_stream();
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaMemsetAsync
+#elif defined(KOKKOS_ENABLE_HIP)
+        exec.hip_stream();
+        KOKKOS_IMPL_HIP_SAFE_CALL(hipMemsetAsync
+#endif
+    (result.data(), 0, sizeof(typename ResultType::value_type), stream));
+    external::sum_with_state_impl<<<grid, block, 0, stream>>>(data.data(), result.data(), buffer.data());
 }
 } // namespace external
 
@@ -156,6 +164,19 @@ struct SumWithState
     {
         return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Cuda>(
             [data_ = data, result_ = result, state_ = state](const Kokkos::Cuda& exec_){
+            external::sum_with_state_impl(exec_, data_, result_, state_);
+        });
+    }
+#endif
+
+#if defined(KOKKOS_ENABLE_HIP)
+    /// @brief For @c HIP and not using @c Kokkos.
+    /// We use graph capture to define the node's workload.
+    template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::HIP> && !UseKokkos)
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::HIP>(
+            [data_ = data, result_ = result, state_ = state](const Kokkos::HIP& exec_){
             external::sum_with_state_impl(exec_, data_, result_, state_);
         });
     }
