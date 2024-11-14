@@ -1,18 +1,21 @@
 set -ex
 
-WORKSPACE=$PWD
+KOKKOS_PRESET=$1
+KOKKOS_SOURCES=$PWD/external/kokkos
+KOKKOS_INSTALL=$PWD/kokkos-compiled
 
-mkdir -p $WORKSPACE/kokkos-compiled
+echo "> Compiling Kokkos with preset ${KOKKOS_PRESET} from ${KOKKOS_SOURCES} and installing to ${KOKKOS_INSTALL}."
 
-cd $WORKSPACE/external/kokkos
+# Retrieve CMake presets.
+cp $PWD/cmake/presets/kokkos.json ${KOKKOS_SOURCES}/CMakePresets.json
 
-cp $WORKSPACE/cmake/presets/kokkos.json $WORKSPACE/external/kokkos/CMakePresets.json
+# Create install directory.
+mkdir -p $KOKKOS_INSTALL
 
-KOKKOS_PRESET=clang-Cuda
+# Compile sources and install.
+cd $KOKKOS_SOURCES
 
-cmake -S . --preset=${KOKKOS_PRESET} \
-    -DCMAKE_INSTALL_PREFIX=$WORKSPACE/kokkos-compiled/${KOKKOS_PRESET}
+cmake -S . --preset=${KOKKOS_PRESET} -Wno-error=dev \
+    -DCMAKE_INSTALL_PREFIX=${KOKKOS_INSTALL}/${KOKKOS_PRESET}
 
-cmake --build --preset=${KOKKOS_PRESET} -j4
-
-cmake --build --preset=${KOKKOS_PRESET} --target=install
+cmake --build --preset=${KOKKOS_PRESET} --target=install -j4

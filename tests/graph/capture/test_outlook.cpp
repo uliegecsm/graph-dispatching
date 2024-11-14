@@ -32,6 +32,7 @@ struct Increment
 
 namespace external
 {
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || defined(DOXYGEN)
 //! Helper for @ref SumWithState.
 template <typename T>
 __global__
@@ -63,6 +64,7 @@ void sum_with_state_impl(const Exec& exec, const ViewType& data, const ResultTyp
     (result.data(), 0, sizeof(typename ResultType::value_type), stream));
     external::sum_with_state_impl<<<grid, block, 0, stream>>>(data.data(), result.data(), buffer.data());
 }
+#endif
 } // namespace external
 
 namespace impl
