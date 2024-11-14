@@ -34,6 +34,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
         },
         {
+            // Inherit from this preset to use the ROCm compiler family.
+            "name"           : "ROCm",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
+        },
+        {
             "name"           : "gcc-OpenMP",
             "inherits"       : ["default", "gcc"],
             "cacheVariables" : {
@@ -76,6 +82,13 @@
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX;CUDA"
             }
+        },
+        {
+            "name"           : "ROCm-HIP",
+            "inherits"       : ["default", "ROCm"],
+            "cacheVariables" : {
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;HIP"
+            }
         }
     ],
     "buildPresets" : [
@@ -112,6 +125,11 @@
         {
             "name"            : "clang-HPX-Cuda",
             "configurePreset" : "clang-HPX-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "ROCm-HIP",
+            "configurePreset" : "ROCm-HIP",
             "inherits"        : "default"
         }
     ],
@@ -155,6 +173,11 @@
         {
             "name"            : "clang-HPX-Cuda",
             "configurePreset" : "clang-HPX-Cuda",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "ROCm-HIP",
+            "configurePreset" : "ROCm-HIP",
             "inherits"        : "default"
         }
     ]

@@ -3,8 +3,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -14,7 +14,7 @@
  *
  * This test builds a simple diamond graph with @c Cuda API wrappers.
  *
- * The test can be found in @ref cuda/test_diamond.cpp.
+ * The test can be found in @ref native/test_diamond.cpp.
  */
 
 namespace tests::cuda
@@ -58,7 +58,7 @@ TEST(cuda, diamond_graph)
 
     ASSERT_THAT(mirror, ::testing::ElementsAre(4));
 
-    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_diamond.dot").c_str(), cudaGraphDebugDotFlagsVerbose);
+    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_diamond.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 }
 
 } // namespace tests::cuda

@@ -60,6 +60,9 @@ struct Stream
     void fence() const;
 
     bool capturing() const;
+
+    //! Retrieve device ID.
+    int device() const;
 };
 
 //! Wrapper for a view over data.
@@ -154,6 +157,7 @@ struct GraphNodeKernel : public GraphNode
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 };
 
+#if defined(GRAPH_DISPATCHING_ENABLE_CUDA) || defined(DOXYGEN)
 /**
  * @brief Wrapper for a conditional if node.
  *
@@ -170,6 +174,7 @@ struct GraphNodeConditionalIf : public GraphNode
 
     Graph get() const { return params.conditional.phGraph_out[0]; }
 };
+#endif
 
 /**
  * @brief Wrapper for a host node.

@@ -3,7 +3,7 @@
 
 #include "cusparse.h"
 
-#include "tests/cuda/APIWrappers.hpp"
+#include "tests/native/APIWrappers.hpp"
 
 //! Check the return code of a sparse API call (*e.g.* @c cuSPARSE).
 #define CHECK_SPARSE_CALL(call) CHECK_CALL_IMPL(call, CUSPARSE_STATUS_SUCCESS, cusparseGetErrorString)

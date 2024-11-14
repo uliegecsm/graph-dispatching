@@ -108,10 +108,10 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
-if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
-    add_subdirectory(cuda)
-endif()
 add_subdirectory(graph)
 add_subdirectory(hpx)
 add_subdirectory(kokkos_ext)
+if(CUDA IN_LIST Kokkos_DEVICES OR HIP IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
+    add_subdirectory(native)
+endif()
 add_subdirectory(stdexec)

@@ -2,8 +2,8 @@
 
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -13,7 +13,7 @@
  *
  * This test shows how a @c Cuda conditional @c if node could be used.
  *
- * The test can be found in @ref cuda/test_conditional_if.cpp.
+ * The test can be found in @ref native/test_conditional_if.cpp.
  */
 
 namespace tests::cuda

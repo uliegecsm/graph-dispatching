@@ -1,7 +1,7 @@
 #ifndef GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_DEF_HPP
 #define GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_DEF_HPP
 
-#include "tests/cuda/APIWrappers.hpp"
+#include "tests/native/APIWrappers.hpp"
 
 namespace tests::cuda
 {
@@ -19,9 +19,29 @@ void Stream::fence() const {
 
 bool Stream::capturing() const
 {
-    PREFIXED_API(StreamCaptureStatus) status = cudaStreamCaptureStatusNone;
+    PREFIXED_API(StreamCaptureStatus) status = PREFIXED_API(StreamCaptureStatusNone);
     CHECK_CALL(PREFIXED_API(StreamIsCapturing)(stream, &status));
     return status == PREFIXED_API(StreamCaptureStatusActive);
+}
+
+int Stream::device() const
+{
+#if defined(GRAPH_DISPATCHING_ENABLE_CUDA)
+    CUcontext context;
+    CUdevice  device_id = -1;
+
+    CHECK_CALL(cudaError_t(cuStreamGetCtx(stream, &context)));
+    CHECK_CALL(cudaError_t(cuCtxPushCurrent(context)));
+    CHECK_CALL(cudaError_t(cuCtxGetDevice(&device_id)));
+
+    return device_id;
+#elif defined(GRAPH_DISPATCHING_ENABLE_HIP)
+    hipDevice_t device_id = -1;
+    CHECK_CALL(hipStreamGetDevice(stream, &device_id));
+    return device_id;
+#else
+    std::abort();
+#endif
 }
 
 //! If the type is @c void, its "size" is considered equal to 1.
@@ -101,7 +121,7 @@ Graph::~Graph()
 
 void Graph::print(const char* path, const unsigned int flags) const
 {
-    CHECK_CALL(cudaGraphDebugDotPrint(graph, path, flags));
+    CHECK_CALL(PREFIXED_API(GraphDebugDotPrint)(graph, path, flags));
 }
 
 GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors) const
@@ -184,6 +204,7 @@ void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNo
     ));
 }
 
+#if defined(GRAPH_DISPATCHING_ENABLE_CUDA) || defined(DOXYGEN)
 GraphNodeConditionalIf::GraphNodeConditionalIf(cudaGraphConditionalHandle handle)
 {
     printf("> Creating a graph conditional if node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__);
@@ -204,6 +225,7 @@ void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode
         &params
     ));
 }
+#endif
 
 template <typename Functor>
 void GraphNodeHost<Functor>::driver(void* data)
@@ -240,21 +262,16 @@ void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode
 template <typename T>
 GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const Stream& stream)
 {
-    printf("> Creating a graph memory node of size %zu of %s (%s).\n", size, typeid(T).name(), __PRETTY_FUNCTION__);
+    const auto device_id = stream.device();
 
-    //! Retrieve device ID from stream.
-    CUcontext context;
-    int device_id = -1;
-    CHECK_CALL(cudaError_t(cuStreamGetCtx(stream.stream, &context)));
-    CHECK_CALL(cudaError_t(cuCtxPushCurrent(context)));
-    CHECK_CALL(cudaError_t(cuCtxGetDevice(&device_id)));
+    printf("> Creating a graph memory node for device ID %d of size %zu of %s (%s).\n", device_id, size, typeid(T).name(), __PRETTY_FUNCTION__);
 
     /// See https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemAllocNodeParams.html#structcudaMemAllocNodeParams.
     /// For the pool properties, see https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemPoolProps.html#structcudaMemPoolProps.
     params.bytesize = size * sizeof(T);
 
-    params.poolProps.allocType     = cudaMemAllocationTypePinned;
-    params.poolProps.location.type = cudaMemLocationTypeDevice;
+    params.poolProps.allocType     = PREFIXED_API(MemAllocationTypePinned);
+    params.poolProps.location.type = PREFIXED_API(MemLocationTypeDevice);
     params.poolProps.location.id   = device_id;
 }
 

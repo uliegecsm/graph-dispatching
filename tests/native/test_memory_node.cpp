@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -18,7 +18,7 @@
  * References:
  *  - https://docs.nvidia.com/cuda/cuda-c-programming-guide/#graph-memory-nodes
  *
- * The test can be found in @ref cuda/test_memory_node.cpp.
+ * The test can be found in @ref native/test_memory_node.cpp.
  */
 
 namespace tests::cuda

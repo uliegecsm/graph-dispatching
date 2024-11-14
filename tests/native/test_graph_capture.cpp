@@ -2,9 +2,9 @@
 
 #include "gtest/gtest.h"
 
-#include "tests/cuda/APIWrappers_def.hpp"
-#include "tests/cuda/APIWrappers_sparse.hpp"
-#include "tests/cuda/Helpers.hpp"
+#include "tests/native/APIWrappers_def.hpp"
+#include "tests/native/APIWrappers_sparse.hpp"
+#include "tests/native/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -23,7 +23,7 @@
  * Both modes are valid, but @ref tests::cuda::Mode::SINGLE requires a bit more plumbing to connect the main application
  * to the captured nodes.
  *
- * The tests can be found in @ref cuda/test_graph_capture.cpp.
+ * The tests can be found in @ref native/test_graph_capture.cpp.
  */
 
 namespace tests::cuda

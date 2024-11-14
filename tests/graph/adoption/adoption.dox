@@ -143,8 +143,8 @@ Several limitations have been encountered already:
 1. The size of a memory node's allocation is fixed, and must be known prior to graph definition.
    It cannot be updated (there is an API call @c cudaGraphMemAllocNodeGetParams but currently no corresponding
    API call to set the parameters of a memory node after graph definition).
-   See @ref cuda/test_memory_node.cpp.
-2. Host nodes cannot make @c Cuda API calls. See @ref cuda/test_host_node.cpp.
+   See @ref native/test_memory_node.cpp.
+2. Host nodes cannot make @c Cuda API calls. See @ref native/test_host_node.cpp.
 3. Representing an entire workflow as a single graph is not always possible. 
    If certain steps cannot be represented as device or host nodes, the workflow must be split into several graphs.
 
