@@ -111,8 +111,14 @@ jobs:
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                    - backend        : HIP
+                      compiler_family: ROCm
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906']"
+                      docker_run_args: --privileged
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+            # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
+            options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
             - uses: actions/checkout@v4
 
