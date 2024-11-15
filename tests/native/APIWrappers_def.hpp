@@ -126,6 +126,8 @@ void Graph::print(const char* path, const unsigned int flags) const
 
 GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors) const
 {
+    printf("> Adding graph %p as child graph node to graph %p with %zu ancestors.\n", other.graph, this->graph, ancestors.size());
+
     GraphNode child;
 
     const auto ancestors_impl = GraphNode::transform_to_impl(ancestors);
