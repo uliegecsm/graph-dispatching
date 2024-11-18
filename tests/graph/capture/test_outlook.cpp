@@ -138,7 +138,7 @@ struct SumWithState
                 for(size_t ielem = 0; ielem < data_.size(); ++ielem)
                     acc += data_(ielem) + state_(ielem);
                 result_() = acc;
-        }); 
+        });
     }
 
 #if defined(KOKKOS_ENABLE_OPENMP)
@@ -247,6 +247,8 @@ TYPED_TEST(GraphCaptureTest, outlook)
         TestFixture::use_kokkos_par,
         typename TestFixture::data_t
     >{.data = this->data}.apply(std::forward<decltype(add)>(add), result);
+
+    static_assert(Kokkos::Impl::is_specialization_of<std::remove_cvref_t<decltype(node)>, Kokkos::Experimental::GraphNodeRef>::value);
 
     for(size_t irep = 0 ; irep < 10; ++irep)
     {
