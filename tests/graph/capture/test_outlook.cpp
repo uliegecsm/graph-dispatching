@@ -158,6 +158,24 @@ struct SumWithState
     }
 #endif
 
+#if defined(KOKKOS_ENABLE_HPX)
+    /// @brief For @c HPX and not using @c Kokkos.
+    /// The lambda will be the node's workload.
+    template <typename Exec, typename Result> requires (std::same_as<typename std::remove_cvref_t<Exec>::execution_space, Kokkos::Experimental::HPX> && !UseKokkos)
+    decltype(auto) apply_impl(Exec&& exec, Result&& result)
+    {
+        return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Experimental::HPX>(
+            [data_ = data, result_ = std::forward<Result>(result), state_ = state](const Kokkos::Experimental::HPX& exec_) {
+                result_() = 0;
+                const auto sender = std::move(exec_.get_sender())
+                    | ::hpx::execution::experimental::bulk(data_.size(), [&](const auto index) {
+                        Kokkos::atomic_add(result_.data(), data_(index));
+                    })
+                    | ::hpx::execution::experimental::ensure_started();
+        }); 
+    }
+#endif
+
 #if defined(KOKKOS_ENABLE_CUDA)
     /// @brief For @c Cuda and not using @c Kokkos.
     /// We use graph capture to define the node's workload.
@@ -213,8 +231,10 @@ protected:
 };
 
 using GraphCaptureTestTypes = ::testing::Types<
-    std::tuple<std::integral_constant<bool, true> , Kokkos::OpenMP>,
-    std::tuple<std::integral_constant<bool, false> , Kokkos::OpenMP>,
+    std::tuple<std::integral_constant<bool, true> , Kokkos::Serial>,
+    std::tuple<std::integral_constant<bool, false>, Kokkos::Serial>,
+    std::tuple<std::integral_constant<bool, true> , Kokkos::DefaultHostExecutionSpace>,
+    std::tuple<std::integral_constant<bool, false>, Kokkos::DefaultHostExecutionSpace>,
     std::tuple<std::integral_constant<bool, true> , Kokkos::DefaultExecutionSpace>,
     std::tuple<std::integral_constant<bool, false>, Kokkos::DefaultExecutionSpace>
 >;
