@@ -165,13 +165,19 @@ struct SumWithState
     decltype(auto) apply_impl(Exec&& exec, Result&& result)
     {
         return std::forward<Exec>(exec) | Kokkos::Experimental::graph::then<Kokkos::Experimental::HPX>(
-            [data_ = data, result_ = std::forward<Result>(result), state_ = state](const Kokkos::Experimental::HPX& exec_) {
-                result_() = 0;
-                const auto sender = std::move(exec_.get_sender())
-                    | ::hpx::execution::experimental::bulk(data_.size(), [&](const auto index) {
-                        Kokkos::atomic_add(result_.data(), data_(index));
-                    })
-                    | ::hpx::execution::experimental::ensure_started();
+            [data = data, result = std::forward<Result>(result), state = state](const Kokkos::Experimental::HPX& exec_) {
+                exec_.impl_bulk_plain_erased(
+                    /* force_synchronous      */ false,
+                    /* is_light_weight_policy */ true,
+                    /* f                      */ {[&](const auto) -> void { result() = 0; }},
+                    /* n                      */ 1
+                );
+                exec_.impl_bulk_plain_erased(
+                    /* force_synchronous      */ false,
+                    /* is_light_weight_policy */ true,
+                    /* f                      */ {[&](const auto index) -> void { Kokkos::atomic_add(result.data(), data(index)); }},
+                    /* n                      */ data.size()
+                );
         }); 
     }
 #endif
