@@ -4,4 +4,4 @@ build*/*
 # ccache
 .ccache/*
 
-kokkos-compiled/*
+kokkos-*compiled/*
