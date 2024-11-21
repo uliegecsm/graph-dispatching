@@ -6,8 +6,6 @@
 #include "KokkosSparse_CrsMatrix.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
-
 /**
  * @addtogroup unittests
  *
@@ -80,7 +78,7 @@ struct CG
 
     using dot_t = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
 
-    using result_t = Kokkos::View<dot_t, Kokkos::HostSpace>; //! To store intermediate scalar results (norm, dot). @note It should move to device or shared space.
+    using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
 
     /**
      * @warning For now, we cannot portably add conditionals to the graph, so we have to submit the graph
@@ -89,9 +87,6 @@ struct CG
     template <typename Exec>
     auto apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
-        //! Initialize the graph.
-        // decltype(auto) root = Kokkos::Experimental::graph::create_graph(exec);
-
         using spmv_handle_t = KokkosSparse::SPMVHandle<typename VectorType::memory_space, MatrixType, VectorType, VectorType>;
         spmv_handle_t handle {};
 
@@ -121,13 +116,16 @@ struct CG
         result_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
         result_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
-        //! Placeholder for the residual L2 norm.
-        dot_t res_nrm2;
+        //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
+        dot_t res_nrm2 = 0.;
 
         //! Loop until the norm of the residual is larger than @p tol.
-        exec.fence("Wait for the residual dot product to be computed.");
+        Kokkos::deep_copy(exec, res_nrm2, res_dot_old);
+        exec.fence("Wait for deep-copy into a host variable.");
+
+        res_nrm2 = std::sqrt(res_nrm2);
+
         size_t iter = 0;
-        res_nrm2 = std::sqrt(res_dot_old());
 
         while(res_nrm2 > tol && iter < max_iter)
         {

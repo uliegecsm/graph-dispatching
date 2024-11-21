@@ -15,8 +15,8 @@ mkdir -p $KOKKOSKERNELS_INSTALL
 # Compile sources and install.
 cd $KOKKOSKERNELS_SOURCES
 
-cmake -S . -B build-kokkos-kernels -Wno-error=dev \
+cmake -S . -B build-kokkos-kernels-${KOKKOSKERNELS_PRESET} -Wno-error=dev \
     -DKokkosKernels_ENABLED_COMPONENTS=SPARSE \
     -DCMAKE_INSTALL_PREFIX=${KOKKOSKERNELS_INSTALL}/${KOKKOSKERNELS_PRESET}
 
-cmake --build build-kokkos-kernels --target=install -j4
+cmake --build build-kokkos-kernels-${KOKKOSKERNELS_PRESET} --target=install -j4
