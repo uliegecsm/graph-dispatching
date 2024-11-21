@@ -132,8 +132,6 @@ struct CG
             std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
 
             //! Compute @c alpha.
-            KokkosBlas::dot(exec, res_dot_old, res, res);
-
             KokkosSparse::spmv(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
 
             KokkosBlas::dot(exec, quadratic, dir, mat_dir);
@@ -159,6 +157,8 @@ struct CG
 
                 //! Update search direction.
                 axpby(exec, 1., res, beta, dir);
+
+                Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
 
                 ++iter;
             }
