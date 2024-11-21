@@ -151,9 +151,10 @@ struct CG
             //! At this point, we can already check the condition and exit.
             KokkosBlas::dot(exec, res_dot_new, res, res);
 
-            exec.fence("Wait for rank-0 views to be ready.");
+            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
+            exec.fence("Wait for deep-copy into a host variable.");
 
-            if((res_nrm2 = std::sqrt(res_dot_new())) > tol)
+            if((res_nrm2 = std::sqrt(res_nrm2)) > tol)
             {
                 //! Compute @c beta.
                 scalar_div(exec, beta, res_dot_new, res_dot_old);
