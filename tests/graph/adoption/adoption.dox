@@ -48,10 +48,12 @@ It would typically require 2 changes:
 
 @code
 template <typename ExecOrGraph>
-auto axpby(const ExecOrGraph& exec, ...)
+decltype(auto) axpby(ExecOrGraph&& exec, ...)
 {
-    return exec | Kokkos::graph::parallel_for(
-        Kokkos::RangePolicy<ExecOrGraph>(...),
+    using execution_space = typename std::remove_cvref_t<ExecOrGraph>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::graph::parallel_for(
+        Kokkos::RangePolicy<execution_space>(...),
         Functor{...}
     );
 }
