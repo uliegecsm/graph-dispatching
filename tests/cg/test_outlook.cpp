@@ -9,52 +9,70 @@
 /**
  * @addtogroup unittests
  *
- * Conjugate gradient solver with regular @c Kokkos execution space instances
- * --------------------------------------------------------------------------
+ * Conjugate gradient solver with a @c Kokkos::Graph
+ * -------------------------------------------------
  *
- * Implement a portable conjugate gradient solver without using @c Kokkos::Graph.
+ * Implement a portable conjugate gradient solver using @c Kokkos::Graph.
  *
- * The test can be found in @ref capture/test_regular.cpp.
+ * The test can be found in @ref capture/test_outlook.cpp.
  */
 
 namespace tests::cg
 {
+
 /**
- * @brief Scalar division on device.
+ * @brief Perform SPMV, graph-compatible.
  *
- * References:
- *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu#L103C1-L108C2
+ * The implementation relies on the @c KokkosSparse kernel. Inspired by
+ * https://github.com/trilinos/Trilinos/blob/62023ad68e09a2972240971c40be34465010d6f3/packages/kokkos-kernels/perf_test/sparse/KokkosSparse_spmv_struct_tuning.cpp#L191.
+ *
+ * @warning It has not been tuned at all.
  */
-template <typename Exec, typename T, typename U, typename V>
-void scalar_div(const Exec& exec, const T& out, const U& x, const V& y)
+template <typename Exec, typename Handle, typename Alpha, typename AMatrix, typename XVector, typename Beta, typename YVector>
+decltype(auto) spmv(Exec&& exec, const Handle&, const Alpha& alpha, const AMatrix& mat, const XVector& vec_x, const Beta& beta, const YVector& vec_y)
 {
-    Kokkos::parallel_for(
-        "scalar division",
-        Kokkos::RangePolicy(exec, 0, 1),
-        KOKKOS_LAMBDA(const int){ out() = x() / y(); }
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    KokkosSparse::Impl::SPMV_Functor<
+        execution_space,
+        AMatrix,
+        XVector, YVector,
+        1     /* dobeta */,
+        false /* conjugate */
+    > functor(alpha, mat, vec_x, beta, vec_y, /* rows_per_team */ 1);
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "SPMV",
+        Kokkos::TeamPolicy<execution_space>(1, Kokkos::AUTO),
+        std::move(functor)
+    );
+}
+
+//! Dot product, graph-compatible.
+template <typename Exec, typename Result, typename ViewX, typename ViewY>
+decltype(auto) dot(Exec&& exec, Result&& result, const ViewX& vec_x, const ViewY& vec_y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_reduce(
+        "DOT",
+        Kokkos::RangePolicy<execution_space>(0, vec_x.size()),
+        KOKKOS_LAMBDA(const typename execution_space::size_type index, typename ViewX::non_const_value_type& current) {
+            current += vec_x(index) * vec_y(index);
+        },
+        std::forward<Result>(result)
     );
 }
 
 /**
- * Wrapper around @c KokkosBlas::axpby to ensure fencing is done, otherwise
- * asynchronicity issues may arise. See also https://github.com/kokkos/kokkos-kernels/issues/2434.
- */
-template <typename Exec, typename... Args>
-void axpby(const Exec& exec, Args&&... args)
-{
-    exec.fence("Fencing before calling 'KokkosBlas::axpby'.");
-    KokkosBlas::axpby(exec, std::forward<Args>(args)...);
-}
-
-/**
- * @brief Conjugate gradient solver with regular @c Kokkos execution space instances.
+ * @brief Conjugate gradient solver with a @c Kokkos::Graph.
  *
  * References:
  *  - https://en.wikipedia.org/wiki/Conjugate_gradient_method
  *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu
  */
 template <typename VectorType, typename MatrixType>
-struct CGRegular
+struct CGGraph
 {
     using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
     using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
@@ -62,7 +80,7 @@ struct CGRegular
     VectorType rhs;
     MatrixType mat;
 
-    //! We explicitly don't partition @p exec.
+    //! Create a @c Kokkos::Graph to iterate towards the solution.
     template <typename Exec>
     auto apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
@@ -106,49 +124,35 @@ struct CGRegular
 
         size_t iter = 0;
 
+        //! Check for convergence even before creating the graph.
+        if(res_nrm2 > tol && iter < max_iter) return std::tuple{res_nrm2, iter};
+
+        //! Create the graph.
+        auto root = Kokkos::Experimental::graph::create_graph(exec);
+
+        //! Compute @c alpha.
+        decltype(auto) alpha_spmv = spmv(std::move(root), handle, 1., mat, dir, 0., mat_dir);
+
+        decltype(auto) alpha_dot = dot(std::move(alpha_spmv), quadratic, dir, mat_dir);
+
+        decltype(auto) alpha_final = scalar_div_and_neg(std::move(alpha_dot), alpha, alpha_neg, res_dot_old, quadratic);
+
+        //! Loop towards convergence.
         while(res_nrm2 > tol && iter < max_iter)
         {
             std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
 
-            //! Compute @c alpha.
-            KokkosSparse::spmv(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
+            Kokkos::Experimental::graph::submit(exec, root);
 
-            KokkosBlas::dot(exec, quadratic, dir, mat_dir);
-
-            scalar_div_and_neg(exec, alpha, alpha_neg, res_dot_old, quadratic);
-
-            //! Update the solution candidate.
-            axpby(exec, alpha, dir, 1., sol);
-
-            //! Update the residual.
-            axpby(exec, alpha_neg, mat_dir, 1., res);
-
-            //! At this point, we can already check the condition and exit.
-            KokkosBlas::dot(exec, res_dot_new, res, res);
-
-            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
-            exec.fence("Wait for deep-copy into a host variable.");
-
-            if((res_nrm2 = std::sqrt(res_nrm2)) > tol)
-            {
-                //! Compute @c beta.
-                scalar_div(exec, beta, res_dot_new, res_dot_old);
-
-                //! Update search direction.
-                axpby(exec, 1., res, beta, dir);
-
-                Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
-
-                ++iter;
-            }
+            ++iter;
         }
 
         return std::tuple{res_nrm2, iter};
     }
 };
 
-//! @test Use @ref CGRegular to solve the 2-by-2 system created by @ref TwoByTwo.
-TEST(CGRegular, 2x2)
+//! @test Use @ref CGGraph to solve the 2-by-2 system created by @ref TwoByTwo.
+TEST(CGGraph, 2x2)
 {
     using execution_space = Kokkos::DefaultExecutionSpace;
     using memory_space    = typename execution_space::memory_space;
@@ -159,7 +163,7 @@ TEST(CGRegular, 2x2)
 
     twobytwo_t sys(exec);
 
-    CGRegular solver{.rhs = std::move(sys.rhs), .mat = std::move(sys.matrix)};
+    CGGraph solver{.rhs = std::move(sys.rhs), .mat = std::move(sys.matrix)};
 
     const auto [res_nrm2, num_iters] = solver.apply(exec, sys.guess, 1.e-5, 5);
 

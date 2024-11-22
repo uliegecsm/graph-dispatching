@@ -4,6 +4,8 @@
 #include "Kokkos_Core.hpp"
 #include "KokkosSparse_CrsMatrix.hpp"
 
+#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
+
 namespace tests::cg
 {
 /**
@@ -93,6 +95,25 @@ struct TwoByTwo
         this->guess  = std::move(guess_);
     }
 };
+
+/**
+ * @brief Scalar division on device plus negation, graph-compatible.
+ *
+ * References:
+ *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu#L103C1-L108C2
+ *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu#L96
+ */
+template <typename Exec, typename T, typename U, typename V>
+decltype(auto) scalar_div_and_neg(Exec&& exec, const T& out, const T& out_neg, const U& x, const V& y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "scalar division + negate",
+        Kokkos::RangePolicy<execution_space>(0, 1),
+        KOKKOS_LAMBDA(const int){ out() = x() / y(); out_neg() = - out(); }
+    );
+}
 
 } // namespace tests::cg
 
