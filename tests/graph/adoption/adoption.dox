@@ -51,7 +51,7 @@ template <typename ExecOrGraph>
 auto axpby(const ExecOrGraph& exec, ...)
 {
     return exec | Kokkos::graph::parallel_for(
-        Kokkos::RangePolicy<ExecOrGraph>(exec, ...),
+        Kokkos::RangePolicy<ExecOrGraph>(...),
         Functor{...}
     );
 }
