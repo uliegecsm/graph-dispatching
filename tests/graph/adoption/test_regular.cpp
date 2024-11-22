@@ -41,8 +41,7 @@ TEST(graph, adoption_regular)
 
     Kokkos::Experimental::submit(exec, std::move(from_user));
 
-    //! @todo This should not be a global fence.
-    Kokkos::fence();
+    exec.fence();
 }
 
 } // namespace tests::graph::adoption

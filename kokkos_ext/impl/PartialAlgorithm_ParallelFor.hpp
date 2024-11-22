@@ -3,6 +3,7 @@
 
 #include "kokkos_ext/impl/Concepts.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm.hpp"
+#include "kokkos_ext/impl/Utils.hpp"
 
 namespace Kokkos::Experimental::graph::details
 {
@@ -31,11 +32,9 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
     template <typename Sender> requires (! is_graph_sender<std::remove_reference_t<Sender>>)
     decltype(auto) operator()(Sender&& exec) &&
     {
-        /// @todo The policy should be modified to ensure we run the kernel on the given
-        ///       execution space instance. This is currently not possible.
         Kokkos::parallel_for(
             std::move(label),
-            std::move(policy),
+            details::update_policy(std::move(policy), exec),
             std::move(functor)
         );
         return std::forward<Sender>(exec);
