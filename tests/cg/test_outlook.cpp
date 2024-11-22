@@ -39,7 +39,7 @@ decltype(auto) spmv(Exec&& exec, const Handle&, const Alpha& alpha, const AMatri
         XVector, YVector,
         1     /* dobeta */,
         false /* conjugate */
-    > functor(alpha, mat, vec_x, beta, vec_y, /* rows_per_team */ 1);
+    > functor(alpha, mat, vec_x, beta, vec_y, /* rows_per_team */ mat.numRows());
 
     return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
         "SPMV",
@@ -61,6 +61,31 @@ decltype(auto) dot(Exec&& exec, Result&& result, const ViewX& vec_x, const ViewY
             current += vec_x(index) * vec_y(index);
         },
         std::forward<Result>(result)
+    );
+}
+
+template <typename T> requires (!Kokkos::is_view_v<std::remove_cvref_t<T>>)
+constexpr decltype(auto) get_value(T&& value) {
+    return std::forward<T>(value);
+}
+
+template <typename T> requires (Kokkos::is_view_v<std::remove_cvref_t<T>> && std::remove_cvref_t<T>::rank() == 0)
+constexpr decltype(auto) get_value(T&& value) {
+    return std::forward<T>(value)();
+}
+
+//! Equivalent to @c KokkosBlas::axpby, graph-compatible.
+template <typename Exec, typename Alpha, typename ViewX, typename Beta, typename ViewY>
+decltype(auto) axpby(Exec&& exec, const Alpha& alpha, const ViewX& vec_x, const Beta& beta, const ViewY& vec_y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "AXPBY",
+        Kokkos::RangePolicy<execution_space>(0, vec_x.size()),
+        KOKKOS_LAMBDA(const typename execution_space::size_type index) {
+            vec_y(index) = get_value(alpha) * vec_x(index) + get_value(beta) * vec_y(index);
+        }
     );
 }
 
@@ -125,24 +150,51 @@ struct CGGraph
         size_t iter = 0;
 
         //! Check for convergence even before creating the graph.
-        if(res_nrm2 > tol && iter < max_iter) return std::tuple{res_nrm2, iter};
+        if(res_nrm2 < tol || max_iter == 0) return std::tuple{res_nrm2, iter};
 
         //! Create the graph.
         auto root = Kokkos::Experimental::graph::create_graph(exec);
 
         //! Compute @c alpha.
-        decltype(auto) alpha_spmv = spmv(std::move(root), handle, 1., mat, dir, 0., mat_dir);
+        decltype(auto) alpha_spmv = ::tests::cg::spmv(std::move(root), handle, 1., mat, dir, 0., mat_dir);
 
-        decltype(auto) alpha_dot = dot(std::move(alpha_spmv), quadratic, dir, mat_dir);
+        decltype(auto) alpha_dot = ::tests::cg::dot(std::move(alpha_spmv), quadratic, dir, mat_dir);
 
-        decltype(auto) alpha_final = scalar_div_and_neg(std::move(alpha_dot), alpha, alpha_neg, res_dot_old, quadratic);
+        decltype(auto) alpha_final = ::tests::cg::scalar_div_and_neg(std::move(alpha_dot), alpha, alpha_neg, res_dot_old, quadratic);
 
-        //! Loop towards convergence.
+        //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
+        using Kokkos::Experimental::graph::details::operator|;
+        decltype(auto) alpha_split = std::move(alpha_final) | Kokkos::Experimental::graph::split();
+
+        //! Update the solution candidate.
+        decltype(auto) update_sol = ::tests::cg::axpby(alpha_split, alpha, dir, 1., sol);
+
+        //! Update the residual.
+        decltype(auto) update_res = ::tests::cg::axpby(std::move(alpha_split), alpha_neg, mat_dir, 1., res);
+
+        //! At this point, we could already check the condition and exit, but we don't have conditional nodes yet.
+        decltype(auto) compute_res_dot_new = ::tests::cg::dot(std::move(update_res), res_dot_new, res, res);
+
+        //! Compute @c beta.
+        decltype(auto) beta_final = ::tests::cg::scalar_div(std::move(compute_res_dot_new), beta, res_dot_new, res_dot_old);
+
+        //! Update search direction.
+        decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_final), 1., res, beta, dir);
+
+        //! Loop until convergence.
         while(res_nrm2 > tol && iter < max_iter)
         {
             std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
 
-            Kokkos::Experimental::graph::submit(exec, root);
+            Kokkos::Experimental::graph::submit(exec, update_dir);
+
+            //! @todo This deep-copy should be a @c memcpy node.
+            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
+
+            //! @todo This deep-copy should be a @c memcpy node.
+            Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
+
+            exec.fence("Wait for deep-copy into a host variable.");
 
             ++iter;
         }

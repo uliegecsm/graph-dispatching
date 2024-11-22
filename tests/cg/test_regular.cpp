@@ -20,22 +20,6 @@
 namespace tests::cg
 {
 /**
- * @brief Scalar division on device.
- *
- * References:
- *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu#L103C1-L108C2
- */
-template <typename Exec, typename T, typename U, typename V>
-void scalar_div(const Exec& exec, const T& out, const U& x, const V& y)
-{
-    Kokkos::parallel_for(
-        "scalar division",
-        Kokkos::RangePolicy(exec, 0, 1),
-        KOKKOS_LAMBDA(const int){ out() = x() / y(); }
-    );
-}
-
-/**
  * Wrapper around @c KokkosBlas::axpby to ensure fencing is done, otherwise
  * asynchronicity issues may arise. See also https://github.com/kokkos/kokkos-kernels/issues/2434.
  */

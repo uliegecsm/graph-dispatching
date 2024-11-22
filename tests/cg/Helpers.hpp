@@ -115,6 +115,22 @@ decltype(auto) scalar_div_and_neg(Exec&& exec, const T& out, const T& out_neg, c
     );
 }
 
+/**
+ * @brief Scalar division on device.
+ *
+ * References:
+ *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu#L103C1-L108C2
+ */
+template <typename Exec, typename T, typename U, typename V>
+decltype(auto) scalar_div(Exec&& exec, const T& out, const U& x, const V& y)
+{
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "scalar division",
+        Kokkos::RangePolicy(0, 1),
+        KOKKOS_LAMBDA(const int){ out() = x() / y(); }
+    );
+}
+
 } // namespace tests::cg
 
 #endif // GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP
