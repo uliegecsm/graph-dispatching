@@ -271,6 +271,34 @@ void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode
 }
 
 template <typename T>
+GraphNodeMemcpy<T>::GraphNodeMemcpy(void* const src_, void* const dst_, const size_t size_, const PREFIXED_API(MemcpyKind) kind_)
+    : src(src_),
+      dst(dst_),
+      size(BufferSize<T>::get(size_)),
+      kind(kind_)
+    {}
+
+template <typename T>
+void GraphNodeMemcpy<T>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph memcpy node (from %p to %p, size %zu) to graph %p with %zu ancestors.\n",
+        src,
+        dst,
+        size,
+        graph.graph, ancestors.size()
+    );
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddMemcpyNode1D)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        dst,
+        src,
+        size,
+        kind
+    ));
+}
+
+template <typename T>
 GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const Stream& stream)
 {
     const auto device_id = stream.device();
@@ -279,7 +307,7 @@ GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const
 
     /// See https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemAllocNodeParams.html#structcudaMemAllocNodeParams.
     /// For the pool properties, see https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemPoolProps.html#structcudaMemPoolProps.
-    params.bytesize = size * sizeof(T);
+    params.bytesize = BufferSize<T>::get(size);
 
     params.poolProps.allocType     = PREFIXED_API(MemAllocationTypePinned);
     params.poolProps.location.type = PREFIXED_API(MemLocationTypeDevice);
