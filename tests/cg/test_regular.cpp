@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "Kokkos_InnerProductSpaceTraits.hpp"
+#include "Kokkos_Profiling_ScopedRegion.hpp"
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
@@ -93,6 +94,7 @@ struct CGRegular
         while(res_nrm2 > tol && iter < max_iter)
         {
             std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
+            Kokkos::Profiling::ScopedRegion region("iter-" + std::to_string(iter));
 
             //! Compute @c alpha.
             KokkosSparse::spmv(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
