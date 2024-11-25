@@ -10,16 +10,45 @@
 /**
  * @addtogroup unittests
  *
- * Conjugate gradient solver with a @c Kokkos::Graph
- * -------------------------------------------------
+ * Conjugate gradient solver with a @c Kokkos::Graph and @c Cuda @c memcpy nodes
+ * -----------------------------------------------------------------------------
  *
- * Implement a portable conjugate gradient solver using @c Kokkos::Graph.
+ * Similar to @ref tests/cg/test_outlook.cpp, but adds @c Cuda memory nodes (manually since
+ * it is not part of @c Kokkos yet).
  *
- * The test can be found in @ref cg/test_outlook.cpp.
+ * The test can be found in @ref cg/test_outlook.memcpy.cpp.
  */
 
 namespace tests::cg
 {
+//! Direction of a memory copy operation.
+enum class Direction
+{
+    DeviceToHost   = cudaMemcpyDeviceToHost,
+    DeviceToDevice = cudaMemcpyDeviceToDevice
+};
+
+//! Add a @c memcpy graph node.
+template <typename T, typename SrcType, typename DstType>
+cudaGraphNode_t add_memcpy(const T& node, const DstType& dst, const SrcType& src, const Direction dir)
+{
+    cudaGraphNode_t* const native_node  = Kokkos::Impl::GraphAccess::get_node_ptr(node)->get_kernel().get_cuda_graph_node_ptr();
+    const std::vector<cudaGraphNode_t> predecessors {*native_node};
+
+    cudaGraph_t const* native_graph = Kokkos::Impl::GraphAccess::get_node_ptr(node)->get_kernel().get_cuda_graph_ptr();
+
+    cudaGraphNode_t memcpy = nullptr;
+    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddMemcpyNode1D(
+        &memcpy, *native_graph,
+        predecessors.data(), predecessors.size(),
+        dst.data(),
+        src.data(),
+        src.size() * sizeof(typename SrcType::value_type),
+        static_cast<cudaMemcpyKind>(dir)
+    ));
+
+    return memcpy;
+}
 
 /**
  * @brief Conjugate gradient solver with a @c Kokkos::Graph.
@@ -107,8 +136,14 @@ struct CGGraph
         //! At this point, we could already check the condition and exit, but we don't have conditional nodes yet.
         decltype(auto) compute_res_dot_new = ::tests::cg::dot(std::move(update_res), res_dot_new, res, res);
 
+        //! Update residual L2-norm (host).
+        add_memcpy(compute_res_dot_new, Kokkos::View<dot_t, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(&res_nrm2), res_dot_new, Direction::DeviceToHost);
+
         //! Compute @c beta.
         decltype(auto) beta_final = ::tests::cg::scalar_div(std::move(compute_res_dot_new), beta, res_dot_new, res_dot_old);
+
+        //! Update residual dot on device.
+        add_memcpy(beta_final, res_dot_old, res_dot_new, Direction::DeviceToDevice);
 
         //! Update search direction.
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_final), 1., res, beta, dir);
@@ -120,12 +155,6 @@ struct CGGraph
             Kokkos::Profiling::ScopedRegion region("iter-" + std::to_string(iter));
 
             Kokkos::Experimental::graph::submit(exec, update_dir);
-
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
-
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
 
             exec.fence("Wait for deep-copy into a host variable.");
 

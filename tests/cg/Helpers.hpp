@@ -131,6 +131,75 @@ decltype(auto) scalar_div(Exec&& exec, const T& out, const U& x, const V& y)
     );
 }
 
+/**
+ * @brief Perform SPMV, graph-compatible.
+ *
+ * The implementation relies on the @c KokkosSparse kernel. Inspired by
+ * https://github.com/trilinos/Trilinos/blob/62023ad68e09a2972240971c40be34465010d6f3/packages/kokkos-kernels/perf_test/sparse/KokkosSparse_spmv_struct_tuning.cpp#L191.
+ *
+ * @warning It has not been tuned at all.
+ */
+template <typename Exec, typename Handle, typename Alpha, typename AMatrix, typename XVector, typename Beta, typename YVector>
+decltype(auto) spmv(Exec&& exec, const Handle&, const Alpha& alpha, const AMatrix& mat, const XVector& vec_x, const Beta& beta, const YVector& vec_y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    KokkosSparse::Impl::SPMV_Functor<
+        execution_space,
+        AMatrix,
+        XVector, YVector,
+        1     /* dobeta */,
+        false /* conjugate */
+    > functor(alpha, mat, vec_x, beta, vec_y, /* rows_per_team */ mat.numRows());
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "SPMV",
+        Kokkos::TeamPolicy<execution_space>(1, Kokkos::AUTO),
+        std::move(functor)
+    );
+}
+
+//! Dot product, graph-compatible.
+template <typename Exec, typename Result, typename ViewX, typename ViewY>
+decltype(auto) dot(Exec&& exec, Result&& result, const ViewX& vec_x, const ViewY& vec_y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_reduce(
+        "DOT",
+        Kokkos::RangePolicy<execution_space>(0, vec_x.size()),
+        KOKKOS_LAMBDA(const typename execution_space::size_type index, typename ViewX::non_const_value_type& current) {
+            current += vec_x(index) * vec_y(index);
+        },
+        std::forward<Result>(result)
+    );
+}
+
+template <typename T> requires (!Kokkos::is_view_v<std::remove_cvref_t<T>>)
+constexpr decltype(auto) get_value(T&& value) {
+    return std::forward<T>(value);
+}
+
+template <typename T> requires (Kokkos::is_view_v<std::remove_cvref_t<T>> && std::remove_cvref_t<T>::rank() == 0)
+constexpr decltype(auto) get_value(T&& value) {
+    return std::forward<T>(value)();
+}
+
+//! Equivalent to @c KokkosBlas::axpby, graph-compatible.
+template <typename Exec, typename Alpha, typename ViewX, typename Beta, typename ViewY>
+decltype(auto) axpby(Exec&& exec, const Alpha& alpha, const ViewX& vec_x, const Beta& beta, const ViewY& vec_y)
+{
+    using execution_space = typename std::remove_cvref_t<Exec>::execution_space;
+
+    return std::forward<Exec>(exec) | Kokkos::Experimental::graph::parallel_for(
+        "AXPBY",
+        Kokkos::RangePolicy<execution_space>(0, vec_x.size()),
+        KOKKOS_LAMBDA(const typename execution_space::size_type index) {
+            vec_y(index) = get_value(alpha) * vec_x(index) + get_value(beta) * vec_y(index);
+        }
+    );
+}
+
 } // namespace tests::cg
 
 #endif // GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP

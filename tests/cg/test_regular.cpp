@@ -15,7 +15,7 @@
  *
  * Implement a portable conjugate gradient solver without using @c Kokkos::Graph.
  *
- * The test can be found in @ref capture/test_regular.cpp.
+ * The test can be found in @ref cg/test_regular.cpp.
  */
 
 namespace tests::cg
@@ -25,7 +25,7 @@ namespace tests::cg
  * asynchronicity issues may arise. See also https://github.com/kokkos/kokkos-kernels/issues/2434.
  */
 template <typename Exec, typename... Args>
-void axpby(const Exec& exec, Args&&... args)
+void axpby_fence(const Exec& exec, Args&&... args)
 {
     exec.fence("Fencing before calling 'KokkosBlas::axpby'.");
     KokkosBlas::axpby(exec, std::forward<Args>(args)...);
@@ -104,10 +104,10 @@ struct CGRegular
             scalar_div_and_neg(exec, alpha, alpha_neg, res_dot_old, quadratic);
 
             //! Update the solution candidate.
-            axpby(exec, alpha, dir, 1., sol);
+            axpby_fence(exec, alpha, dir, 1., sol);
 
             //! Update the residual.
-            axpby(exec, alpha_neg, mat_dir, 1., res);
+            axpby_fence(exec, alpha_neg, mat_dir, 1., res);
 
             //! At this point, we can already check the condition and exit.
             KokkosBlas::dot(exec, res_dot_new, res, res);
@@ -121,7 +121,7 @@ struct CGRegular
                 scalar_div(exec, beta, res_dot_new, res_dot_old);
 
                 //! Update search direction.
-                axpby(exec, 1., res, beta, dir);
+                axpby_fence(exec, 1., res, beta, dir);
 
                 Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
 
