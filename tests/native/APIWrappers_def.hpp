@@ -121,6 +121,7 @@ Graph::~Graph()
 
 void Graph::print(const char* path, const unsigned int flags) const
 {
+    printf("> Exporting graph %p to %s with flags %u.\n", graph, path, flags);
     CHECK_CALL(PREFIXED_API(GraphDebugDotPrint)(graph, path, flags));
 }
 
