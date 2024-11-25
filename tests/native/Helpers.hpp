@@ -20,6 +20,16 @@ struct MyFunctor
     }
 };
 
+template <typename ViewType>
+struct SetToIndex
+{
+    ViewType data;
+
+    template <typename T>
+    KOKKOS_FUNCTION
+    void operator()(const T index) const { data(index) = index; }
+};
+
 } // namespace tests::cuda
 
 #endif // GRAPH_DISPATCHING_TESTS_CUDA_HELPERS_HPP

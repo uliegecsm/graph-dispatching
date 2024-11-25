@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include "gtest/gtest.h"
 
 #include "tests/native/APIWrappers_def.hpp"
@@ -50,6 +52,8 @@ TEST(cuda, memory_node)
 
     graph_exec.submit(stream);
     stream.fence();
+
+    graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_memory_node.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 }
 
 } // namespace tests::cuda

@@ -121,6 +121,7 @@ Graph::~Graph()
 
 void Graph::print(const char* path, const unsigned int flags) const
 {
+    printf("> Exporting graph %p to %s with flags %u.\n", graph, path, flags);
     CHECK_CALL(PREFIXED_API(GraphDebugDotPrint)(graph, path, flags));
 }
 
@@ -186,8 +187,16 @@ GraphNodeKernel<Functor>::GraphNodeKernel(const Functor& functor, const size_t s
     inputs.resize(1);
     inputs[0] = (void*)&functor;
 
-    params.gridDim        = dim3(1,     1, 1);
-    params.blockDim       = dim3(1, shape, 1);
+    constexpr size_t max_block_size = 1024;
+
+    if(shape > max_block_size && shape%max_block_size != 0)
+        throw std::runtime_error("Unsupported shape " + std::to_string(shape) + " given the max block size of " + std::to_string(max_block_size) + '.');
+
+    const size_t num_blocks  = shape < max_block_size ? 1     : shape / max_block_size;
+    const size_t num_threads = shape < max_block_size ? shape : shape / num_blocks;
+
+    params.gridDim        = dim3(1, num_blocks , 1);
+    params.blockDim       = dim3(1, num_threads, 1);
     params.sharedMemBytes = 0;
     params.func           = (void * )get_driver<Functor>();
     params.kernelParams   = inputs.data();
@@ -262,6 +271,34 @@ void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode
 }
 
 template <typename T>
+GraphNodeMemcpy<T>::GraphNodeMemcpy(void* const src_, void* const dst_, const size_t size_, const PREFIXED_API(MemcpyKind) kind_)
+    : src(src_),
+      dst(dst_),
+      size(BufferSize<T>::get(size_)),
+      kind(kind_)
+    {}
+
+template <typename T>
+void GraphNodeMemcpy<T>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph memcpy node (from %p to %p, size %zu) to graph %p with %zu ancestors.\n",
+        src,
+        dst,
+        size,
+        graph.graph, ancestors.size()
+    );
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddMemcpyNode1D)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        dst,
+        src,
+        size,
+        kind
+    ));
+}
+
+template <typename T>
 GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const Stream& stream)
 {
     const auto device_id = stream.device();
@@ -270,7 +307,7 @@ GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const
 
     /// See https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemAllocNodeParams.html#structcudaMemAllocNodeParams.
     /// For the pool properties, see https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemPoolProps.html#structcudaMemPoolProps.
-    params.bytesize = size * sizeof(T);
+    params.bytesize = BufferSize<T>::get(size);
 
     params.poolProps.allocType     = PREFIXED_API(MemAllocationTypePinned);
     params.poolProps.location.type = PREFIXED_API(MemLocationTypeDevice);
@@ -305,7 +342,7 @@ void GraphNodeMemoryFree::add(const Graph& graph, const std::vector<GraphNode>& 
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {
-    int index = threadIdx.y;
+    int index = threadIdx.y + blockDim.y * blockIdx.y;
     functor.operator()(index);
 }
 

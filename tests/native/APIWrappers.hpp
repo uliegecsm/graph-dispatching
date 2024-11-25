@@ -206,6 +206,24 @@ struct GraphNodeHost : public GraphNode
     static void driver(void* data);
 };
 
+/**
+ * @brief Memory copy node.
+ *
+ * @note This node implements @c cudaGraphAddMemcpyNode1D.
+ */
+template <typename T = void>
+struct GraphNodeMemcpy : public GraphNode
+{
+    void*  src;
+    void*  dst;
+    size_t size;
+    PREFIXED_API(MemcpyKind) kind;
+
+    GraphNodeMemcpy(void* const src, void* const dst, const size_t size, const PREFIXED_API(MemcpyKind) kind = PREFIXED_API(MemcpyDeviceToDevice));
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
+};
+
 //! Memory allocation node.
 template <typename T>
 struct GraphNodeMemoryAllocation : public GraphNode
