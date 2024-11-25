@@ -27,8 +27,12 @@ add_one_test(NAME subgraph    COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${
 
 # Tests that only work for Cuda.
 if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
-    # Conditional node is not supported as of HIP 6.2.
+    # Conditional if node is not supported as of HIP 6.2.
     add_one_test(NAME conditional_if COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher} ADD_BINARY_DIR)
+    # Conditional while node is not supported as of HIP 6.2.
+    # Note that it triggers a weird supposedly false positive error with 'compute-sanitizer' so we don't
+    # use it for the 'while' test. See https://gist.github.com/romintomasetti/6ddb4e5528fe3eabd0860ca8009e24d5.
+    add_one_test(NAME conditional_while COMPILE_DEFINITIONS ${enabled_backend} ADD_BINARY_DIR)
     # This test uses cuSparse, but capture works for HIP.
     add_one_test(NAME graph_capture  COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher})
 endif()

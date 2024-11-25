@@ -174,6 +174,27 @@ struct GraphNodeConditionalIf : public GraphNode
 
     Graph get() const { return params.conditional.phGraph_out[0]; }
 };
+
+/**
+ * @brief Wrapper for a conditional while node.
+ *
+ * According to https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#conditional-graph-nodes, the condition
+ * is evaluated on device. However, it is not clear if the same restrictions as the device graphs apply. As a matter of
+ * fact, @c nsys will not show the nodes embedded in the @c while subgraph, pointing to it being indeed a device graph launch.
+ *
+ * References:
+ *  - https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#conditional-while-nodes
+ */
+struct GraphNodeConditionalWhile : public GraphNode
+{
+    PREFIXED_API(GraphNodeParams) params = {};
+
+    GraphNodeConditionalWhile(cudaGraphConditionalHandle handle);
+
+    void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
+
+    Graph get() const { return params.conditional.phGraph_out[0]; }
+};
 #endif
 
 /**
