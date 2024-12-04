@@ -228,7 +228,28 @@ GraphNodeConditionalIf::GraphNodeConditionalIf(cudaGraphConditionalHandle handle
 
 void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph conditional node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    printf("> Adding graph conditional if node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    const auto ancestors_impl = transform_to_impl(ancestors);
+    CHECK_CALL(PREFIXED_API(GraphAddNode)(
+        &node, graph.graph,
+        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        &params
+    ));
+}
+
+GraphNodeConditionalWhile::GraphNodeConditionalWhile(cudaGraphConditionalHandle handle)
+{
+    printf("> Creating a graph conditional while node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__);
+
+    params.type               = cudaGraphNodeTypeConditional;
+    params.conditional.handle = handle;
+    params.conditional.type   = cudaGraphCondTypeWhile;
+    params.conditional.size   = 1;
+}
+
+void GraphNodeConditionalWhile::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
+{
+    printf("> Adding graph conditional while node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,

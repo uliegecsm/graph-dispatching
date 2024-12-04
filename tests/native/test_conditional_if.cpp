@@ -56,7 +56,7 @@ TEST_P(cuda, conditional_if)
     Graph graph;
 
     cudaGraphConditionalHandle handle;
-    cudaGraphConditionalHandleCreate(&handle, graph.graph);
+    CHECK_CALL(cudaGraphConditionalHandleCreate(&handle, graph.graph));
 
     WorkThatDrivesTheConditional functor_decision{
         .decision = this->GetParam(),
