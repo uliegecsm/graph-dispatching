@@ -32,7 +32,8 @@ template <typename VectorType, typename MatrixType>
 struct CGGraph
 {
     using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
-    using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
+    using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results on device.
+    using pinned_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace>; //! To store intermediate scalar results needed on both host and device.
 
     VectorType rhs;
     MatrixType mat;
@@ -50,8 +51,8 @@ struct CGGraph
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        result_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
-        result_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
+        pinned_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, "residual dot - old"));
+        pinned_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, "residual dot - new"));
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
 
@@ -70,19 +71,14 @@ struct CGGraph
         result_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
         result_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
-        //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
-        dot_t res_nrm2 = 0.;
-
-        //! Loop until the norm of the residual is larger than @p tol.
-        Kokkos::deep_copy(exec, res_nrm2, res_dot_old);
-        exec.fence("Wait for deep-copy into a host variable.");
-
-        res_nrm2 = std::sqrt(res_nrm2);
+        //! Placeholder for the residual L2 norm.
+        pinned_t res_nrm2(Kokkos::view_alloc(Kokkos::WithoutInitializing, "residual L2 norm"));
+        res_nrm2() = std::sqrt(res_dot_old());
 
         size_t iter = 0;
 
         //! Check for convergence even before creating the graph.
-        if(res_nrm2 < tol || max_iter == 0) return std::tuple{res_nrm2, iter};
+        if(res_nrm2() < tol || max_iter == 0) return std::tuple{res_nrm2(), iter};
 
         //! Create the graph.
         auto root = Kokkos::Experimental::graph::create_graph(exec);
@@ -113,26 +109,23 @@ struct CGGraph
         //! Update search direction.
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_final), 1., res, beta, dir);
 
-        //! Loop until convergence.
-        while(res_nrm2 > tol && iter < max_iter)
+        //! Loop until the norm of the residual is larger than @p tol.
+        while(res_nrm2() > tol && iter < max_iter)
         {
-            std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
+            std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2() << std::endl;
             Kokkos::Profiling::ScopedRegion region("iter-" + std::to_string(iter));
 
             Kokkos::Experimental::graph::submit(exec, update_dir);
 
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
+            exec.fence("Wait for graph to be executed before reading pinned variables on host.");
 
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
-
-            exec.fence("Wait for deep-copy into a host variable.");
+            res_nrm2()    = res_dot_new();
+            res_dot_old() = res_dot_new();
 
             ++iter;
         }
 
-        return std::tuple{res_nrm2, iter};
+        return std::tuple{res_nrm2(), iter};
     }
 };
 
