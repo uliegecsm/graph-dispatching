@@ -21,26 +21,24 @@
 namespace tests::cg
 {
 
-/**
- * @brief Conjugate gradient solver with a @c Kokkos::Graph.
- *
- * References:
- *  - https://en.wikipedia.org/wiki/Conjugate_gradient_method
- *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu
- */
+//! Conjugate gradient solver with a @c Kokkos::Graph.
 template <typename VectorType, typename MatrixType>
-struct CGGraph
+struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
 {
-    using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
-    using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
+    using base_t = ConjugateGradientSolverBase<VectorType, MatrixType>;
+
+    using typename base_t::device_t;
+    using typename base_t::dot_t;
+    using typename base_t::pinned_t;
 
     VectorType rhs;
     MatrixType mat;
 
-    //! Create a @c Kokkos::Graph to iterate towards the solution.
     template <typename Exec>
-    auto apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
+    std::tuple<dot_t, size_t> apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
+        if(max_iter == 0) return std::tuple{std::numeric_limits<typename VectorType::value_type>::max(), 0};
+
         using spmv_handle_t = KokkosSparse::SPMVHandle<typename VectorType::memory_space, MatrixType, VectorType, VectorType>;
         spmv_handle_t handle {};
 
@@ -50,10 +48,15 @@ struct CGGraph
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        result_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
-        result_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
+        pinned_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
+        pinned_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
+
+        //! Check for convergence even before creating the graph.
+        exec.fence("Check for convergence on host during initialization phase.");
+        dot_t res_nrm2 = std::sqrt(res_dot_old());
+        if(res_nrm2 < tol) return {res_nrm2, 0};
 
         //! Direction of search is set to the residual.
         VectorType dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual"), rhs.size());
@@ -63,26 +66,12 @@ struct CGGraph
         VectorType mat_dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "mat * dir"), rhs.size());
 
         //! Placeholder for the 'quadratic'.
-        result_t quadratic(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "quadratic"));
+        device_t quadratic(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "quadratic"));
 
         //! Placeholder for the 'alpha' and 'beta'.
-        result_t alpha    (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha"));
-        result_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
-        result_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
-
-        //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
-        dot_t res_nrm2 = 0.;
-
-        //! Loop until the norm of the residual is larger than @p tol.
-        Kokkos::deep_copy(exec, res_nrm2, res_dot_old);
-        exec.fence("Wait for deep-copy into a host variable.");
-
-        res_nrm2 = std::sqrt(res_nrm2);
-
-        size_t iter = 0;
-
-        //! Check for convergence even before creating the graph.
-        if(res_nrm2 < tol || max_iter == 0) return std::tuple{res_nrm2, iter};
+        device_t alpha    (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha"));
+        device_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
+        device_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
         //! Create the graph.
         auto root = Kokkos::Experimental::graph::create_graph(exec);
@@ -114,51 +103,32 @@ struct CGGraph
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_final), 1., res, beta, dir);
 
         //! Loop until convergence.
+        size_t iter = 0;
         while(res_nrm2 > tol && iter < max_iter)
         {
-            std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
             Kokkos::Profiling::ScopedRegion region("iter-" + std::to_string(iter));
 
             Kokkos::Experimental::graph::submit(exec, update_dir);
 
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
+            exec.fence("Wait for graph submission to finish before evaluating convergence.");
 
-            //! @todo This deep-copy should be a @c memcpy node.
-            Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
-
-            exec.fence("Wait for deep-copy into a host variable.");
-
+            res_dot_old() = res_dot_new();
             ++iter;
+            res_nrm2 = std::sqrt(res_dot_old());
         }
 
-        return std::tuple{res_nrm2, iter};
+        return {res_nrm2, iter};
     }
 };
 
-//! @test Use @ref CGGraph to solve the 2-by-2 system created by @ref TwoByTwo.
-TEST(CGGraph, 2x2)
+using CGGraphTest = NbyNSolverTest<CGGraph<
+    NbyNSolverTestHelper::initializer_t::values_t,
+    NbyNSolverTestHelper::initializer_t::matrix_t
+>>;
+
+TEST_F(CGGraphTest, 10x10)
 {
-    using execution_space = Kokkos::DefaultExecutionSpace;
-    using memory_space    = typename execution_space::memory_space;
-
-    using twobytwo_t = TwoByTwo<double, Kokkos::Device<execution_space, memory_space>>;
-
-    const execution_space exec {};
-
-    twobytwo_t sys(exec);
-
-    CGGraph solver{.rhs = std::move(sys.rhs), .mat = std::move(sys.matrix)};
-
-    const auto [res_nrm2, num_iters] = solver.apply(exec, sys.guess, 1.e-5, 5);
-
-    ASSERT_LT(res_nrm2,  1.e-5);
-    ASSERT_LT(num_iters, 3);
-
-    const auto sol_h = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), sys.guess);
-
-    ASSERT_DOUBLE_EQ(sol_h(0), twobytwo_t::sol_0);
-    ASSERT_DOUBLE_EQ(sol_h(1), twobytwo_t::sol_1);
+    this->run(100);
 }
 
 } // namespace tests::cg

@@ -43,6 +43,7 @@ struct CGRegular
 {
     using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
     using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
+    using pinned_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace>; //! To store intermediate scalar results needed on both host and device.
 
     VectorType rhs;
     MatrixType mat;

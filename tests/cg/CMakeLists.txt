@@ -10,4 +10,4 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 
 add_one_test(NAME regular        ADDITIONAL_LINK_LIBRARIES KokkosKernels::kokkoskernels)
 add_one_test(NAME outlook        ADDITIONAL_LINK_LIBRARIES KokkosKernels::kokkoskernels)
-add_one_test(NAME outlook.memcpy ADDITIONAL_LINK_LIBRARIES KokkosKernels::kokkoskernels)
+add_one_test(NAME outlook.while  ADDITIONAL_LINK_LIBRARIES KokkosKernels::kokkoskernels)

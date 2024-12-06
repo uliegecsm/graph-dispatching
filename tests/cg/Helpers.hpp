@@ -9,37 +9,10 @@
 namespace tests::cg
 {
 /**
- * @brief Create a 2-by-2 system to test solvers.
+ * @brief Create a N-by-N tri-diagonal system to test solvers.
  *
- * The system is
- * \f[
- *   \begin{bmatrix}
- *      4 & 1 \\
- *      1 & 3
- *   \end{bmatrix}
- *   \begin{bmatrix}
- *      x_1 \\
- *      x_2
- *   \end{bmatrix}
- *   =
- *   \begin{bmatrix}
- *      1 \\
- *      2
- *   \end{bmatrix}
- * \f]
- * and the solution is
- * \f[
- *   \begin{bmatrix}
- *      \cfrac{1}{11} \\
- *      \cfrac{7}{11}
- *   \end{bmatrix}
- * \f]. We will use the following guess
- * \f[
- *   \begin{bmatrix}
- *      2 \\
- *      1
- *   \end{bmatrix}
- * \f].
+ * @todo Say that it's from a 1D Laplacian.
+ * @todo Change class name.
  */
 template <typename scalar_t, typename DeviceType>
 struct TwoByTwo
@@ -58,42 +31,96 @@ struct TwoByTwo
     matrix_t matrix;
     values_t guess;
 
-    static constexpr scalar_t sol_0 = 1. / 11.;
-    static constexpr scalar_t sol_1 = 7. / 11.;
-
     template <typename Exec>
-    TwoByTwo(const Exec& exec)
+    TwoByTwo(const Exec& exec, const size_t size)
     {
-        typename row_map_t::non_const_type row_map(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "row map" ), 3);
-        typename entries_t::non_const_type entries(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "entries" ), 4);
-        typename values_t::non_const_type  values (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "value"   ), 4);
-        typename values_t::non_const_type  rhs_   (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "rhs"     ), 2);
-        typename values_t::non_const_type  guess_ (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "guess"   ), 2);
+        typename row_map_t::non_const_type row_map(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "row map" ), size + 1);
+        typename entries_t::non_const_type entries(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "entries" ), 3 * size - 2);
+        typename values_t::non_const_type  values (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "value"   ), 3 * size - 2);
+        typename values_t::non_const_type  rhs_   (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "rhs"     ), size);
+        typename values_t::non_const_type  guess_ (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "guess"   ), size);
 
         Kokkos::parallel_for(
-            Kokkos::RangePolicy(exec, 0, 1),
-            KOKKOS_LAMBDA(const int)
+            Kokkos::RangePolicy(exec, 0, size),
+            KOKKOS_LAMBDA(const typename Exec::size_type irow)
             {
-                row_map(0) = 0;
-                row_map(1) = 2;
-                row_map(2) = 4;
+                if(irow == 0)
+                {
+                    row_map(0) = 0;
+                    row_map(1) = 2;
 
-                entries(0) = 0; entries(1) = 1;
-                entries(2) = 0; entries(3) = 1;
+                    entries(0) = 0;
+                    entries(1) = 1;
 
-                values(0) = 4.; values(1) = 1.;
-                values(2) = 1.; values(3) = 3.;
+                    values(0) =  1.;
+                    values(1) = -1.;
 
-                rhs_(0) = 1.; rhs_(1) = 2.;
+                    rhs_(0) = 2.;
 
-                guess_(0) = 2.; guess_(1) = 1.;
+                    guess_(0) = 0.1;
+                }
+                else if(irow < size - 1)
+                {
+                    const auto offset = 3 * (irow-1) + 2;
+
+                    row_map(irow + 1) = offset + 3;
+
+                    entries(offset + 0) = irow - 1;
+                    entries(offset + 1) = irow + 0;
+                    entries(offset + 2) = irow + 1;
+
+                    values(offset + 0) = -1.;
+                    values(offset + 1) =  2.;
+                    values(offset + 2) = -1.;
+
+                    rhs_(irow) = 0.;
+
+                    guess_(irow) = 0.;
+                }
+                else
+                {
+                    const auto offset = 3 * (irow-1) + 2;
+
+                    row_map(irow + 1) = offset + 2;
+
+                    entries(offset + 0) = irow - 1;
+                    entries(offset + 1) = irow + 0;
+
+                    values(offset + 0) = -1.;
+                    values(offset + 1) =  2.;
+
+                    rhs_(irow) = 0.;
+
+                    guess_(irow) = 0.;
+                }
             }
         );
 
         this->rhs    = std::move(rhs_);
-        this->matrix = matrix_t("matrix", 2, 2, 4, std::move(values), std::move(row_map), std::move(entries));
+        this->matrix = matrix_t("matrix", size, size, entries.size(), std::move(values), std::move(row_map), std::move(entries));
         this->guess  = std::move(guess_);
     }
+};
+
+/**
+ * @brief Conjugate gradient solver.
+ *
+ * References:
+ *  - https://en.wikipedia.org/wiki/Conjugate_gradient_method
+ *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu
+ */
+template <typename VectorType, typename MatrixType>
+struct ConjugateGradientSolverBase
+{
+    //! Result of the dot product.
+    using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
+
+    //! Type used to store scalar results needed only on host.
+    using device_t = Kokkos::View<dot_t, typename VectorType::memory_space>;
+
+    /// Type used to store scalar results needed on both host and device.
+    /// Using a pinned allocation avoids costly memory copies.
+    using pinned_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace>;
 };
 
 /**
@@ -199,6 +226,45 @@ decltype(auto) axpby(Exec&& exec, const Alpha& alpha, const ViewX& vec_x, const 
         }
     );
 }
+
+struct NbyNSolverTestHelper
+{
+    using execution_space = Kokkos::DefaultExecutionSpace;
+    using memory_space    = typename execution_space::memory_space;
+    using initializer_t   = TwoByTwo<double, memory_space>;
+};
+
+template <typename SolverType>
+class NbyNSolverTest : public ::testing::Test
+{
+public:
+    static constexpr double tolerance = 1.e-12;
+
+public:
+    void run(const size_t nrows)
+    {
+        const NbyNSolverTestHelper::execution_space exec {};
+
+        NbyNSolverTestHelper::initializer_t system(exec, nrows);
+
+        SolverType solver{.rhs = std::move(system.rhs), .mat = std::move(system.matrix)};
+
+        Kokkos::Timer timer;
+        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tolerance, 2 * nrows);
+        const auto elapsed = timer.seconds();
+
+        std::cout << "> Convergence in " << elapsed << " seconds, in " << num_iters << " iterations, residual L2 norm is " << res_nrm2 << '.' << std::endl;
+
+        ASSERT_LT(res_nrm2,  tolerance);
+        ASSERT_EQ(num_iters, nrows);
+
+        const auto sol_h = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), system.guess);
+
+        std::cout << "> Solution: [";
+        for(size_t irow = 0; irow < nrows; ++irow) std::cout << sol_h(irow) << ", ";
+        std::cout << "]" << std::endl;
+    }
+};
 
 } // namespace tests::cg
 
