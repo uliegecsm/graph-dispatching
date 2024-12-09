@@ -45,8 +45,10 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
     using typename base_t::device_t;
     using typename base_t::device_um_t;
+    using typename base_t::pinned_um_t;
     using typename base_t::dot_t;
     using typename base_t::pinned_t;
+    using typename base_t::res_dot_pinned_t;
     using typename base_t::res_dot_t;
 
     VectorType rhs;
@@ -54,7 +56,7 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
     //! We explicitly don't partition @p exec.
     template <typename Exec>
-    auto apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
+    std::tuple<dot_t, size_t> apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
         using spmv_handle_t = KokkosSparse::SPMVHandle<typename VectorType::memory_space, MatrixType, VectorType, VectorType>;
         spmv_handle_t handle {};
@@ -65,11 +67,16 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        res_dot_t res_dot(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old at 0 and new at 1"));
-        device_um_t res_dot_old(res_dot.data());
-        device_um_t res_dot_new(res_dot.data() + 1);
+        res_dot_pinned_t res_dot(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old at 0 and new at 1"));
+        pinned_um_t res_dot_old(res_dot.data());
+        pinned_um_t res_dot_new(res_dot.data() + 1);
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
+
+        //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
+        exec.fence("Wait before reading residual dot product with itself.");
+        dot_t res_nrm2 = std::sqrt(res_dot_old());
+        if(res_nrm2 < tol) return {res_nrm2, 0};
 
         //! Direction of search is set to the residual.
         VectorType dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual"), rhs.size());
@@ -86,17 +93,8 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
         device_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
         device_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
-        //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
-        dot_t res_nrm2 = 0.;
-
         //! Loop until the norm of the residual is larger than @p tol.
-        Kokkos::deep_copy(exec, res_nrm2, res_dot_old);
-        exec.fence("Wait for deep-copy into a host variable.");
-
-        res_nrm2 = std::sqrt(res_nrm2);
-
         size_t iter = 0;
-
         while(res_nrm2 > tol && iter < max_iter)
         {
             std::cout << "> Iteration " << iter << ": residual norm is " << res_nrm2 << std::endl;
@@ -118,10 +116,8 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
             //! At this point, we can already check the condition and exit.
             KokkosBlas::dot(exec, res_dot_new, res, res);
 
-            Kokkos::deep_copy(exec, res_nrm2, res_dot_new);
-            exec.fence("Wait for deep-copy into a host variable.");
-
-            if((res_nrm2 = std::sqrt(res_nrm2)) > tol)
+            exec.fence("Wait before reading residual dot product with itself.");
+            if((res_nrm2 = std::sqrt(res_dot_new())) > tol)
             {
                 //! Compute @c beta.
                 scalar_div(exec, beta, res_dot_new, res_dot_old);
@@ -129,7 +125,7 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
                 //! Update search direction.
                 axpby_fence(exec, 1., res, beta, dir);
 
-                Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
+                res_dot_old() = res_dot_new();
             }
 
             ++iter;
@@ -139,14 +135,6 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
     }
 };
 
-using CGRegularTest = NbyNSolverTest<CGRegular<
-    NbyNSolverTestHelper::initializer_t::values_t,
-    NbyNSolverTestHelper::initializer_t::matrix_t
->>;
-
-TEST_F(CGRegularTest, 10x10)
-{
-    this->run(10);
-}
+ADD_CG_TEST(CGRegular)
 
 } // namespace tests::cg

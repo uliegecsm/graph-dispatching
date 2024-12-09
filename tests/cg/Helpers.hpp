@@ -116,7 +116,7 @@ struct ConjugateGradientSolverBase
     using counter_t = Kokkos::View<size_t, typename VectorType::memory_space>; 
 
     //! Result of the dot product.
-    using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
+    using dot_t = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
 
     //! Type used to store scalar results needed only on device.
     using device_t = Kokkos::View<dot_t, typename VectorType::memory_space>;
@@ -128,9 +128,11 @@ struct ConjugateGradientSolverBase
     /// We store residual norm of current and previous iteration side by side to use less load instructions.
     /// It is also a single allocation instead of 2, thereby reducing the @c Cuda API CPU overhead.
     using res_dot_t = Kokkos::View<dot_t[2], typename VectorType::memory_space>;
+    using res_dot_pinned_t = Kokkos::View<dot_t[2], Kokkos::SharedHostPinnedSpace>;
 
     //! Useful type for getting an unmanaged subview of @ref reso_dot_t.
     using device_um_t = Kokkos::View<dot_t, typename VectorType::memory_space, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    using pinned_um_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 };
 
 /**
@@ -275,6 +277,19 @@ public:
         std::cout << "]" << std::endl;
     }
 };
+
+#define ADD_CG_TEST(__type__)                          \
+    using __type__##Test = NbyNSolverTest<__type__<    \
+        NbyNSolverTestHelper::initializer_t::values_t, \
+        NbyNSolverTestHelper::initializer_t::matrix_t  \
+    >>;                                                \
+                                                       \
+TEST_F(__type__##Test, 10x10)                          \
+{                                                      \
+    constexpr size_t nreps = 9000;                     \
+    for(size_t irep = 0; irep < nreps; ++irep)         \
+        this->run(10);                                 \
+}
 
 } // namespace tests::cg
 

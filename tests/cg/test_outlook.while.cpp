@@ -71,9 +71,8 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
     VectorType rhs;
     MatrixType mat;
 
-    //! Create a @c Kokkos::Graph to iterate towards the solution.
     template <typename Exec>
-    auto apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
+    std::tuple<dot_t, size_t> apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
         using spmv_handle_t = KokkosSparse::SPMVHandle<typename VectorType::memory_space, MatrixType, VectorType, VectorType>;
         spmv_handle_t handle {};
@@ -85,8 +84,16 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         //! Placeholder for the dot product of the residual with itself.
         res_dot_t res_dot(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old at 0 and new at 1"));
+        device_um_t res_dot_old(res_dot.data());
+        device_um_t res_dot_new(res_dot.data() + 1);
 
-        KokkosBlas::dot(exec, device_um_t(res_dot.data()), res, res);
+        KokkosBlas::dot(exec, res_dot_old, res, res);
+
+        //! Check for convergence even before creating the graph.
+        dot_t res_nrm2 = 0.;
+        Kokkos::deep_copy(exec, res_nrm2, res_dot_old);
+        exec.fence("Check for convergence on host during initialization phase.");
+        if(res_nrm2 = std::sqrt(res_nrm2); res_nrm2 < tol) return {res_nrm2, 0};
 
         //! Direction of search is set to the residual.
         VectorType dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual"), rhs.size());
@@ -104,7 +111,7 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         device_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
         //! Placeholder for the iteration count.
-        counter_t iter(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "iterations"));
+        counter_t iter(Kokkos::view_alloc(exec, "iterations"));
 
         //! Create the graph.
         auto root = Kokkos::Experimental::graph::create_graph(exec);
@@ -114,7 +121,7 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         decltype(auto) alpha_dot = ::tests::cg::dot(std::move(alpha_spmv), quadratic, dir, mat_dir);
 
-        decltype(auto) alpha_final = ::tests::cg::scalar_div_and_neg(std::move(alpha_dot), alpha, alpha_neg, device_um_t(res_dot.data()), quadratic);
+        decltype(auto) alpha_final = ::tests::cg::scalar_div_and_neg(std::move(alpha_dot), alpha, alpha_neg, res_dot_old, quadratic);
 
         //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
         using Kokkos::Experimental::graph::details::operator|;
@@ -127,7 +134,7 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         decltype(auto) update_res = ::tests::cg::axpby(std::move(alpha_split), alpha_neg, mat_dir, 1., res);
 
         //! At this point, we could already check the condition and exit, but we don't have conditional nodes yet.
-        decltype(auto) compute_res_dot_new = ::tests::cg::dot(std::move(update_res), device_um_t(res_dot.data() + 1), res, res);
+        decltype(auto) compute_res_dot_new = ::tests::cg::dot(std::move(update_res), res_dot_new, res, res);
 
         //! Create the main graph. The @c Kokkos graph will be added as a child graph node.
         cudaGraph_t graph = nullptr;
@@ -146,18 +153,28 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         //! Compute @c beta and convergence check.
         using convergence_t = Convergence<device_t, counter_t, res_dot_t>;
-        Kokkos::View<convergence_t, typename VectorType::memory_space> convergence_functor(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "convergence functor"));
-        Kokkos::deep_copy(exec, convergence_functor, convergence_t {
+        convergence_t convergence_functor {
             .iter        = iter,
             .max_iter    = max_iter,
             .tol         = tol,
             .res_dot     = res_dot,
             .beta        = beta
-        });
+        };
+#if defined(ADD_CONVERGENCE_WITH_THEN)
+        Kokkos::View<convergence_t, typename VectorType::memory_space> convergence_functor_d(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "convergence functor"));
+        Kokkos::deep_copy(exec, convergence_functor_d, std::move(convergence_to_be_moved));
         decltype(auto) beta_and_conv = std::move(compute_res_dot_new) | Kokkos::Experimental::graph::then<Exec>(
-            [convergence_functor = std::move(convergence_functor), conditional_handle](const Exec& exec) {
-                convergence<<<dim3(1, 1, 1), dim3(1, 1, 1), 0, exec.cuda_stream()>>>(convergence_functor.data(), conditional_handle);
+            [convergence_functor_d = std::move(convergence_functor_d), conditional_handle](const Exec& exec) {
+                convergence<<<dim3(1, 1, 1), dim3(1, 1, 1), 0, exec.cuda_stream()>>>(convergence_functor_d.data(), conditional_handle);
             });
+#else
+        decltype(auto) beta_and_conv = std::move(compute_res_dot_new) | Kokkos::Experimental::graph::parallel_for(
+            Kokkos::RangePolicy<Exec>(0, 1),
+            KOKKOS_LAMBDA<typename T>(const T) {
+                if(!const_cast<convergence_t&>(convergence_functor).operator()()) cudaGraphSetConditional(conditional_handle, false);
+            }
+        );
+#endif
 
         //! Update search direction.
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_and_conv), 1., res, beta, dir);
@@ -171,39 +188,27 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
             *Kokkos::Impl::GraphAccess::get_node_ptr(update_dir)->get_kernel().get_cuda_graph_ptr()
         ));
 
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphDebugDotPrint(graph, "test_outlook.while.dot", cudaGraphDebugDotFlagsVerbose));
-
         //! Create the executable graph and submit once. It will converge during the first submission since the @c while is embedded.
         cudaGraphExec_t graph_exec = nullptr;
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphInstantiate(&graph_exec, graph, nullptr, nullptr, 0));
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphLaunch(graph_exec, exec.cuda_stream()));
 
-        exec.fence();
+        typename counter_t::value_type iter_h = 0;
+        Kokkos::deep_copy(exec, iter_h, iter);
+
+        typename device_t::value_type res_dot_h = 0.;
+        Kokkos::deep_copy(exec, res_dot_h, res_dot_old);
+
+        exec.fence("wait for scalars");
 
         //! Destroy graphs.
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphExecDestroy(graph_exec));
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphDestroy    (graph));
 
-        typename counter_t::value_type iter_h = 0;
-        Kokkos::deep_copy(exec, iter_h, iter);
-
-        typename device_t::value_type res_dot_h = 0.;
-        Kokkos::deep_copy(exec, res_dot_h, device_um_t(res_dot.data()));
-
-        exec.fence("wait for scalars");
-
         return std::tuple{std::sqrt(res_dot_h), iter_h};
     }
 };
 
-using CGGraphWhileTest = NbyNSolverTest<CGGraphWhile<
-    NbyNSolverTestHelper::initializer_t::values_t,
-    NbyNSolverTestHelper::initializer_t::matrix_t
->>;
-
-TEST_F(CGGraphWhileTest, 10x10)
-{
-    this->run(10);
-}
+ADD_CG_TEST(CGGraphWhile)
 
 } // namespace tests::cg

@@ -31,7 +31,9 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
     using typename base_t::device_um_t;
     using typename base_t::dot_t;
     using typename base_t::pinned_t;
+    using typename base_t::pinned_um_t;
     using typename base_t::res_dot_t;
+    using typename base_t::res_dot_pinned_t;
 
     VectorType rhs;
     MatrixType mat;
@@ -48,13 +50,14 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        pinned_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
-        pinned_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
+        res_dot_pinned_t res_dot(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old at 0 and new at 1"));
+        pinned_um_t res_dot_old(res_dot.data());
+        pinned_um_t res_dot_new(res_dot.data() + 1);
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
 
         //! Check for convergence even before creating the graph.
-        exec.fence("Check for convergence on host during initialization phase.");
+        exec.fence("Wait before reading residual dot product with itself.");
         dot_t res_nrm2 = std::sqrt(res_dot_old());
         if(res_nrm2 < tol) return {res_nrm2, 0};
 
@@ -121,14 +124,6 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
     }
 };
 
-using CGGraphTest = NbyNSolverTest<CGGraph<
-    NbyNSolverTestHelper::initializer_t::values_t,
-    NbyNSolverTestHelper::initializer_t::matrix_t
->>;
-
-TEST_F(CGGraphTest, 10x10)
-{
-    this->run(10);
-}
+ADD_CG_TEST(CGGraph)
 
 } // namespace tests::cg
