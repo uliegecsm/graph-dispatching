@@ -44,8 +44,10 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
     using base_t = ConjugateGradientSolverBase<VectorType, MatrixType>;
 
     using typename base_t::device_t;
+    using typename base_t::device_um_t;
     using typename base_t::dot_t;
     using typename base_t::pinned_t;
+    using typename base_t::res_dot_t;
 
     VectorType rhs;
     MatrixType mat;
@@ -63,8 +65,9 @@ struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        device_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
-        device_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
+        res_dot_t res_dot(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old at 0 and new at 1"));
+        device_um_t res_dot_old(res_dot.data());
+        device_um_t res_dot_new(res_dot.data() + 1);
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
 

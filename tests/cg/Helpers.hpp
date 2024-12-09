@@ -124,6 +124,13 @@ struct ConjugateGradientSolverBase
     /// Type used to store scalar results needed on both host and device.
     /// Using a pinned allocation avoids costly memory copies.
     using pinned_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace>;
+
+    /// We store residual norm of current and previous iteration side by side to use less load instructions.
+    /// It is also a single allocation instead of 2, thereby reducing the @c Cuda API CPU overhead.
+    using res_dot_t = Kokkos::View<dot_t[2], typename VectorType::memory_space>;
+
+    //! Useful type for getting an unmanaged subview of @ref reso_dot_t.
+    using device_um_t = Kokkos::View<dot_t, typename VectorType::memory_space, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 };
 
 /**

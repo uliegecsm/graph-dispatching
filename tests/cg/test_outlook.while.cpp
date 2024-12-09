@@ -22,17 +22,12 @@ namespace tests::cg
 {
 //! @todo We get a fresh copy each time of @c functor, look at global launch instead ?
 template <typename ConvergenceType>
-__global__ void convergence(ConvergenceType functor, cudaGraphConditionalHandle handle) {
-    if(!functor())
+__global__ void convergence(ConvergenceType *const functor, cudaGraphConditionalHandle handle) {
+    if(!functor->operator()())
         cudaGraphSetConditional(handle, false);
 }
 
-/**
- * @brief Update the @c beta coefficient and evaluate the convergence criterion.
- *
- * @todo Should we use a global launch ? (one object so states can be scalars)
- *       Or local launch ? (we get a new one each time so states must be views)
- */
+//! Update the @c beta coefficient and evaluate the convergence criterion.
 template <typename ViewType, typename CounterType, typename ResType> requires (ViewType::rank() == 0 && CounterType::rank() == 0)
 struct Convergence
 {
@@ -69,14 +64,9 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
     using typename base_t::counter_t;
     using typename base_t::device_t;
+    using typename base_t::device_um_t;
     using typename base_t::dot_t;
-
-    /// We store residual norm of current and previous iteration side by side to use less load instructions.
-    /// It is also a single allocation instead of 2, thereby reducing the @c Cuda API CPU overhead.
-    using res_dot_t = Kokkos::View<dot_t[2], typename VectorType::memory_space>;
-
-    //! Useful type for getting an unmanaged subview of @ref reso_dot_t.
-    using device_um_t = Kokkos::View<dot_t, typename VectorType::memory_space, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    using typename base_t::res_dot_t;
 
     VectorType rhs;
     MatrixType mat;
@@ -115,9 +105,6 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         //! Placeholder for the iteration count.
         counter_t iter(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "iterations"));
-
-        //! Check for convergence even before creating the graph.
-        // if(res_nrm2 < tol || max_iter == 0) return std::tuple{res_nrm2, iter};
 
         //! Create the graph.
         auto root = Kokkos::Experimental::graph::create_graph(exec);
@@ -158,16 +145,18 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddNode(&conditional_node, graph, nullptr, 0, &conditional_params));
 
         //! Compute @c beta and convergence check.
-        Convergence<device_t, counter_t, res_dot_t> convergence_functor {
+        using convergence_t = Convergence<device_t, counter_t, res_dot_t>;
+        Kokkos::View<convergence_t, typename VectorType::memory_space> convergence_functor(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "convergence functor"));
+        Kokkos::deep_copy(exec, convergence_functor, convergence_t {
             .iter        = iter,
             .max_iter    = max_iter,
             .tol         = tol,
             .res_dot     = res_dot,
             .beta        = beta
-        };
+        });
         decltype(auto) beta_and_conv = std::move(compute_res_dot_new) | Kokkos::Experimental::graph::then<Exec>(
             [convergence_functor = std::move(convergence_functor), conditional_handle](const Exec& exec) {
-                convergence<<<dim3(1, 1, 1), dim3(1, 1, 1), 0, exec.cuda_stream()>>>(convergence_functor, conditional_handle);
+                convergence<<<dim3(1, 1, 1), dim3(1, 1, 1), 0, exec.cuda_stream()>>>(convergence_functor.data(), conditional_handle);
             });
 
         //! Update search direction.

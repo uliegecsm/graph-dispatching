@@ -28,8 +28,10 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
     using base_t = ConjugateGradientSolverBase<VectorType, MatrixType>;
 
     using typename base_t::device_t;
+    using typename base_t::device_um_t;
     using typename base_t::dot_t;
     using typename base_t::pinned_t;
+    using typename base_t::res_dot_t;
 
     VectorType rhs;
     MatrixType mat;
@@ -37,8 +39,6 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
     template <typename Exec>
     std::tuple<dot_t, size_t> apply(const Exec& exec, const VectorType& sol, const VectorType::value_type tol, const size_t max_iter) const
     {
-        if(max_iter == 0) return std::tuple{std::numeric_limits<typename VectorType::value_type>::max(), 0};
-
         using spmv_handle_t = KokkosSparse::SPMVHandle<typename VectorType::memory_space, MatrixType, VectorType, VectorType>;
         spmv_handle_t handle {};
 
