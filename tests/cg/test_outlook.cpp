@@ -128,7 +128,7 @@ using CGGraphTest = NbyNSolverTest<CGGraph<
 
 TEST_F(CGGraphTest, 10x10)
 {
-    this->run(100);
+    this->run(10);
 }
 
 } // namespace tests::cg

@@ -39,11 +39,13 @@ void axpby_fence(const Exec& exec, Args&&... args)
  *  - https://github.com/NVIDIA/cuda-samples/blob/9c688d7ff78455ed42e345124d1495aad6bf66de/Samples/4_CUDA_Libraries/conjugateGradientCudaGraphs/conjugateGradientCudaGraphs.cu
  */
 template <typename VectorType, typename MatrixType>
-struct CGRegular
+struct CGRegular : public ConjugateGradientSolverBase<VectorType, MatrixType>
 {
-    using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
-    using result_t = Kokkos::View<dot_t, typename VectorType::memory_space>; //! To store intermediate scalar results (norm, dot, and what not).
-    using pinned_t = Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace>; //! To store intermediate scalar results needed on both host and device.
+    using base_t = ConjugateGradientSolverBase<VectorType, MatrixType>;
+
+    using typename base_t::device_t;
+    using typename base_t::dot_t;
+    using typename base_t::pinned_t;
 
     VectorType rhs;
     MatrixType mat;
@@ -61,8 +63,8 @@ struct CGRegular
         KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the dot product of the residual with itself.
-        result_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
-        result_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
+        device_t res_dot_old(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - old"));
+        device_t res_dot_new(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual dot - new"));
 
         KokkosBlas::dot(exec, res_dot_old, res, res);
 
@@ -74,12 +76,12 @@ struct CGRegular
         VectorType mat_dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "mat * dir"), rhs.size());
 
         //! Placeholder for the 'quadratic'.
-        result_t quadratic(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "quadratic"));
+        device_t quadratic(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "quadratic"));
 
         //! Placeholder for the 'alpha' and 'beta'.
-        result_t alpha    (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha"));
-        result_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
-        result_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
+        device_t alpha    (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha"));
+        device_t alpha_neg(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "alpha - negated"));
+        device_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
         //! Placeholder for the residual L2 norm (host variable because it's used in conditionals).
         dot_t res_nrm2 = 0.;
@@ -125,38 +127,23 @@ struct CGRegular
                 axpby_fence(exec, 1., res, beta, dir);
 
                 Kokkos::deep_copy(exec, res_dot_old, res_dot_new);
-
-                ++iter;
             }
+
+            ++iter;
         }
 
         return std::tuple{res_nrm2, iter};
     }
 };
 
-//! @test Use @ref CGRegular to solve the 2-by-2 system created by @ref TwoByTwo.
-TEST(CGRegular, 2x2)
+using CGRegularTest = NbyNSolverTest<CGRegular<
+    NbyNSolverTestHelper::initializer_t::values_t,
+    NbyNSolverTestHelper::initializer_t::matrix_t
+>>;
+
+TEST_F(CGRegularTest, 10x10)
 {
-    using execution_space = Kokkos::DefaultExecutionSpace;
-    using memory_space    = typename execution_space::memory_space;
-
-    using twobytwo_t = TwoByTwo<double, Kokkos::Device<execution_space, memory_space>>;
-
-    const execution_space exec {};
-
-    twobytwo_t sys(exec);
-
-    CGRegular solver{.rhs = std::move(sys.rhs), .mat = std::move(sys.matrix)};
-
-    const auto [res_nrm2, num_iters] = solver.apply(exec, sys.guess, 1.e-5, 5);
-
-    ASSERT_LT(res_nrm2,  1.e-5);
-    ASSERT_LT(num_iters, 3);
-
-    const auto sol_h = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), sys.guess);
-
-    ASSERT_DOUBLE_EQ(sol_h(0), twobytwo_t::sol_0);
-    ASSERT_DOUBLE_EQ(sol_h(1), twobytwo_t::sol_1);
+    this->run(10);
 }
 
 } // namespace tests::cg

@@ -112,10 +112,13 @@ struct TwoByTwo
 template <typename VectorType, typename MatrixType>
 struct ConjugateGradientSolverBase
 {
+    //! Type used to store counters needed only on device.
+    using counter_t = Kokkos::View<size_t, typename VectorType::memory_space>; 
+
     //! Result of the dot product.
     using dot_t    = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
 
-    //! Type used to store scalar results needed only on host.
+    //! Type used to store scalar results needed only on device.
     using device_t = Kokkos::View<dot_t, typename VectorType::memory_space>;
 
     /// Type used to store scalar results needed on both host and device.
