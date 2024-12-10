@@ -77,6 +77,7 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
         device_t beta     (Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "beta" ));
 
         //! Create the graph.
+        Kokkos::Timer elapsed_before_launch;
         auto root = Kokkos::Experimental::graph::create_graph(exec);
 
         //! Compute @c alpha.
@@ -104,6 +105,10 @@ struct CGGraph : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         //! Update search direction.
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_final), 1., res, beta, dir);
+
+        //! Instantiate.
+        Kokkos::Impl::GraphAccess::get_graph_weak_ptr(update_dir).lock()->instantiate();
+        std::cout << "> Elapsed after call to instantiate: " << elapsed_before_launch.seconds() << " seconds." << std::endl;
 
         //! Loop until convergence.
         size_t iter = 0;

@@ -20,12 +20,14 @@
 
 namespace tests::cg
 {
+#if defined(ADD_CONVERGENCE_WITH_THEN)
 //! @todo We get a fresh copy each time of @c functor, look at global launch instead ?
 template <typename ConvergenceType>
 __global__ void convergence(ConvergenceType *const functor, cudaGraphConditionalHandle handle) {
     if(!functor->operator()())
         cudaGraphSetConditional(handle, false);
 }
+#endif
 
 //! Update the @c beta coefficient and evaluate the convergence criterion.
 template <typename ViewType, typename CounterType, typename ResType> requires (ViewType::rank() == 0 && CounterType::rank() == 0)
@@ -113,8 +115,30 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         //! Placeholder for the iteration count.
         counter_t iter(Kokkos::view_alloc(exec, "iterations"));
 
+        //! Create the main graph.
+        Kokkos::Timer elapsed_before_launch;
+        cudaGraph_t graph = nullptr;
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphCreate(&graph, 0));
+
+        cudaGraphConditionalHandle conditional_handle;
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphConditionalHandleCreate(&conditional_handle, graph, 1, cudaGraphCondAssignDefault));
+
+        cudaGraphNodeParams conditional_params = {};
+        conditional_params.type                = cudaGraphNodeTypeConditional;
+        conditional_params.conditional.handle  = conditional_handle;
+        conditional_params.conditional.type    = cudaGraphCondTypeWhile;
+        conditional_params.conditional.size    = 1;
+        cudaGraphNode_t conditional_node = nullptr;
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddNode(&conditional_node, graph, nullptr, 0, &conditional_params));
+
         //! Create the graph.
-        auto root = Kokkos::Experimental::graph::create_graph(exec);
+        // auto root = Kokkos::Experimental::graph::create_graph(exec);
+        auto root = Kokkos::Experimental::graph::details::ChainHandler<Exec>(
+            Kokkos::Impl::GraphAccess::construct_graph_from_native(
+                exec,
+                conditional_params.conditional.phGraph_out[0]
+            )
+        );
 
         //! Compute @c alpha.
         decltype(auto) alpha_spmv = ::tests::cg::spmv(std::move(root), handle, 1., mat, dir, 0., mat_dir);
@@ -135,21 +159,6 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
 
         //! At this point, we could already check the condition and exit, but we don't have conditional nodes yet.
         decltype(auto) compute_res_dot_new = ::tests::cg::dot(std::move(update_res), res_dot_new, res, res);
-
-        //! Create the main graph. The @c Kokkos graph will be added as a child graph node.
-        cudaGraph_t graph = nullptr;
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphCreate(&graph, 0));
-
-        cudaGraphConditionalHandle conditional_handle;
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphConditionalHandleCreate(&conditional_handle, graph, 1, cudaGraphCondAssignDefault));
-
-        cudaGraphNodeParams conditional_params = {};
-        conditional_params.type                = cudaGraphNodeTypeConditional;
-        conditional_params.conditional.handle  = conditional_handle;
-        conditional_params.conditional.type    = cudaGraphCondTypeWhile;
-        conditional_params.conditional.size    = 1;
-        cudaGraphNode_t conditional_node = nullptr;
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddNode(&conditional_node, graph, nullptr, 0, &conditional_params));
 
         //! Compute @c beta and convergence check.
         using convergence_t = Convergence<device_t, counter_t, res_dot_t>;
@@ -180,17 +189,19 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         decltype(auto) update_dir = ::tests::cg::axpby(std::move(beta_and_conv), 1., res, beta, dir);
 
         //! Add @c Kokkos graph as child graph node to the output of the @c while node.
-        cudaGraphNode_t subgraph_node = nullptr;
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(
-            &subgraph_node, 
-            conditional_params.conditional.phGraph_out[0],
-            nullptr, 0,
-            *Kokkos::Impl::GraphAccess::get_node_ptr(update_dir)->get_kernel().get_cuda_graph_ptr()
-        ));
+        // cudaGraphNode_t subgraph_node = nullptr;
+        // KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(
+        //     &subgraph_node, 
+        //     conditional_params.conditional.phGraph_out[0],
+        //     nullptr, 0,
+        //     *Kokkos::Impl::GraphAccess::get_node_ptr(update_dir)->get_kernel().get_cuda_graph_ptr()
+        // ));
 
         //! Create the executable graph and submit once. It will converge during the first submission since the @c while is embedded.
         cudaGraphExec_t graph_exec = nullptr;
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphInstantiate(&graph_exec, graph, nullptr, nullptr, 0));
+        std::cout << "> Elapsed after call to instantiate: " << elapsed_before_launch.seconds() << " seconds." << std::endl;
+
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphLaunch(graph_exec, exec.cuda_stream()));
 
         typename counter_t::value_type iter_h = 0;
@@ -199,7 +210,7 @@ struct CGGraphWhile : public ConjugateGradientSolverBase<VectorType, MatrixType>
         typename device_t::value_type res_dot_h = 0.;
         Kokkos::deep_copy(exec, res_dot_h, res_dot_old);
 
-        exec.fence("wait for scalars");
+        exec.fence("Wait for scalars.");
 
         //! Destroy graphs.
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphExecDestroy(graph_exec));

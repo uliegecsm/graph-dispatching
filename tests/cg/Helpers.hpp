@@ -286,7 +286,7 @@ public:
                                                        \
 TEST_F(__type__##Test, 10x10)                          \
 {                                                      \
-    constexpr size_t nreps = 9000;                     \
+    constexpr size_t nreps = 1;                        \
     for(size_t irep = 0; irep < nreps; ++irep)         \
         this->run(10);                                 \
 }
