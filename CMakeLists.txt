@@ -16,6 +16,9 @@ project(
 #---- Building Doxygen documentation is OFF by default.
 option(ENABLE_DOXYGEN "Enable building Doxygen documentation" OFF)
 
+#---- Enable multi-GPU support (tests, ...).
+option(ENABLE_MULTIGPU "Enable multi-GPU support" OFF)
+
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 
