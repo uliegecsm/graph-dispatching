@@ -1,3 +1,4 @@
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "tests/IgnoreWarnings.hpp"
@@ -48,6 +49,7 @@ TEST(stdexec, split)
 
     //! However, both asynchronous @c then have been run by the same thread.
     ASSERT_EQ(thr_A, thr_B);
+    ASSERT_THAT(thr_A, ::testing::AnyOfArray(bulk_thr));
 }
 
 } // namespace tests::stdexec::adaptors

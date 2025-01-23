@@ -33,6 +33,7 @@ struct PartialAlgorithm<Kokkos::ParallelReduceTag, std::string, Policy, Functor,
     template <typename Sender> requires (! is_graph_sender<std::remove_reference_t<Sender>>)
     decltype(auto) operator()(Sender&& exec) &&
     {
+        static_assert(false, "merde");
         Kokkos::parallel_reduce(
             std::move(label),
             details::update_policy(std::move(policy), exec),

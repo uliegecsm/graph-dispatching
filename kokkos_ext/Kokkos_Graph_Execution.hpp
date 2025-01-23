@@ -7,6 +7,9 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "kokkos_ext/Kokkos_RangePolicy.hpp"
+
+#include "kokkos_ext/impl/ContinuesOn.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 
@@ -193,6 +196,12 @@ decltype(auto) when_all(Exec&& exec, Args&&... args)
 {
     (args.fence() && ...);
     return std::forward<Exec>(exec);
+}
+
+//! Similar to @c std::execution::continues_on.
+template <typename Exec>
+constexpr decltype(auto) continues_on(Exec&& exec) {
+    return details::ContinuesOn(std::forward<Exec>(exec));
 }
 
 } // namespace Kokkos::Experimental

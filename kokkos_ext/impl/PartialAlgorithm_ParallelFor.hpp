@@ -34,7 +34,7 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
     {
         Kokkos::parallel_for(
             std::move(label),
-            details::update_policy(std::move(policy), exec),
+            Kokkos::RangePolicy(exec, policy.begin(), policy.end()),
             std::move(functor)
         );
         return std::forward<Sender>(exec);
