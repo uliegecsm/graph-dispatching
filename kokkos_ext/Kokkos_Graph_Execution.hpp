@@ -7,6 +7,7 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 
@@ -157,6 +158,19 @@ constexpr void submit(const Exec& exec, Sender&& sender) {
 }
 
 } // namespace graph
+
+/**
+ * @brief Implementation of @c std::execution::schedule.
+ *
+ * See https://en.cppreference.com/w/cpp/execution/schedule.
+ *
+ * @warning We don't constrain the argument to satisfy @c std::execution::scheduler.
+ * @warning We don't constrain the return type to satisfy @c std::execution::sender.
+ */
+template <typename Scheduler>
+decltype(auto) schedule(Scheduler&& sch) {
+    return std::forward<Scheduler>(sch).schedule();
+}
 
 /**
  * @brief Fallback for @ref graph::create_graph when we don't want the underlying graph but simply regular code.
