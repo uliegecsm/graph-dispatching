@@ -1,11 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "tests/IgnoreWarnings.hpp"
-PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-#include <stdexec/execution.hpp>
-PRAGMA_DIAGNOSTIC_POP
-
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
 #include "tests/kokkos_ext/Helpers.hpp"
@@ -63,38 +57,61 @@ TEST(GraphContext, then)
 }
 
 /**
- * @test Check that @ref Kokkos::Experimental::GraphContext correctly requires that the user writes
- *       a @c continues_on after a @c when_all.
+ * @test Check that @ref Kokkos::Experimental::GraphContext supports a many device
+ *       case. The user can request a scheduler for a given device, much like the
+ *       @c nvexec::stream_context (see https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream_context.cuh#L306).
  */
-TEST(GraphContext, when_all_continues_on)
+TEST(GraphContext, then_many_devices)
 {
-    using view_t = Kokkos::View<int[1], Kokkos::SharedSpace, Kokkos::MemoryTraits<Kokkos::Atomic>>;
+#if !defined(KOKKOS_ENABLE_CUDA)
+    GTEST_SKIP() << "Only Cuda supports multi-GPU graph.";
+#else
+    int device_count = 0;
+    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGetDeviceCount(&device_count));
+    if(device_count < 2)
+        GTEST_SKIP() << "You need at least 2 GPUs for this test.";
+#endif
 
-    const execution_space exec {};
+#if defined(KOKKOS_ENABLE_CUDA)
+    using view_t = Kokkos::View<int[1], Kokkos::CudaHostPinnedSpace>;
 
-    view_t data(Kokkos::view_alloc("data", exec));
+    auto create_exec_on_device = [](const unsigned short int devID)
+    {
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaSetDevice(devID));
+        cudaStream_t stream = nullptr;
+        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaStreamCreate(&stream));
+        return Kokkos::Cuda(stream, Kokkos::Impl::ManageStream::yes);
+    };
 
-    Kokkos::Experimental::GraphContext graph_ctx {exec};
+    const Kokkos::Cuda exec_0 = create_exec_on_device(0), exec_1 = create_exec_on_device(1);
 
-    auto fork = Kokkos::Experimental::schedule(graph_ctx.get_scheduler()) | Kokkos::Experimental::graph::split();
+    view_t data(Kokkos::view_alloc("data", exec_0));
 
-    // TODO the follopwing code should either not compile or not put the last then node after the when all in the graph
-    auto chain = Kokkos::Experimental::when_all(
-        fork | Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data}),
-        fork | Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data})
-    ) | Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
+    Kokkos::Experimental::GraphContext graph_ctx {exec_0, exec_1};
 
-    Kokkos::Experimental::graph::submit(exec, chain);
+    auto chain = Kokkos::Experimental::schedule(graph_ctx.get_scheduler(0))
+        | Kokkos::Experimental::graph::parallel_for(
+            Kokkos::RangePolicy(0, 1),
+            MyDummyFunctor{.data = data}
+        )
+        //! @todo We're missing a continues on GPU 1 here.
+        | Kokkos::Experimental::graph::parallel_for(
+            Kokkos::RangePolicy(0, 1),
+            MyDummyFunctor{.data = data}
+        );
 
-    exec.fence();
+    Kokkos::Experimental::graph::submit(exec_0, chain);
 
-    ASSERT_EQ(data(0), 3);
+    exec_0.fence();
 
-    Kokkos::Experimental::graph::submit(exec, chain);
+    ASSERT_EQ(data(0), 2);
 
-    exec.fence();
+    Kokkos::Experimental::graph::submit(exec_0, chain);
 
-    ASSERT_EQ(data(0), 6);
+    exec_0.fence();
+
+    ASSERT_EQ(data(0), 4);
+#endif
 }
 
 } // namespace tests::kokkos_ext

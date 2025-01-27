@@ -8,7 +8,7 @@
 namespace Kokkos::Experimental
 {
 
-namespace details
+namespace graph::details
 {
 /**
  * @brief Scheduler for a @c Kokkos::Graph
@@ -18,27 +18,37 @@ namespace details
 template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
 struct GraphScheduler
 {
-    graph::details::ChainHandler<Exec> chain;
+    ChainHandler<Exec> chain;
+    Exec exec;
 
     auto& schedule() { return chain; }
 };
 
-} // namespace details
+template <typename Exec>
+struct Pool
+{
+    std::vector<Exec> execs;
+};
 
-//! Graph context using a @c Kokkos::Graph space under the hood.
+} // namespace graph::details
+
+//! Graph context using a @c Kokkos::Graph under the hood.
 template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
 struct GraphContext
 {
+    graph::details::Pool<Exec> pool;
+
     graph::details::ChainHandler<Exec> chain;
 
-    template <typename T>
-    GraphContext(T&& exec) : chain(std::forward<T>(exec)) {}
+    template <typename... Args> requires (std::same_as<std::remove_cvref_t<Args>, Exec> && ...)
+    GraphContext(Args&&... args) : pool{.execs = {std::forward<Args>(args)...}}, chain(pool.execs.at(0)) {}
 
-    auto get_scheduler() { return details::GraphScheduler{.chain = chain}; }
+    // return the scheduler from the right device
+    auto get_scheduler(const unsigned short int devID = 0) { return graph::details::GraphScheduler{.chain = chain, .exec = pool.execs.at(devID)}; }
 };
 
-template <typename Exec>
-GraphContext(Exec&&) -> GraphContext<std::remove_cvref_t<Exec>>;
+template <typename... Exec>
+GraphContext(Exec&&...) -> GraphContext<std::remove_cvref_t<std::tuple_element_t<0, std::tuple<Exec...>>>>;
 
 } // namespace Kokkos::Experimental
 
