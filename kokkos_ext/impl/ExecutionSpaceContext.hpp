@@ -25,6 +25,9 @@ struct ContextState
  * @brief Scheduler for a @c Kokkos execution space.
  *
  * @warning It is a puppet and does not verify the @c std::execution::scheduler concept.
+ *
+ * References:
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#example-schedulers-inline
  */
 template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
 struct ExecutionSpaceScheduler
@@ -38,10 +41,7 @@ struct ExecutionSpaceScheduler
     {
         Receiver rcvr;
 
-        template <typename T>
-        OperationState_(T&& rcvr_) : rcvr(std::forward<T>(rcvr_)) {}
-
-        void start() { rcvr.set_value(); }
+        void start() { std::move(rcvr).set_value(); }
     };
 
     struct Sender_
@@ -49,7 +49,7 @@ struct ExecutionSpaceScheduler
         Env env;
 
         template <typename T>
-        Sender_(T&& ctx) : env{std::forward<T>(ctx)} {}
+        explicit Sender_(T&& ctx) : env{std::forward<T>(ctx)} {}
 
         //! @todo Constraint with a receiver concept.
         template <typename Receiver>
