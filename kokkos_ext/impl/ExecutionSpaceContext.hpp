@@ -8,6 +8,10 @@
 namespace Kokkos::Experimental
 {
 
+//! Subset of @c std::execution::sender.
+template <typename T>
+concept Sender = true;
+
 namespace details::execution_space
 {
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
@@ -27,14 +31,41 @@ struct ExecutionSpaceScheduler
 {
     using context_state_t = ContextState<Exec>;
 
-    context_state_t context_state;
+    using Env = context_state_t; //! For now, our environment only contains the context state.
+
+    template <typename Receiver>
+    struct OperationState_
+    {
+        Receiver rcvr;
+
+        template <typename T>
+        OperationState_(T&& rcvr_) : rcvr(std::forward<T>(rcvr_)) {}
+
+        void start() { rcvr.set_value(); }
+    };
+
+    struct Sender_
+    {
+        Env env;
+
+        template <typename T>
+        Sender_(T&& ctx) : env{std::forward<T>(ctx)} {}
+
+        //! @todo Constraint with a receiver concept.
+        template <typename Receiver>
+        OperationState_<std::remove_cvref_t<Receiver>> connect(Receiver&& rcvr) {
+            return {std::forward<Receiver>(rcvr)};
+        }
+
+        auto& get_env() const { return env; };
+    };
 
     template <typename T>
-    explicit ExecutionSpaceScheduler(T&& exec) : context_state{std::forward<T>(exec)} {}
+    explicit ExecutionSpaceScheduler(T&& exec) : m_context_state{std::forward<T>(exec)} {}
 
-    /// @todo Return a sender instead of @p exec.
-    /// @todo Constraint the return type to be a sender.
-    auto& schedule() const { return context_state.exec; }
+    Sender auto schedule() const { return Sender_{m_context_state}; }
+
+    context_state_t m_context_state;
 };
 
 //! Deduction guide for @ref ExecutionSpaceScheduler.
