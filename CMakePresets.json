@@ -22,6 +22,12 @@
             }
         },
         {
+            // Inherit from this preset to use ccache.
+            "name"           : "ccache",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER_LAUNCHER" : "ccache"}
+        },
+        {
             // Inherit from this preset to use the gcc compiler family.
             "name"           : "gcc",
             "hidden"         : true,
@@ -41,21 +47,21 @@
         },
         {
             "name"           : "gcc-OpenMP",
-            "inherits"       : ["default", "gcc"],
+            "inherits"       : ["default", "gcc", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-OpenMP",
-            "inherits"       : ["default", "clang"],
+            "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-HPX",
-            "inherits"       : ["default", "clang"],
+            "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX"
             }
@@ -69,7 +75,7 @@
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : ["default", "clang"],
+            "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
@@ -77,7 +83,7 @@
         },
         {
             "name"           : "clang-HPX-Cuda",
-            "inherits"       : ["default", "clang"],
+            "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX;CUDA"
@@ -85,7 +91,7 @@
         },
         {
             "name"           : "ROCm-HIP",
-            "inherits"       : ["default", "ROCm"],
+            "inherits"       : ["default", "ROCm", "ccache"],
             "cacheVariables" : {
                 "ENABLE_MULTIGPU"         : "ON",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;HIP"
