@@ -7,7 +7,9 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "kokkos_ext/impl/ChainHandler.hpp"
 #include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
+#include "kokkos_ext/impl/GraphContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 
@@ -51,34 +53,6 @@ constexpr decltype(auto) parallel(std::string&& label, Args&&... args)
 {
     return PartialAlgorithm<Tag, std::string, Args...>(std::move(label), std::forward<Args>(args)...);
 }
-
-//! Helper class to avoid exposing @c Kokkos::Graph itself to the user.
-template <typename Exec>
-struct ChainHandler
-{
-    using execution_space = Exec;
-
-    using graph_t = Kokkos::Experimental::Graph<Exec>;
-    using root_t  = decltype(Kokkos::Impl::GraphAccess::create_root_ref(std::declval<graph_t&>()));
-
-    graph_t graph;
-    root_t  root;
-
-    ChainHandler(const Exec& exec)
-        : graph(Kokkos::Impl::GraphAccess::construct_graph(exec)),
-          root (Kokkos::Impl::GraphAccess::create_root_ref(graph))
-    {}
-
-    template <typename... Args>
-    decltype(auto) then_parallel_for(Args&&... args) const {
-        return root.then_parallel_for(std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    decltype(auto) then_parallel_reduce(Args&&... args) const {
-        return root.then_parallel_reduce(std::forward<Args>(args)...);
-    }
-};
 
 } // namespace details
 
