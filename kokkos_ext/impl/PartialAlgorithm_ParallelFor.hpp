@@ -87,7 +87,7 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
     Policy policy;
     Functor functor;
 
-    //! To avoid spurious copies, this is only available when in a movable state.
+    //! To avoid unwanted copies, this is only available when in a movable state.
     template <typename Sender> requires sender<std::remove_cvref_t<Sender>>
     decltype(auto) operator()(Sender&& sndr) &&
     {

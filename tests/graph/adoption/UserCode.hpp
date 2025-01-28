@@ -18,16 +18,18 @@ namespace tests::graph::adoption
  * @c Kokkos::Graph or not.
  *
  * This code reproduces the diamond-like graph.
+ *
+ * @todo The @p Exec template argument should not be needed.
  */
-template <typename Sender>
-decltype(auto) user_code(Sender&& input)
+template <typename Exec, typename Scheduler, typename Sender>
+decltype(auto) user_code(Scheduler&& sch, Sender&& input)
 {
     std::cout << "Executing the user routine with a chain starter of type:"
               << std::endl << '\t'
               << Kokkos::Impl::demangle(typeid(decltype(input)).name())
               << std::endl;
 
-    using policy_t = Kokkos::RangePolicy<typename std::remove_cvref_t<Sender>::execution_space>;
+    using policy_t = Kokkos::RangePolicy<Exec>;
 
     PRAGMA_DIAGNOSTIC_PUSH
     PRAGMA_DIAGNOSTIC_IGNORED_DANGLING_REFERENCE
@@ -37,9 +39,9 @@ decltype(auto) user_code(Sender&& input)
         Greetings<Sender>{}
     );
 
-    decltype(auto) from_library = library(std::forward<decltype(node_A)>(node_A));
+    decltype(auto) from_library = library<Exec>(std::move(node_A)) | Kokkos::Experimental::graph::continues_on(std::forward<Scheduler>(sch));
 
-    decltype(auto) node_D = std::forward<decltype(from_library)>(from_library) | Kokkos::Experimental::graph::parallel_for(
+    decltype(auto) node_D = std::move(from_library) | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),
         Greetings<decltype(from_library)>{});
 
