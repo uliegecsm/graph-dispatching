@@ -14,6 +14,8 @@ on:
 
 env:
     REGISTRY: ghcr.io
+    # Enable ccache size larger than the default (5G).
+    CCACHE_MAXSIZE: 15G
 
 jobs:
 
@@ -125,6 +127,11 @@ jobs:
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
             - uses: actions/checkout@v4
+
+            - name: Show ccache statistics.
+              run : |
+                  ccache --verbose --show-stats
+                  ccache --verbose --show-compression
 
             - run : |
                   cmake -S .    --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}

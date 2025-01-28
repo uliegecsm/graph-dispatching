@@ -1,4 +1,5 @@
 # Utilities
+ccache
 wget
 
 # Source control
