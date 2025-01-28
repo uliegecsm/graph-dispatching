@@ -46,6 +46,8 @@ struct ContinuesOnSender
     }
 
     auto& get_env() const { return sch.m_context_state; }
+
+    decltype(auto) get_completion_scheduler() const { return sch; }
 };
 
 template <typename Scheduler> requires scheduler<std::remove_cvref_t<Scheduler>>

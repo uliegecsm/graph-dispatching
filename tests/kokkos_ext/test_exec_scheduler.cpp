@@ -51,9 +51,11 @@ TEST_F(ExecutionSpaceContextTest, then)
 
     auto partial_pfor_1 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
     auto partial_pfor_2 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
+    auto partial_pchk_1 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), CheckValue    {.data = data, .value = 1});
+    auto partial_pchk_2 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), CheckValue    {.data = data, .value = 2});
 
-    auto chain_1 = std::move(start)   | std::move(partial_pfor_1);
-    auto chain_2 = std::move(chain_1) | std::move(partial_pfor_2);
+    auto chain_1 = std::move(start)   | std::move(partial_pfor_1) | std::move(partial_pchk_1);
+    auto chain_2 = std::move(chain_1) | std::move(partial_pfor_2) | std::move(partial_pchk_2);
 
     //! Check types.
     using sch_t = Kokkos::Experimental::details::execution_space::ExecutionSpaceScheduler<Kokkos::Cuda>;
@@ -68,11 +70,19 @@ TEST_F(ExecutionSpaceContextTest, then)
     static_assert(std::same_as<decltype(partial_pfor_1), partial_pfor_t>);
     static_assert(std::same_as<decltype(partial_pfor_2), partial_pfor_t>);
 
-    using pfor_1_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<sch_sender_t, Kokkos::RangePolicy<>, MyDummyFunctor<view_t>>;
-    using pfor_2_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<pfor_1_sender_t, Kokkos::RangePolicy<>, MyDummyFunctor<view_t>>;
+    using partial_pchk_t = Kokkos::Experimental::graph::details::PartialAlgorithm<
+        Kokkos::ParallelForTag, std::string, Kokkos::RangePolicy<>, CheckValue<view_t>
+    >;
+    static_assert(std::same_as<decltype(partial_pchk_1), partial_pchk_t>);
+    static_assert(std::same_as<decltype(partial_pchk_2), partial_pchk_t>);
 
-    static_assert(std::same_as<decltype(chain_1), pfor_1_sender_t>);
-    static_assert(std::same_as<decltype(chain_2), pfor_2_sender_t>);
+    using pfor_1_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<sch_sender_t,    Kokkos::RangePolicy<>, MyDummyFunctor<view_t>>;
+    using pchk_1_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<pfor_1_sender_t, Kokkos::RangePolicy<>, CheckValue    <view_t>>;
+    using pfor_2_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<pchk_1_sender_t, Kokkos::RangePolicy<>, MyDummyFunctor<view_t>>;
+    using pchk_2_sender_t = Kokkos::Experimental::graph::details::ParallelForSender<pfor_2_sender_t, Kokkos::RangePolicy<>, CheckValue    <view_t>>;
+
+    static_assert(std::same_as<decltype(chain_1), pchk_1_sender_t>);
+    static_assert(std::same_as<decltype(chain_2), pchk_2_sender_t>);
 
     //! Wait for completion.
     Kokkos::Experimental::sync_wait(std::move(chain_2));

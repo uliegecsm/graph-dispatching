@@ -25,6 +25,25 @@ struct SyncWait
     }
 };
 
+struct ReadyReceiver
+{
+    void set_value() && { /* nothing to do */ }
+};
+
+//! This is for underlying graph to be ready.
+struct Ready
+{
+    template <typename Graph>
+    decltype(auto) operator()(Graph&& g) const
+    {
+        auto graph = g.get_env().graph;
+        std::forward<Graph>(g).connect(
+            ReadyReceiver{}
+        ).start();
+        return graph;
+    }
+};
+
 } // namespace Kokkos::Experimental::graph::details
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_SYNCWAIT_HPP

@@ -69,6 +69,8 @@ struct SplitSender
     }
 
     auto& get_env() const { return state->sndr.get_env(); }
+
+    decltype(auto) get_completion_scheduler() const { return state->sndr.get_completion_scheduler(); }
 };
 
 struct SplitPartial

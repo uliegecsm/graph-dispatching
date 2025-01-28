@@ -153,7 +153,12 @@ constexpr decltype(auto) then(Label&& label, Exec&& exec, Functor&& functor)
  */
 template <typename Exec, typename Sender>
 constexpr void submit(const Exec& exec, Sender&& sender) {
-    Kokkos::Impl::GraphAccess::get_graph_weak_ptr(sender).lock()->submit(exec);
+    sender.get_env().graph.submit(exec);
+}
+
+template <typename Graph>
+decltype(auto) ready(Graph&& g) {
+    return graph::details::Ready{}.operator()(std::forward<Graph>(g));
 }
 
 /**

@@ -30,53 +30,52 @@ struct OperationState
     void start() { op_state.start(); }
 };
 
-/**
- * @brief Sender that works with @ref ParallelForSender.
- *
- * Since @ref ParallelForSender is eagerly executing, there is nothing to do.
- */
-template <receiver Receiver>
+//! Receiver that works with @ref ParallelForSender.
+template <receiver Receiver, typename Policy, typename Functor, typename Scheduler>
 struct ParallelForReceiver
 {
     Receiver rcvr;
+    Policy policy;
+    Functor functor;
+    Scheduler sch;
 
-    void set_value() && { std::move(rcvr).set_value(); }
+    void set_value() &&
+    {
+        // trying to ask the exec or graph scheduler, but I think this is not good
+        sch.parallel_for(
+            std::move(policy),
+            std::move(functor)
+        );
+
+        //! This should be something like "propagate completion signal".
+        std::move(rcvr).set_value();
+    }
 };
 
-/**
- * @brief Eager execution sender.
- *
- * Pros and cons of eager senders are listed at
- * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-lazy-algorithms-detached.
- */
+//! Parallel-for sender.
 template <sender Sender, typename Policy, typename Functor>
 struct ParallelForSender
 {
     Sender sndr;
-
-    //! Eager execution of the functor.
-    template <sender SenderType, typename PolicyType, typename FunctorType>
-    ParallelForSender(SenderType&& sender, PolicyType&& policy, FunctorType&& functor)
-        : sndr(std::forward<SenderType>(sender))
-    {
-        Kokkos::parallel_for(
-            update_policy(std::forward<PolicyType>(policy), get_env().exec),
-            std::forward<FunctorType>(functor)
-        );
-    }
+    Policy policy;
+    Functor functor;
 
     template <typename Receiver> requires receiver<std::remove_cvref_t<Receiver>>
     operation_state auto connect(Receiver&& rcvr) &&
     {
-        using recv_t = ParallelForReceiver<std::remove_cvref_t<Receiver>>;
+        auto sch = sndr.get_completion_scheduler();
+
+        using recv_t = ParallelForReceiver<std::remove_cvref_t<Receiver>, Policy, Functor, std::remove_cvref_t<decltype(sch)>>;
 
         return OperationState<Sender, recv_t>(
             std::move(this->sndr),
-            recv_t{.rcvr = std::forward<Receiver>(rcvr)}
+            recv_t{.rcvr = std::forward<Receiver>(rcvr), .policy = std::move(policy), .functor = std::move(functor), .sch = std::move(sch)}
         );
     }
 
     auto& get_env() const { return sndr.get_env(); }
+
+    decltype(auto) get_completion_scheduler() const { return sndr.get_completion_scheduler(); }
 };
 
 //! Specialization for @c Kokkos parallel-for.
