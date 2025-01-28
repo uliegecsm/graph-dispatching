@@ -35,6 +35,7 @@ template <receiver Receiver, typename Policy, typename Functor, typename Schedul
 struct ParallelForReceiver
 {
     Receiver rcvr;
+    std::string label;
     Policy policy;
     Functor functor;
     Scheduler sch;
@@ -57,6 +58,7 @@ template <sender Sender, typename Policy, typename Functor>
 struct ParallelForSender
 {
     Sender sndr;
+    std::string label;
     Policy policy;
     Functor functor;
 
@@ -69,7 +71,7 @@ struct ParallelForSender
 
         return OperationState<Sender, recv_t>(
             std::move(this->sndr),
-            recv_t{.rcvr = std::forward<Receiver>(rcvr), .policy = std::move(policy), .functor = std::move(functor), .sch = std::move(sch)}
+            recv_t{.rcvr = std::forward<Receiver>(rcvr), .label = std::move(this->label), .policy = std::move(policy), .functor = std::move(functor), .sch = std::move(sch)}
         );
     }
 
@@ -93,6 +95,7 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
         using sender_t = ParallelForSender<std::remove_cvref_t<Sender>, Policy, Functor>;
         return sender_t(
             std::forward<Sender>(sndr),
+            std::move(this->label),
             std::move(this->policy),
             std::move(this->functor)
         );

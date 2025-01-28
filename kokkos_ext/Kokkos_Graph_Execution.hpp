@@ -14,6 +14,7 @@
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_Then.hpp"
+#include "kokkos_ext/impl/Split.hpp"
 #include "kokkos_ext/impl/SyncWait.hpp"
 #include "kokkos_ext/impl/WhenAll.hpp"
 
@@ -158,6 +159,7 @@ constexpr void submit(const Exec& exec, Sender&& sender) {
 
 template <typename Graph>
 decltype(auto) ready(Graph&& g) {
+    printf("> Called ready.\n");
     return graph::details::Ready{}.operator()(std::forward<Graph>(g));
 }
 

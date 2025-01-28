@@ -49,11 +49,14 @@ struct GraphScheduler
     {
         Env env;
 
+        std::string label = "GraphScheduler::Sender";
+
         template <typename T>
         explicit Sender(T&& ctx) : env{std::forward<T>(ctx)} {}
 
         template <typename Receiver> requires receiver<std::remove_cvref_t<Receiver>>
         operation_state auto connect(Receiver&& rcvr) {
+            printf("> Connection GraphScheduler::Sender to receiver %s\n", rcvr.label.c_str());
             return OperationState<std::remove_cvref_t<Receiver>>{std::forward<Receiver>(rcvr)};
         }
 
@@ -74,8 +77,8 @@ struct GraphScheduler
     template <typename Policy, typename Functor>
     void parallel_for(Policy&& policy, Functor&& functor)
     {
-        //! @todo this is shitty
-        return m_context_state.root.then_parallel_for(
+        //! @todo this is shitty -> exploit the value channel ?!
+        m_context_state.root.then_parallel_for(
             graph::details::update_policy(std::forward<Policy>(policy), m_context_state.exec),
             std::forward<Functor>(functor)
         );

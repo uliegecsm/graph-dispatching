@@ -35,8 +35,8 @@ TEST(GraphContext, then)
 
     auto start = Kokkos::Experimental::schedule(graph_ctx.get_scheduler());
 
-    auto pfor_1 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
-    auto pfor_2 = Kokkos::Experimental::graph::parallel_for(Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
+    auto pfor_1 = Kokkos::Experimental::graph::parallel_for("pfor 1", Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
+    auto pfor_2 = Kokkos::Experimental::graph::parallel_for("pfor 2", Kokkos::RangePolicy(0, 1), MyDummyFunctor{.data = data});
 
     auto chain = std::move(start) | std::move(pfor_1) | std::move(pfor_2);
 

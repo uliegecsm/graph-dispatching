@@ -27,6 +27,8 @@ struct SyncWait
 
 struct ReadyReceiver
 {
+    std::string label = "ReadyReceiver";
+
     void set_value() && { /* nothing to do */ }
 };
 
