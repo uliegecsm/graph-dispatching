@@ -39,7 +39,7 @@ TEST(ExecutionSpaceContext, then)
 
     auto chain_0 = Kokkos::Experimental::schedule(sch);
 
-    using sch_sender_t = Kokkos::Experimental::details::execution_space::ExecutionSpaceScheduler<Kokkos::Cuda>::Sender_;
+    using sch_sender_t = Kokkos::Experimental::details::execution_space::ExecutionSpaceScheduler<Kokkos::Cuda>::Sender;
     static_assert(std::same_as<decltype(chain_0), sch_sender_t>);
 
     auto partial = Kokkos::Experimental::graph::parallel_for(
@@ -70,7 +70,7 @@ TEST(ExecutionSpaceContext, then)
     >;
     static_assert(std::same_as<decltype(chain_2), second_pfor_sender_t>);
 
-    Kokkos::Experimental::graph::sync_wait(std::move(chain_2));
+    Kokkos::Experimental::sync_wait(std::move(chain_2));
 
     exec.fence();
 

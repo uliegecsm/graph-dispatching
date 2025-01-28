@@ -8,9 +8,39 @@
 namespace Kokkos::Experimental
 {
 
-//! Subset of @c std::execution::sender.
+/**
+ * @brief Weaker concept than @c stdexec::environment_provider.
+ *
+ * Reference:
+ *  - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__env.hpp#L656-L660
+ */
+template <class T>
+concept environment_provider = requires (const T& arg) {
+    { arg.get_env() };
+};
+
+/**
+ * @brief Subset of @c std::execution::sender.
+ *
+ * References:
+ *  - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__senders_core.hpp#L35-L52
+ */
 template <typename T>
-concept Sender = true;
+concept sender = std::move_constructible<T> && std::copy_constructible<T> && environment_provider<T>;
+
+//! @todo Make it real.
+template <typename T>
+concept receiver = requires (T&& arg) {
+    { std::move(arg).set_value() } -> std::same_as<void>;
+};
+
+//! @todo Make it real.
+template <typename T>
+concept operation_state = true;
+
+//! @todo Make it real.
+template <typename T>
+concept scheduler = true;
 
 namespace details::execution_space
 {
@@ -36,25 +66,24 @@ struct ExecutionSpaceScheduler
 
     using Env = context_state_t; //! For now, our environment only contains the context state.
 
-    template <typename Receiver>
-    struct OperationState_
+    template <receiver Receiver>
+    struct OperationState
     {
         Receiver rcvr;
 
         void start() { std::move(rcvr).set_value(); }
     };
 
-    struct Sender_
+    struct Sender
     {
         Env env;
 
         template <typename T>
-        explicit Sender_(T&& ctx) : env{std::forward<T>(ctx)} {}
+        explicit Sender(T&& ctx) : env{std::forward<T>(ctx)} {}
 
-        //! @todo Constraint with a receiver concept.
-        template <typename Receiver>
-        OperationState_<std::remove_cvref_t<Receiver>> connect(Receiver&& rcvr) {
-            return {std::forward<Receiver>(rcvr)};
+        template <typename Receiver> requires receiver<std::remove_cvref_t<Receiver>>
+        operation_state auto connect(Receiver&& rcvr) {
+            return OperationState<std::remove_cvref_t<Receiver>>{std::forward<Receiver>(rcvr)};
         }
 
         auto& get_env() const { return env; };
@@ -63,7 +92,7 @@ struct ExecutionSpaceScheduler
     template <typename T>
     explicit ExecutionSpaceScheduler(T&& exec) : m_context_state{std::forward<T>(exec)} {}
 
-    Sender auto schedule() const { return Sender_{m_context_state}; }
+    sender auto schedule() const { return Sender{m_context_state}; }
 
     context_state_t m_context_state;
 };
@@ -86,7 +115,7 @@ struct ExecutionSpaceContext
 {
     Exec exec;
 
-    auto get_scheduler() { return details::execution_space::ExecutionSpaceScheduler{exec}; }
+    scheduler auto get_scheduler() { return details::execution_space::ExecutionSpaceScheduler{exec}; }
 };
 
 } // namespace Kokkos::Experimental

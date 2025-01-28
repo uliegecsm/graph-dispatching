@@ -12,24 +12,21 @@ namespace Kokkos::Experimental::graph::details
 /**
  * @brief To be done soon.
  *
- * @todo Constraint template arguments.
- *
  * References:
  *  - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L652-L663
  */
-template <typename Sender, typename Receiver>
+template <sender Sender, receiver Receiver>
 struct OperationState
 {
-    using op_state_t = decltype(std::declval<Sender>().connect(std::declval<Receiver>()));
+    using op_state_t = decltype(std::declval<Sender&&>().connect(std::declval<Receiver>()));
 
     op_state_t op_state;
 
     template <typename SenderType, typename ReceiverType>
     OperationState(SenderType&& sndr, ReceiverType&& rcvr)
-        : op_state(std::forward<SenderType>(sndr).connect(std::forward<Receiver>(rcvr)))
+        : op_state(std::forward<SenderType>(sndr).connect(std::forward<ReceiverType>(rcvr)))
     {}
 
-    //! @todo Should me move @ref op_state ?
     void start() { op_state.start(); }
 };
 
@@ -37,51 +34,49 @@ struct OperationState
  * @brief Sender that works with @ref ParallelForSender.
  *
  * Since @ref ParallelForSender is eagerly executing, there is nothing to do.
- *
- * @todo Short description, references and better type constraints.
  */
-template <typename Receiver>
+template <receiver Receiver>
 struct ParallelForReceiver
 {
     Receiver rcvr;
 
-    void set_value() const { rcvr.set_value(); }
+    void set_value() && { std::move(rcvr).set_value(); }
 };
 
 /**
  * @brief Eager execution sender.
  *
- * @todo Reference, and better type constraitns.
+ * Pros and cons of eager senders are listed at
+ * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-lazy-algorithms-detached.
  */
-template <typename Sender, typename Policy, typename Functor>
+template <sender Sender, typename Policy, typename Functor>
 struct ParallelForSender
 {
-    Sender sender;
+    Sender sndr;
 
-    //! Eager execution of the functor. @todo Pros and cons ?
-    template <typename SenderType, typename PolicyType, typename FunctorType>
-    ParallelForSender(SenderType&& sender_, PolicyType&& policy, FunctorType&& functor)
-        : sender(std::forward<SenderType>(sender_))
+    //! Eager execution of the functor.
+    template <sender SenderType, typename PolicyType, typename FunctorType>
+    ParallelForSender(SenderType&& sender, PolicyType&& policy, FunctorType&& functor)
+        : sndr(std::forward<SenderType>(sender))
     {
         Kokkos::parallel_for(
-            update_policy(std::forward<PolicyType>(policy), sender.get_env().exec),
+            update_policy(std::forward<PolicyType>(policy), get_env().exec),
             std::forward<FunctorType>(functor)
         );
     }
 
-    //! @todo Constraint the input and output types.
-    template <typename Receiver>
-    auto connect(Receiver&& rcvr)
+    template <typename Receiver> requires receiver<std::remove_cvref_t<Receiver>>
+    operation_state auto connect(Receiver&& rcvr) &&
     {
         using recv_t = ParallelForReceiver<std::remove_cvref_t<Receiver>>;
 
         return OperationState<Sender, recv_t>(
-            this->sender,
+            std::move(this->sndr),
             recv_t{.rcvr = std::forward<Receiver>(rcvr)}
         );
     }
 
-    auto& get_env() const { return sender.get_env(); }
+    auto& get_env() const { return sndr.get_env(); }
 };
 
 //! Specialization for @c Kokkos parallel-for.
@@ -93,48 +88,18 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
     Functor functor;
 
     //! To avoid spurious copies, this is only available when in a movable state.
-    template <typename Sender>
-    decltype(auto) operator()(Sender&& sender) &&
+    template <typename Sender> requires sender<std::remove_cvref_t<Sender>>
+    decltype(auto) operator()(Sender&& sndr) &&
     {
         using sender_t = ParallelForSender<std::remove_cvref_t<Sender>, Policy, Functor>;
         return sender_t(
-            std::forward<Sender>(sender),
+            std::forward<Sender>(sndr),
             std::move(this->policy),
             std::move(this->functor)
         );
     }
 };
 
-// TO BE MOVED TO APPROPRIATE INCLUDE FILE
-template <typename Exec>
-struct SyncWaitReceiver
-{
-    Exec exec;
-
-    void set_value() const { exec.fence(); }
-};
-
-//! @todo Short description.
-struct SyncWait
-{
-    template <typename Sender>
-    void operator()(Sender&& sndr) const
-    {
-        std::forward<Sender>(sndr).connect(
-            SyncWaitReceiver{sndr.get_env().exec}
-        ).start();
-    }
-};
-
 } // namespace Kokkos::Experimental::graph::details
-
-namespace Kokkos::Experimental::graph
-{
-//! @todo Constraint with a sender concept.
-template <typename Sender>
-decltype(auto) sync_wait(Sender&& sender) {
-    return details::SyncWait{}.operator()(std::forward<Sender>(sender));
-}
-}
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_PARTIALALGORITHM_PARALLELFOR_HPP

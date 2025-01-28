@@ -13,6 +13,7 @@
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_Then.hpp"
+#include "kokkos_ext/impl/SyncWait.hpp"
 
 /**
  * @file
@@ -187,6 +188,12 @@ constexpr decltype(auto) just(Exec&& exec) {
  */
 template <typename... Args>
 void submit(Args&&...) {}
+
+//! Same purpose as @c std::execution::sync_wait.
+template <typename Sender> requires sender<std::remove_cvref_t<Sender>>
+decltype(auto) sync_wait(Sender&& sndr) {
+    return graph::details::SyncWait{}.operator()(std::forward<Sender>(sndr));
+}
 
 /**
  * @overload
