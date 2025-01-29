@@ -57,10 +57,14 @@ jobs:
                       compiler_family: gcc
                       base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
                       platforms      : linux/amd64
+                      kokkos_arch    : VOLTA70
+                      docker_arch    : -volta70
                     - backend        : HIP
                       compiler_family: ROCm
                       base_image     : rocm/dev-ubuntu-24.04:6.3
                       platforms      : linux/amd64
+                      kokkos_arch    : AMD_GFX906
+                      docker_arch    : -amd-gfx906
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
@@ -71,10 +75,20 @@ jobs:
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
                       platforms      : linux/amd64
+                      kokkos_arch    : VOLTA70
+                      docker_arch    : -volta70
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
                       platforms      : linux/amd64
+                      kokkos_arch    : VOLTA70
+                      docker_arch    : -volta70
+                    - backend        : Cuda
+                      compiler_family: clang
+                      base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
+                      platforms      : linux/amd64
+                      kokkos_arch    : AMPERE80
+                      docker_arch    : -ampere80
         steps:
             - uses: actions/checkout@v4
 
@@ -92,8 +106,9 @@ jobs:
                   backend        : ${{ matrix.backend }}
                   base_image     : ${{ matrix.base_image }}
                   compiler_family: ${{ matrix.compiler_family }}
+                  kokkos_arch    : ${{ matrix.kokkos_arch }}
                   platforms      : ${{ matrix.platforms }}
-                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ runner.arch == 'ARM64' && '-arm64' || '' }}
+                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.docker_arch }}${{ runner.arch == 'ARM64' && '-arm64' || '' }}
 
     build-library-and-test:
         needs: [set-vars, build-images]
@@ -111,18 +126,22 @@ jobs:
                     - backend        : Cuda
                       compiler_family: gcc
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                      docker_arch    : -volta70
                     - backend        : Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                      docker_arch    : -volta70
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                      docker_arch    : -volta70
                     - backend        : HIP
                       compiler_family: ROCm
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906']"
                       docker_run_args: --privileged
+                      docker_arch    : -amd-gfx906
         container:
-            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.docker_arch }}
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:

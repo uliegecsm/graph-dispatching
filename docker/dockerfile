@@ -113,6 +113,7 @@ EOF
 # Compile Kokkos.
 FROM hpx-compile AS kokkos-compile
 
+ARG KOKKOS_ARCH
 ARG KOKKOS_BRANCH
 ARG KOKKOS_PRESET
 ARG KOKKOS_SHA
@@ -129,6 +130,15 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
     git checkout ${KOKKOS_SHA}
 
     cp /cmake/presets/kokkos.json CMakePresets.json
+
+    if [ -z "${KOKKOS_ARCH}" ];then
+        echo "> No Kokkos architecture given."
+    else
+        search_str="REPL_STR_KOKKOS_ARCH_ENABLED"
+        replace_str="Kokkos_ARCH_${KOKKOS_ARCH}"
+        echo "> Replacing '${search_str}' by '${replace_str}'."
+        sed -i -e 's/'${search_str}'/'${replace_str}'/g' CMakePresets.json
+    fi
 
     cmake -S . --preset=${KOKKOS_PRESET} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
