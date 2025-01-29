@@ -53,7 +53,7 @@
             "cacheVariables" : {
                     "Kokkos_ENABLE_CUDA"           : "ON",
                     "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
-                    "Kokkos_ARCH_VOLTA70"          : "ON"
+                    "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON"
             }
         },
         {
@@ -61,9 +61,9 @@
             "name"           : "HIP",
             "hidden"         : true,
             "cacheVariables" : {
-                "Kokkos_ENABLE_HIP"       : "ON",
-                "Kokkos_ENABLE_ROCTHRUST" : "OFF",
-                "Kokkos_ARCH_AMD_GFX906"  : "ON"
+                "Kokkos_ENABLE_HIP"            : "ON",
+                "Kokkos_ENABLE_ROCTHRUST"      : "OFF",
+                "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON"
             }
         },
         {

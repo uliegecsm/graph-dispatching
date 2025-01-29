@@ -18,6 +18,12 @@ inputs:
             - gcc
             - clang
 
+    kokkos_arch:
+        description: >
+            Kokkos architecture to enable.
+        required: false
+        type: string
+
     base_image:
         description: >
             Docker base image to start from.
@@ -67,6 +73,7 @@ runs:
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}
+                  KOKKOS_ARCH=${{ inputs.kokkos_arch }}
                   KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
                   KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
                   KOKKOS_SHA=${{ env.KOKKOS_SHA }}
