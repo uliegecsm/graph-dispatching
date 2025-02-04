@@ -32,6 +32,11 @@ struct ChainHandler
     decltype(auto) then_parallel_reduce(Args&&... args) const {
         return root.then_parallel_reduce(std::forward<Args>(args)...);
     }
+
+    template <typename... Args>
+    decltype(auto) then(Args&&... args) const {
+        return root.then(std::forward<Args>(args)...);
+    }
 };
 
 } // namespace Kokkos::Experimental::graph::details

@@ -12,6 +12,7 @@
 #include "kokkos_ext/impl/GraphContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
+#include "kokkos_ext/impl/PartialAlgorithm_Then.hpp"
 
 /**
  * @file
@@ -118,6 +119,27 @@ constexpr decltype(auto) parallel_reduce(Policy&& policy, Functor&& functor, Red
         std::forward<Policy>(policy),
         std::forward<Functor>(functor),
         std::forward<Reducer>(reducer)
+    );
+}
+
+//! Pipable @c Kokkos @c then, with partially-specified algorithm.
+template <typename Label, typename Functor>
+constexpr decltype(auto) then(Label&& label, Functor&& functor)
+{
+    return details::parallel<Kokkos::ThenTag>(
+        std::forward<Label>(label),
+        std::forward<Functor>(functor)
+    );
+}
+
+//! @overload
+template <typename Label, typename Exec, typename Functor>
+constexpr decltype(auto) then(Label&& label, Exec&& exec, Functor&& functor)
+{
+    return details::parallel<Kokkos::ThenTag>(
+        std::forward<Label>(label),
+        std::forward<Exec>(exec),
+        std::forward<Functor>(functor)
     );
 }
 
