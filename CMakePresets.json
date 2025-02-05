@@ -46,6 +46,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
+            // Inherit from this preset to use the Cuda compiler family.
+            "name"           : "Cuda",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "$penv{Kokkos_ROOT}/bin/nvcc_wrapper"}
+        },
+        {
             "name"           : "gcc-OpenMP",
             "inherits"       : ["default", "gcc", "ccache"],
             "cacheVariables" : {
@@ -68,7 +74,7 @@
         },
         {
             "name"           : "gcc-Cuda",
-            "inherits"       : ["default", "gcc"],
+            "inherits"       : ["default", "Cuda", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }

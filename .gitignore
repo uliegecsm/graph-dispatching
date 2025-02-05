@@ -1,2 +1,5 @@
 # Build directories.
 build*/*
+
+# ccache
+.ccache/*
