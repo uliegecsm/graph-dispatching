@@ -2,6 +2,8 @@
 
 #include "gtest/gtest.h"
 
+#include "tests/IgnoreWarnings.hpp"
+
 #include "tests/native/APIWrappers_def.hpp"
 #include "tests/native/APIWrappers_sparse.hpp"
 #include "tests/native/Helpers.hpp"
@@ -75,6 +77,8 @@ public:
 
         //! Allocate buffer memory for @c cusparseSpVV.
         size_t buffer_size = 0;
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
         CHECK_SPARSE_CALL(cusparseSpVV_bufferSize(
             handle.handle,
             CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -83,6 +87,7 @@ public:
             sparse::DataType<value_t>::type,
             &buffer_size
         ));
+PRAGMA_DIAGNOSTIC_POP
 
         //! Check buffer size. It's used for the result of @c cusparseSpVV (see @ref result).
         ASSERT_EQ(buffer_size, sizeof(value_t));
@@ -185,12 +190,15 @@ public:
     {
         handle.set_stream(stream);
 
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
         CHECK_SPARSE_CALL(::cusparseSpVV(
             handle.handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
             sparse_descr.descr, dense_descr.descr,
             &result, sparse::DataType<value_t>::type,
             buffer.buffer
         ));
+PRAGMA_DIAGNOSTIC_POP
     }
 
 protected:
@@ -396,6 +404,8 @@ struct DotImpl
 
         size_t buffer_size = 0;
 
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
         CHECK_SPARSE_CALL(cusparseSpVV_bufferSize(
             handle.handle,
             CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -404,6 +414,7 @@ struct DotImpl
             sparse::DataType<T>::type,
             &buffer_size
         ));
+PRAGMA_DIAGNOSTIC_POP
 
         buffer = std::make_shared<buffer_t>(get_stream(exec), buffer_size);
 
@@ -422,12 +433,15 @@ struct DotImpl
 
                 printf("> Calling 'cusparseSpVV' with stream capturing(=%s).\n", stream.capturing() ? "true" : "false");
 
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
                 CHECK_SPARSE_CALL(::cusparseSpVV(
                     handle.handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                     sparse_descr.descr, dense_descr.descr,
                     &result, sparse::DataType<T>::type,
                     buffer->buffer
                 ));
+PRAGMA_DIAGNOSTIC_POP
             }
         );
     }
