@@ -55,7 +55,7 @@ jobs:
                       platforms      : linux/amd64
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
@@ -73,19 +73,19 @@ jobs:
                       builder        : sarouman.meca.ulg.ac.be:5000/trilinos-container/builder:ubuntu22.04-latest-arm64
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
                     - backend        : HPX-Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.6.3-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : AMPERE80
                       docker_arch    : -ampere80
