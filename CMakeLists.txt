@@ -13,6 +13,9 @@ project(
     LANGUAGES CXX
 )
 
+#---- Enable further debugging by exporting compile commands.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #---- Building Doxygen documentation is OFF by default.
 option(ENABLE_DOXYGEN "Enable building Doxygen documentation" OFF)
 
