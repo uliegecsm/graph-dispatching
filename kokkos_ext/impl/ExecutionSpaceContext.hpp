@@ -12,6 +12,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "kokkos_ext/impl/execution_space/continues_on.hpp"
 #include "kokkos_ext/impl/execution_space/sync_wait.hpp"
 #include "kokkos_ext/impl/execution_space/then.hpp"
 
@@ -24,6 +25,8 @@ namespace details::execution_space
 template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
 struct ExecutionSpaceScheduler
 {
+    using execution_space = Exec;
+
     //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
     struct Env
     {
@@ -98,6 +101,48 @@ struct ExecutionSpaceScheduler
         }
     };
 
+    //! For @c continues_on.
+    template <stdexec::scheduler Schd>
+    struct TransformContinuesOn
+    {
+        Schd schd;
+
+        template <class Env, stdexec::sender Sndr>
+        auto operator()(stdexec::continues_on_t, Env&& env_ , Sndr&& sndr) && noexcept
+        {
+            if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>)
+            {
+                auto finish = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+
+                std::cout << "Intercepting 'continues_on' in 'TransformContinuesOn<" << Kokkos::Impl::TypeInfo<execution_space>::name() << ">' with [has-completion-scheduler]:" << std::endl
+                          << "\t- from " << Kokkos::Impl::TypeInfo<decltype(finish)>::name() << std::endl
+                          << "\t- to   " << Kokkos::Impl::TypeInfo<decltype(schd)>::name() << std::endl
+                          << "\t- with " << Kokkos::Impl::TypeInfo<Sndr>::name() << std::endl;
+
+                const bool fencing_required = [&]() {
+                    if constexpr (std::same_as<std::remove_cvref_t<decltype(schd)>, std::remove_cvref_t<decltype(finish)>>)
+                        return schd != finish;
+                    else
+                        return true;
+                }();
+
+                return stdexec::schedule_from(
+                    std::move(schd),
+                    ContinuesOnSender{.schd = std::move(finish), .sndr = std::forward<Sndr>(sndr), .fencing_required = fencing_required}
+                );
+            } else {
+                std::cout << "Intercepting 'continues_on' in 'TransformContinuesOn<" << Kokkos::Impl::TypeInfo<execution_space>::name() << ">' with [no-completion-scheduler]:" << std::endl
+                          << "\t- to   " << Kokkos::Impl::TypeInfo<decltype(schd)>::name() << "(" << schd.env.exec.impl_instance_id() << ")" << std::endl
+                          << "\t- with " << Kokkos::Impl::TypeInfo<Sndr>::name() << std::endl
+                          << "\t- env  " << Kokkos::Impl::TypeInfo<Env>::name() << "(" << stdexec::get_completion_scheduler<stdexec::set_value_t>(env_).env.exec.impl_instance_id() << ")" << std::endl;
+                return stdexec::schedule_from(
+                    std::move(schd),
+                    std::forward<Sndr>(sndr)
+                );
+            }
+        }
+    };
+
     struct Domain
     {
         /**
@@ -145,6 +190,42 @@ struct ExecutionSpaceScheduler
                 return sndr.apply(std::forward<Sndr>(sndr), TransformThen{.schd = std::move(schd)});
             } else {
                 static_assert(false, "No 'ExecutionSpaceScheduler' can be found on which to schedule 'then'.");
+            }
+        }
+
+        /**
+         * @brief Intercept @c continues_on.
+         *
+         * @note We don't need to customize @c schedule_from for now, because we don't handle the value channel.
+         *       If we were supporting it, it would require that the @c schedule_from customization puts the values on the device, similarly
+         *       to https://github.com/NVIDIA/stdexec/blob/46f8c6368dc419260e19f585de35ca3c1bb47ee0/include/nvexec/stream/schedule_from.cuh#L55.
+         *
+         * References:
+         *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-transition-details.
+         *  - https://github.com/NVIDIA/stdexec/blob/e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf/include/nvexec/stream_context.cuh#L223-L230.
+         */
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr>
+        auto transform_sender(Sndr&& sndr) const noexcept
+        {
+            std::cout << "Intercepting 'continues_on' in 'transform_sender<" << Kokkos::Impl::TypeInfo<execution_space>::name() << ">' with [early]:" << std::endl
+                      << "\t- with sender " << Kokkos::Impl::TypeInfo<Sndr>::name();
+            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+            return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{.schd = schd});
+        }
+
+        //! @overload Late customization. @todo Probably useless.
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr, class Env>
+        auto transform_sender(Sndr&& sndr, const Env& ) const noexcept
+        {
+            if constexpr (::stdexec::__completes_on<Sndr, ExecutionSpaceScheduler>) {
+                auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+                std::cout << "Intercepting 'continues_on' in 'transform_sender<" << Kokkos::Impl::TypeInfo<execution_space>::name() << ">' with [late]:" << std::endl
+                          << "\t- with sender " << Kokkos::Impl::TypeInfo<Sndr>::name() << std::endl
+                          << "\t- with env    " << Kokkos::Impl::TypeInfo<Env>::name() << std::endl
+                          << "\t- with sched(" << schd.env.exec.impl_instance_id() << ") " << Kokkos::Impl::TypeInfo<Env>::name() << std::endl;
+                return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{.schd = schd});
+            } else {
+                static_assert(false, "No 'ExecutionSpaceScheduler' can be found on which to continue on.");
             }
         }
     };

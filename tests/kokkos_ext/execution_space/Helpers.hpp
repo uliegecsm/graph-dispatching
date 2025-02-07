@@ -11,7 +11,7 @@ namespace tests::kokkos_ext
 {
 namespace impl
 {
-template <typename Exec>
+template <typename Exec, typename HostExec = Kokkos::DefaultHostExecutionSpace>
 struct ExecutionSpaceContextTest : public virtual ::testing::Test
 {
 public:
@@ -20,6 +20,11 @@ public:
     using schedule_sender_t  = decltype(::stdexec::schedule(std::declval<scheduler_t>()));
     using scheduler_domain_t = std::invoke_result_t<::stdexec::get_domain_t, scheduler_t>;
 
+    using context_h_t          = Kokkos::Experimental::ExecutionSpaceContext<HostExec>;
+    using scheduler_h_t        = decltype(std::declval<const context_h_t>().get_scheduler());
+    using scheduler_h_domain_t = std::invoke_result_t<::stdexec::get_domain_t, scheduler_h_t>;
+
+    using view_t   = Kokkos::View<int, typename Exec::memory_space>;
     using view_s_t = Kokkos::View<int, Kokkos::SharedSpace>;
 
 public:
@@ -36,24 +41,27 @@ protected:
 //! Add a @c then using @ref tests::ThenFunctor that may throw.
 #define ADD_THEN ::stdexec::then(ThenFunctor<std::remove_cvref_t<decltype(data)>, true>{.data = data})
 
-#define MATCHER_FOR_NAME(__type__, __name__)                                               \
-    ::testing::Field(                                                                      \
-        &Kokkos::utils::callbacks::__type__##Event::name,                                  \
-        ::testing::StrEq(                                                                  \
-            std::format("{}: " #__name__, Kokkos::Impl::TypeInfo<execution_space>::name()) \
-        )                                                                                  \
+#define MATCHER_FOR_NAME(__type__, __exec__, __name__)                                  \
+    ::testing::Field(                                                                   \
+        &Kokkos::utils::callbacks::__type__##Event::name,                               \
+        ::testing::StrEq(                                                               \
+            std::format(                                                                \
+                "{}: " #__name__,                                                       \
+                Kokkos::Impl::TypeInfo<std::remove_cvref_t<decltype(__exec__)>>::name() \
+            )                                                                           \
+        )                                                                               \
     )
 
-#define MATCHER_FOR_DEV_ID(__type__)                        \
-    ::testing::Field(                                       \
-        &Kokkos::utils::callbacks::__type__##Event::dev_id, \
-        ::testing::Eq(                                      \
-            Kokkos::Tools::Experimental::device_id(exec)    \
-        )                                                   \
+#define MATCHER_FOR_DEV_ID(__type__, __exec__)               \
+    ::testing::Field(                                        \
+        &Kokkos::utils::callbacks::__type__##Event::dev_id,  \
+        ::testing::Eq(                                       \
+            Kokkos::Tools::Experimental::device_id(__exec__) \
+        )                                                    \
     )
 
-#define MATCHER_FOR_BEGIN_FENCE ABeginFenceEvent      (MATCHER_FOR_NAME(BeginFence,       sync_wait), MATCHER_FOR_DEV_ID(BeginFence))
-#define MATCHER_FOR_BEGIN_PFOR  ABeginParallelForEvent(MATCHER_FOR_NAME(BeginParallelFor, then),      MATCHER_FOR_DEV_ID(BeginParallelFor))
+#define MATCHER_FOR_BEGIN_FENCE(__exec__, __label__) ABeginFenceEvent      (MATCHER_FOR_NAME(BeginFence,       __exec__, __label__), MATCHER_FOR_DEV_ID(BeginFence,       __exec__))
+#define MATCHER_FOR_BEGIN_PFOR(__exec__)             ABeginParallelForEvent(MATCHER_FOR_NAME(BeginParallelFor, __exec__, then),      MATCHER_FOR_DEV_ID(BeginParallelFor, __exec__))
 
 } // namespace tests::kokkos_ext
 
