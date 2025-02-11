@@ -2,7 +2,7 @@
 
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
-#include "tests/graph/then/Helpers.hpp"
+#include "tests/Functors.hpp"
 
 /**
  * @addtogroup unittests
