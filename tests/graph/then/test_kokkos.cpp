@@ -3,7 +3,7 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
-#include "tests/graph/then/Helpers.hpp"
+#include "tests/Functors.hpp"
 
 /**
  * @addtogroup unittests
