@@ -89,9 +89,16 @@ TEST(stdexec, continues_on_persists_scheduler)
 
     CHECK_COMPLETION_SIGNATURES(then_2_on_a, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
 
-    //! Now, we move on scheduler 'b'.
+    /// Now, we move on scheduler 'b'.
+    /// The @c continues_on will expose the @c exec::static_thread_pool domain, to help the next
+    /// sender use it.
+    auto continues_on = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b);
+
+    static_assert(std::same_as<decltype(::stdexec::get_domain(::stdexec::get_env(continues_on))), exec::_pool_::static_thread_pool_::domain>);
+
+    //! First then on scheduler 'b'.
     std::thread::id thr_1_on_b;
-    auto then_1_on_b = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b) | THEN_GET_THR(thr_1_on_b);
+    auto then_1_on_b = std::move(continues_on) | THEN_GET_THR(thr_1_on_b);
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_b)));
 
     CHECK_COMPLETION_SIGNATURES(then_1_on_b, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
