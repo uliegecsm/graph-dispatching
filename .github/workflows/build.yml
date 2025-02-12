@@ -92,6 +92,8 @@ jobs:
                       docker_arch    : -ampere80
         steps:
             - uses: actions/checkout@v4
+              with:
+                   set-safe-directory: true
 
             - id: changed-files
               uses: tj-actions/changed-files@v45
