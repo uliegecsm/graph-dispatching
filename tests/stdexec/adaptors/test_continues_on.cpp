@@ -52,4 +52,62 @@ TEST(stdexec, continues_on)
     ASSERT_EQ(counter, 2);
 }
 
+//! @test This test checks that using @c continues_on persists the scheduler.
+TEST(stdexec, continues_on_persists_scheduler)
+{
+    exec::static_thread_pool pool_a{1}, pool_b{1};
+
+    auto sch_a = pool_a.get_scheduler();
+    auto sch_b = pool_b.get_scheduler();
+
+    //! The schedulers are not equal.
+    ASSERT_NE(sch_a, sch_b);
+
+    const std::thread::id thr_a = std::get<0>(::stdexec::sync_wait(::stdexec::schedule(sch_a) | ::stdexec::then([]{ return std::this_thread::get_id(); })).value());
+    const std::thread::id thr_b = std::get<0>(::stdexec::sync_wait(::stdexec::schedule(sch_b) | ::stdexec::then([]{ return std::this_thread::get_id(); })).value());
+
+    //! Each scheduler has a unique thread.
+    ASSERT_NE(thr_a, thr_b);
+
+    #define THEN_GET_THR(__var__) ::stdexec::then([&__var__]{ __var__ = std::this_thread::get_id(); })
+
+    #define CHECK_COMPLETION_SIGNATURES(__who__, ...)                                                                              \
+        using __who__##_completion_signatures_t = std::invoke_result_t<::stdexec::get_completion_signatures_t, decltype(__who__)>; \
+        static_assert(std::same_as<__who__##_completion_signatures_t, ::stdexec::completion_signatures<__VA_ARGS__>>);
+
+    //! First then, completion on scheduler 'a'.
+    std::thread::id thr_1_on_a;
+    auto then_1_on_a = ::stdexec::schedule(sch_a) | THEN_GET_THR(thr_1_on_a);
+    ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_a)));
+
+    CHECK_COMPLETION_SIGNATURES(then_1_on_a, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t());
+
+    //! Next then, still on scheduler 'a'.
+    std::thread::id thr_2_on_a;
+    auto then_2_on_a = std::move(then_1_on_a) | THEN_GET_THR(thr_2_on_a);
+    ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_a)));
+
+    CHECK_COMPLETION_SIGNATURES(then_2_on_a, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
+
+    //! Now, we move on scheduler 'b'.
+    std::thread::id thr_1_on_b;
+    auto then_1_on_b = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b) | THEN_GET_THR(thr_1_on_b);
+    ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_b)));
+
+    CHECK_COMPLETION_SIGNATURES(then_1_on_b, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
+
+    //! The second then is still on scheduler 'b'.
+    std::thread::id thr_2_on_b;
+    auto then_2_on_b = std::move(then_1_on_b) | THEN_GET_THR(thr_2_on_b);
+    ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_b)));
+
+    CHECK_COMPLETION_SIGNATURES(then_2_on_b, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t());
+
+    ::stdexec::sync_wait(std::move(then_2_on_b));
+
+    //! Check which thread got the work.
+    ASSERT_EQ(thr_a, thr_1_on_a); ASSERT_EQ(thr_b, thr_1_on_b);
+    ASSERT_EQ(thr_a, thr_2_on_a); ASSERT_EQ(thr_b, thr_2_on_b);
+}
+
 } // namespace tests::stdexec::adaptors
