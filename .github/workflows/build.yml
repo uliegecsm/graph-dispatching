@@ -35,8 +35,9 @@ jobs:
         container:
             image: ${{ matrix.builder || 'docker:latest' }}
         permissions:
-            packages: write
             contents: read
+            packages: write
+            pull-requests: read
         strategy:
             fail-fast: false
             matrix:
@@ -92,16 +93,27 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - if : ${{ matrix.builder == '' }}
+            - id: changed-files
+              uses: tj-actions/changed-files@v45
+              with:
+                  files: |
+                      cmake/presets/**
+                      docker/**
+                      requirements/**
+                      version.json
+
+            - if : ${{ matrix.builder == '' && steps.changed-files.outputs.any_changed == 'true' }}
               run: apk add jq
 
             - uses: docker/login-action@v3
+              if  : steps.changed-files.outputs.any_changed == 'true'
               with:
                   registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
             - uses: ./.github/actions/build-image
+              if  : steps.changed-files.outputs.any_changed == 'true'
               with:
                   backend        : ${{ matrix.backend }}
                   base_image     : ${{ matrix.base_image }}
