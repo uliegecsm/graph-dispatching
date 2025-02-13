@@ -95,12 +95,6 @@ jobs:
               with:
                    set-safe-directory: true
 
-            - name: Check if safe directory is persisted.
-              run : git config --list | grep safe.dir
-
-            - name: Add safe.directory per https://github.com/actions/checkout/issues/766.
-              run : git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
             - id: changed-files
               uses: tj-actions/changed-files@v45
               with:
