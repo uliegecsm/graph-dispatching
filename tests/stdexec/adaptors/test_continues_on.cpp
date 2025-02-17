@@ -7,6 +7,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
+#include "tests/stdexec/Utils.hpp"
 #include "tests/Utils.hpp"
 
 /**
@@ -71,23 +72,19 @@ TEST(stdexec, continues_on_persists_scheduler)
 
     #define THEN_GET_THR(__var__) ::stdexec::then([&__var__]{ __var__ = std::this_thread::get_id(); })
 
-    #define CHECK_COMPLETION_SIGNATURES(__who__, ...)                                                                              \
-        using __who__##_completion_signatures_t = std::invoke_result_t<::stdexec::get_completion_signatures_t, decltype(__who__)>; \
-        static_assert(std::same_as<__who__##_completion_signatures_t, ::stdexec::completion_signatures<__VA_ARGS__>>);
-
     //! First then, completion on scheduler 'a'.
     std::thread::id thr_1_on_a;
     auto then_1_on_a = ::stdexec::schedule(sch_a) | THEN_GET_THR(thr_1_on_a);
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_a)));
 
-    CHECK_COMPLETION_SIGNATURES(then_1_on_a, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t());
+    static_assert(has_completion_signatures<decltype(then_1_on_a), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
 
     //! Next then, still on scheduler 'a'.
     std::thread::id thr_2_on_a;
     auto then_2_on_a = std::move(then_1_on_a) | THEN_GET_THR(thr_2_on_a);
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_a)));
 
-    CHECK_COMPLETION_SIGNATURES(then_2_on_a, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
+    static_assert(has_completion_signatures<decltype(then_2_on_a), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
 
     /// Now, we move on scheduler 'b'.
     /// The @c continues_on will expose the @c exec::static_thread_pool domain, to help the next
@@ -101,14 +98,14 @@ TEST(stdexec, continues_on_persists_scheduler)
     auto then_1_on_b = std::move(continues_on) | THEN_GET_THR(thr_1_on_b);
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_b)));
 
-    CHECK_COMPLETION_SIGNATURES(then_1_on_b, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr));
+    static_assert(has_completion_signatures<decltype(then_1_on_b), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
 
     //! The second then is still on scheduler 'b'.
     std::thread::id thr_2_on_b;
     auto then_2_on_b = std::move(then_1_on_b) | THEN_GET_THR(thr_2_on_b);
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_b)));
 
-    CHECK_COMPLETION_SIGNATURES(then_2_on_b, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t());
+    static_assert(has_completion_signatures<decltype(then_2_on_b), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
 
     ::stdexec::sync_wait(std::move(then_2_on_b));
 
