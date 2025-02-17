@@ -46,7 +46,7 @@ TEST_F(BulkTest, bulk_with_functor)
     //! Let's perform some traits checks on the chain.
     using chain_t = decltype(chain);
 
-    //! The chain's environment cannot be queried for its domain.
+    //! The chain's environment cannot itself be queried for its domain.
     static_assert(!::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<chain_t>>);
 
     //! However, it has a completion scheduler for the value channel.
