@@ -109,6 +109,7 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 # Include subdirectories.
+add_subdirectory(compiler)
 add_subdirectory(graph)
 add_subdirectory(hpx)
 add_subdirectory(kokkos_ext)
