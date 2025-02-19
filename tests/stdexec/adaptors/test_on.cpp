@@ -1,3 +1,4 @@
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "tests/IgnoreWarnings.hpp"
@@ -36,20 +37,21 @@ TEST_F(OnTest, on)
     ::stdexec::scheduler auto scheduler_A = this->pools.at(index_of_A).get_scheduler();
     ::stdexec::scheduler auto scheduler_B = this->pools.at(index_of_B).get_scheduler();
 
-    std::thread::id thr_0, thr_1, thr_2;
+    std::array<std::thread::id, 3> thrids;
     size_t counter = 0;
 
     auto chain = ::stdexec::schedule(scheduler_A)
-        |                                THEN_STORE_ID(0, {++counter;})
-        | ::stdexec::v2::on(scheduler_B, THEN_STORE_ID(1, {++counter;}))
-        |                                THEN_STORE_ID(2, {++counter;});
+        |                                THEN_STORE_ID(thrids[0], {++counter;})
+        | ::stdexec::v2::on(scheduler_B, THEN_STORE_ID(thrids[1], {++counter;}))
+        |                                THEN_STORE_ID(thrids[2], {++counter;});
 
     ::stdexec::sync_wait(std::move(chain));
 
     //! The second @c then has indeed been executed by the second thread pool.
-    ASSERT_EQ(thr_0, threads.at(index_of_A));
-    ASSERT_EQ(thr_1, threads.at(index_of_B));
-    ASSERT_EQ(thr_2, threads.at(index_of_A));
+    ASSERT_THAT(thrids, ::testing::ElementsAre(
+        threads.at(index_of_A),
+        threads.at(index_of_B),
+        threads.at(index_of_A)));
 
     ASSERT_EQ(counter, 3);
 }

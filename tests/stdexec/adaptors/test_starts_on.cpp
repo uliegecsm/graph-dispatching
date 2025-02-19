@@ -73,6 +73,14 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
 
     ASSERT_THAT(result_A, ::testing::Each(result_A.at(0)));
     ASSERT_THAT(result_B, ::testing::Each(result_B.at(0)));
+
+    /// Let's check some traits.
+    /// The chain's early domain is the default.
+    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
+
+    //! Using @c starts_on returns an empty environment, and the early domain is still the default domain.
+    static_assert(std::same_as<::stdexec::env_of_t<decltype(moved_to_another_A)>, ::stdexec::__env::env<>>);
+    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(moved_to_another_A)>, ::stdexec::default_domain>);
 }
 
 /**
@@ -107,6 +115,25 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op)
     ::stdexec::sync_wait(::stdexec::starts_on(pools.at(index_of_B).get_scheduler(), std::move(chain)));
 
     ASSERT_THAT(data, ::testing::Each(std::hash<std::thread::id>{}(threads.at(index_of_A))));
+}
+
+//! @test Passing a chain that is still in the default domain is fully started on the scheduler of @c starts_on.
+TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain)
+{
+    std::array<std::thread::id, 3> ids;
+
+    auto chain = ::stdexec::just()
+        | ::stdexec::then([&ids]{ ids[0] = std::this_thread::get_id(); })
+        | ::stdexec::then([&ids]{ ids[1] = std::this_thread::get_id(); });
+
+    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
+
+    auto work = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), std::move(chain))
+        | ::stdexec::then([&ids]{ ids[2] = std::this_thread::get_id(); });
+
+    ::stdexec::sync_wait(std::move(work));
+
+    ASSERT_THAT(ids, ::testing::Each(threads.at(index_of_A)));
 }
 
 template <bool MayThrow>
