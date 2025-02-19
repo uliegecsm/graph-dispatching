@@ -1,3 +1,4 @@
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "tests/IgnoreWarnings.hpp"
@@ -45,21 +46,22 @@ TEST_F(StaticThreadPoolTest, then_early_domain)
 //! @test It supports @c on and @c continues_on.
 TEST_F(StaticThreadPoolTest, transitioning)
 {
-    std::thread::id thr_0, thr_1, thr_2, thr_3;
+    std::array<std::thread::id, 4> thrids;
 
     auto work = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
-        | THEN_STORE_ID(0)
-        | ::stdexec::v2::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(1))
+        | THEN_STORE_ID(thrids[0])
+        | ::stdexec::v2::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(thrids[1]))
         | ::stdexec::continues_on(pools.at(index_of_C).get_scheduler())
-        | THEN_STORE_ID(2)
-        | THEN_STORE_ID(3);
+        | THEN_STORE_ID(thrids[2])
+        | THEN_STORE_ID(thrids[3]);
 
     ::stdexec::sync_wait(std::move(work));
 
-    ASSERT_EQ(thr_0, threads.at(index_of_A));
-    ASSERT_EQ(thr_1, threads.at(index_of_B));
-    ASSERT_EQ(thr_2, threads.at(index_of_C));
-    ASSERT_EQ(thr_3, threads.at(index_of_C));
+    ASSERT_THAT(thrids, ::testing::ElementsAre(
+        threads.at(index_of_A),
+        threads.at(index_of_B),
+        threads.at(index_of_C),
+        threads.at(index_of_C)));
 }
 
 } // namespace tests::exec
