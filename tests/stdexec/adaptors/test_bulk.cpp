@@ -42,6 +42,28 @@ TEST_F(BulkTest, bulk_with_functor)
     ::stdexec::sync_wait(std::move(chain));
 
     ASSERT_THAT(*functor.ids.get(), ::testing::Each(std::hash<std::thread::id>{}(threads.front())));
+
+    //! Let's perform some traits checks on the chain.
+    using chain_t = decltype(chain);
+
+    //! The chain's environment cannot be queried for its domain.
+    static_assert(!::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<chain_t>>);
+
+    //! However, it has a completion scheduler for the value channel.
+    static_assert(::stdexec::__has_completion_scheduler<chain_t, ::stdexec::set_value_t>);
+
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completion_scheduler_for<::stdexec::env_of_t<chain_t>, ::stdexec::set_value_t>,
+        exec::_pool_::static_thread_pool_::scheduler
+    >);
+
+    //! Therefore, it has a **non-default early** completion domain.
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completion_domain_of<chain_t>,
+        exec::_pool_::static_thread_pool_::domain
+    >);
+
+    static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_t>, exec::_pool_::static_thread_pool_::domain>);
 }
 
 } // namespace tests::stdexec::adaptors
