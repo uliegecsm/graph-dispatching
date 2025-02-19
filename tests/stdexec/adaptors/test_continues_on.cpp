@@ -3,7 +3,6 @@
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-#include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -24,6 +23,13 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::stdexec::adaptors
 {
 
+class ContinuesOnTest : public utils::StaticThreadPool<'A', 'B'>, public ::testing::Test
+{
+public:
+    static constexpr size_t index_of_A = index_of<'A'>();
+    static constexpr size_t index_of_B = index_of<'B'>();
+};
+
 /**
  * @test Simple test for @c stdexec::continues_on.
  *
@@ -32,56 +38,47 @@ namespace tests::stdexec::adaptors
  *
  * Inspired by https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/test/execpools/test_taskflow_thread_pool.cpp#L122.
  */
-TEST(stdexec, continues_on)
+TEST_F(ContinuesOnTest, continues_on)
 {
-    exec::static_thread_pool pool_A{1}, pool_B{1};
-
-    ::stdexec::scheduler auto scheduler_A = pool_A.get_scheduler();
-    ::stdexec::scheduler auto scheduler_B = pool_B.get_scheduler();
-
-    std::thread::id thr_A, thr_B;
+    std::thread::id thr_0, thr_1, thr_2;
     size_t counter = 0;
 
-    auto chain = ::stdexec::schedule(scheduler_A)
-        | ::stdexec::then([&]() -> void { thr_A = std::this_thread::get_id(); ++counter; })
-        | ::stdexec::continues_on(scheduler_B)
-        | ::stdexec::then([&]() -> void { thr_B = std::this_thread::get_id(); ++counter; });
+    auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
+        | THEN_STORE_ID(0, {++counter;})
+        | ::stdexec::continues_on(pools.at(index_of_B).get_scheduler())
+        | THEN_STORE_ID(1, {++counter;})
+        | THEN_STORE_ID(2, {++counter;});
 
     ::stdexec::sync_wait(std::move(chain));
 
-    ASSERT_NE(thr_A, thr_B);
-    ASSERT_EQ(counter, 2);
+    ASSERT_EQ(thr_0, threads.at(index_of_A));
+    ASSERT_EQ(thr_1, threads.at(index_of_B));
+    ASSERT_EQ(thr_2, threads.at(index_of_B));
+    ASSERT_EQ(counter, 3);
 }
 
 //! @test This test checks that using @c continues_on persists the scheduler.
-TEST(stdexec, continues_on_persists_scheduler)
+TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 {
-    exec::static_thread_pool pool_a{1}, pool_b{1};
-
-    auto sch_a = pool_a.get_scheduler();
-    auto sch_b = pool_b.get_scheduler();
+    auto sch_a = pools.at(index_of_A).get_scheduler();
+    auto sch_b = pools.at(index_of_B).get_scheduler();
 
     //! The schedulers are not equal.
     ASSERT_NE(sch_a, sch_b);
 
-    const std::thread::id thr_a = std::get<0>(::stdexec::sync_wait(::stdexec::schedule(sch_a) | ::stdexec::then([]{ return std::this_thread::get_id(); })).value());
-    const std::thread::id thr_b = std::get<0>(::stdexec::sync_wait(::stdexec::schedule(sch_b) | ::stdexec::then([]{ return std::this_thread::get_id(); })).value());
-
     //! Each scheduler has a unique thread.
-    ASSERT_NE(thr_a, thr_b);
-
-    #define THEN_GET_THR(__var__) ::stdexec::then([&__var__]{ __var__ = std::this_thread::get_id(); })
+    ASSERT_NE(threads.at(index_of_A), threads.at(index_of_B));
 
     //! First then, completion on scheduler 'a'.
     std::thread::id thr_1_on_a;
-    auto then_1_on_a = ::stdexec::schedule(sch_a) | THEN_GET_THR(thr_1_on_a);
+    auto then_1_on_a = ::stdexec::schedule(sch_a) | THEN_STORE_ID(1_on_a);
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_a)));
 
     static_assert(has_completion_signatures<decltype(then_1_on_a), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
 
     //! Next then, still on scheduler 'a'.
     std::thread::id thr_2_on_a;
-    auto then_2_on_a = std::move(then_1_on_a) | THEN_GET_THR(thr_2_on_a);
+    auto then_2_on_a = std::move(then_1_on_a) | THEN_STORE_ID(2_on_a);
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_a)));
 
     static_assert(has_completion_signatures<decltype(then_2_on_a), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
@@ -95,14 +92,14 @@ TEST(stdexec, continues_on_persists_scheduler)
 
     //! First then on scheduler 'b'.
     std::thread::id thr_1_on_b;
-    auto then_1_on_b = std::move(continues_on) | THEN_GET_THR(thr_1_on_b);
+    auto then_1_on_b = std::move(continues_on) | THEN_STORE_ID(1_on_b);
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_b)));
 
     static_assert(has_completion_signatures<decltype(then_1_on_b), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
 
     //! The second then is still on scheduler 'b'.
     std::thread::id thr_2_on_b;
-    auto then_2_on_b = std::move(then_1_on_b) | THEN_GET_THR(thr_2_on_b);
+    auto then_2_on_b = std::move(then_1_on_b) | THEN_STORE_ID(2_on_b);
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_b)));
 
     static_assert(has_completion_signatures<decltype(then_2_on_b), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
@@ -110,8 +107,8 @@ TEST(stdexec, continues_on_persists_scheduler)
     ::stdexec::sync_wait(std::move(then_2_on_b));
 
     //! Check which thread got the work.
-    ASSERT_EQ(thr_a, thr_1_on_a); ASSERT_EQ(thr_b, thr_1_on_b);
-    ASSERT_EQ(thr_a, thr_2_on_a); ASSERT_EQ(thr_b, thr_2_on_b);
+    ASSERT_EQ(threads.at(index_of_A), thr_1_on_a); ASSERT_EQ(threads.at(index_of_B), thr_1_on_b);
+    ASSERT_EQ(threads.at(index_of_A), thr_2_on_a); ASSERT_EQ(threads.at(index_of_B), thr_2_on_b);
 }
 
 } // namespace tests::stdexec::adaptors
