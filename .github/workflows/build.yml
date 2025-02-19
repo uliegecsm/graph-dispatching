@@ -47,6 +47,8 @@ jobs:
               with:
                   set-safe-directory: true
 
+            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
             - id: changed-files
               uses: tj-actions/changed-files@v45
               with:
@@ -141,6 +143,8 @@ jobs:
               with:
                    set-safe-directory: true
 
+            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
             - id: changed-files
               uses: tj-actions/changed-files@v45
               with:
@@ -203,6 +207,8 @@ jobs:
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
             - uses: actions/checkout@v4
+
+            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
             - name: Show ccache statistics.
               run : |
