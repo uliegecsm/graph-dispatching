@@ -41,11 +41,11 @@ jobs:
             packages: write
             pull-requests: read
         steps:
+            # This should only sparsely checkout 'docker/dockerfile.docker', but we're hitting
+            # the issue https://github.com/actions/checkout/issues/1992.
             - uses: actions/checkout@v4
               with:
                   set-safe-directory: true
-                  sparse-checkout: docker/dockerfile.builder
-                  sparse-checkout-cone-mode: false
 
             - id: changed-files
               uses: tj-actions/changed-files@v45
