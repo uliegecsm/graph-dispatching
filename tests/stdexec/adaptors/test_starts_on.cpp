@@ -151,7 +151,7 @@ public:
         auto chain = ::stdexec::just() | ::stdexec::then(ThenFunctorMayThrow<MayThrow>{});
 
         //! The chain cannot be queried for its completion scheduler on the value channel.
-        static_assert(!::tests::stdexec::has_completion_scheduler<decltype(chain), ::stdexec::set_value_t>);
+        static_assert(!::stdexec::__has_completion_scheduler<decltype(chain), ::stdexec::set_value_t>);
 
         return chain;
     }
@@ -162,7 +162,7 @@ public:
         auto starts_on = ::stdexec::starts_on(pools.front().get_scheduler(), std::move(chain));
 
         //! The chain cannot be queried for its completion scheduler on the value channel.
-        static_assert(!::tests::stdexec::has_completion_scheduler<decltype(starts_on), ::stdexec::set_value_t>);
+        static_assert(!::stdexec::__has_completion_scheduler<decltype(starts_on), ::stdexec::set_value_t>);
 
         return starts_on;
     }
