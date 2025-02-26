@@ -100,7 +100,7 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
     >);
 
     //! It also has a completion scheduler for the value channel.
-    static_assert(has_completion_scheduler<continues_on_t, ::stdexec::set_value_t>);
+    static_assert(::stdexec::__has_completion_scheduler<continues_on_t, ::stdexec::set_value_t>);
 
     static_assert(std::same_as<
         ::stdexec::__detail::__completion_scheduler_for<::stdexec::env_of_t<continues_on_t>, ::stdexec::set_value_t>,
