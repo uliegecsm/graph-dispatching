@@ -5,8 +5,9 @@ PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wsign-compare")
-#include <nvexec/stream_context.cuh>
-#include <stdexec/execution.hpp>
+#include "exec/static_thread_pool.hpp"
+#include "nvexec/stream_context.cuh"
+#include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
@@ -30,8 +31,14 @@ PRAGMA_DIAGNOSTIC_POP
 
 namespace tests::nvexec::adaptors
 {
+class StreamContextTest : public ::testing::Test
+{
+protected:
+    ::nvexec::stream_context stream_ctx{};
+};
+
 //! Load the value at @ref data and check it is equal to @ref prev. Then, add @ref value to it.
-template <typename ValueType>
+template <typename ValueType, bool OnDevice>
 struct LoadCheckAddFunctor
 {
     ValueType prev;
@@ -41,7 +48,9 @@ struct LoadCheckAddFunctor
     KOKKOS_FUNCTION
     void operator()() const
     {
-        KOKKOS_IF_ON_HOST(Kokkos::abort("Bulk: This should not happen.");)
+        if constexpr (OnDevice) { KOKKOS_IF_ON_HOST  (Kokkos::abort("Bulk: you should not be running on host.");) }
+        else                    { KOKKOS_IF_ON_DEVICE(Kokkos::abort("Bulk: you should not be running on device.");) }
+
         if(*data != prev) Kokkos::abort("Unexpected value.");
         *data += value;
     }
@@ -53,22 +62,20 @@ struct LoadCheckAddFunctor
  * @note Because of https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L28,
  *       we cannot pass a @c Kokkos::View to functors because it would make them non-trivially copyable.
  */
-TEST(nvexec, stream_context_workload_dependencies)
+TEST_F(StreamContextTest, workload_dependencies)
 {
     using value_t = unsigned int;
     using  view_t = Kokkos::View<value_t, Kokkos::SharedSpace>;
 
-    ::nvexec::stream_context stream_ctx{};
-
-    view_t witness(Kokkos::view_alloc("witness"));
+    const view_t witness(Kokkos::view_alloc("witness"));
 
     auto chain = stdexec::schedule(stream_ctx.get_scheduler())
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev =  0, .value = 4, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev =  4, .value = 2, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev =  6, .value = 6, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev = 12, .value = 9, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev = 21, .value = 8, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t>{.prev = 29, .value = 1, .data = witness.data()});
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  6, .value = 6, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 12, .value = 9, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 21, .value = 8, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 29, .value = 1, .data = witness.data()});
 
     ::stdexec::sync_wait(std::move(chain));
 
@@ -110,9 +117,8 @@ struct ThenFunctor
  *
  * @note Heavily inspired by https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/examples/nvexec/split.cpp.
  */
-TEST(nvexec, stream_context_split)
+TEST_F(StreamContextTest, split)
 {
-    ::nvexec::stream_context stream_ctx{};
     ::stdexec::scheduler auto sch = stream_ctx.get_scheduler();
 
     constexpr size_t size = 4;
@@ -139,6 +145,29 @@ TEST(nvexec, stream_context_split)
              | stdexec::then(ThenFunctor{.id = 1});
 
     stdexec::sync_wait(std::move(snd));
+}
+
+//! @test Check that @c nvexec::stream_context correctly synchronizes the kernels before switching to @c exec::static_thread_pool.
+TEST_F(StreamContextTest, move_to_static_thread_pool)
+{
+    using value_t = unsigned int;
+    using  view_t = Kokkos::View<value_t, Kokkos::SharedSpace>;
+
+    const view_t witness(Kokkos::view_alloc("witness"));
+
+    exec::static_thread_pool pool {1};
+
+    auto chain = stdexec::schedule(stream_ctx.get_scheduler())
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
+        | stdexec::continues_on(pool.get_scheduler())
+        | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev =  6, .value = 6, .data = witness.data()})
+        | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
+
+
+    ::stdexec::sync_wait(std::move(chain));
+
+    ASSERT_EQ(witness(), 21);
 }
 
 } // namespace tests::nvexec::adaptors
