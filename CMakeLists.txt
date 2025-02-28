@@ -22,6 +22,11 @@ option(ENABLE_DOXYGEN "Enable building Doxygen documentation" OFF)
 #---- Enable multi-GPU support (tests, ...).
 option(ENABLE_MULTIGPU "Enable multi-GPU support" OFF)
 
+# HPX 1.10.0 still tries to find Boost with a module-based approach.
+# Since CMake 3.30, it's no longer available by default.
+# See also https://cmake.org/cmake/help/latest/policy/CMP0167.html.
+set(CMAKE_POLICY_DEFAULT_CMP0167 OLD)
+
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 
