@@ -4,13 +4,13 @@
     },
     "dependencies" : {
         "cmake" : {
-            "value" : "3.29.4"
+            "value" : "3.31.5"
         },
         "doxygen" : {
-            "value" : "1.12.0"
+            "value" : "1.13.2"
         },
         "googletest" : {
-            "value" : "1.15.2"
+            "value" : "1.16.0"
         },
         "hpx" : {
             "value" : "1.10.0"
@@ -18,12 +18,12 @@
         "kokkos" : {
             "value"  : "4.4.99",
             "branch" : "develop",
-            "sha"    : "1d8e45be635678aef23b30bcad01f341c4f4f631",
+            "sha"    : "79b3104cd563cdb357e702a8d838ac5225187f23",
             "comment": "We want to build against the Kokkos develop branch. Providing a SHA is a convenient way to force image rebuild."
         },
         "nvidia" : {
             "stdexec" : {
-                "value" : "b888185d667f68b9a8bda5d0c81d03edf9ec3fe1"
+                "value" : "e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf"
             }
         }
     }
