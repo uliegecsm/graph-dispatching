@@ -3,14 +3,4 @@ FROM ghcr.io/uliegecsm/graph-dispatching/graph-dispatching:clang-HPX
 # Install gpg and gnupg2 allows the container to use GPG keys to sign commits.
 # See also:
 #   - https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials
-RUN <<EOF
-
-    set -ex
-
-    apt update
-
-    apt --yes --no-install-recommends install gpg gnupg2
-
-    apt clean && rm -rf /var/lib/apt/lists/*
-
-EOF
+RUN apt-helpers install-packages --update --clean --packages gpg gnupg2

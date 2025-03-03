@@ -1,16 +1,28 @@
 ARG BASE_IMAGE
 
+# Install Python3 (with the trickery for virtual environment).
 FROM ${BASE_IMAGE} AS requirements
+
+ARG PYTHON_VERSION=3.12
+ENV VIRTUAL_ENV=/opt/venv-${PYTHON_VERSION}
+ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
+
+RUN <<EOF
+    set -ex
+    apt update
+    apt --yes --no-install-recommends install python3 python3-pip python3-venv git
+    python3 -m venv $VIRTUAL_ENV
+    apt clean && rm -rf /var/lib/apt/lists/*
+EOF
 
 ARG COMPILER_FAMILY
 ARG TARGETARCH
 
 # Install APT requirements and compiler.
 RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
-
     set -ex
 
-    apt update
+    python3 -m pip install git+https://github.com/uliegecsm/system-helpers
 
     if [ "${COMPILER_FAMILY}" = "gcc" ];then
         COMPILER_FAMILY_REQUIREMENTS=g++
@@ -23,19 +35,16 @@ RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
         exit -1
     fi
 
-    if [ ! -z "${COMPILER_FAMILY_REQUIREMENTS}" ];then
-        apt --yes --no-install-recommends install ${COMPILER_FAMILY_REQUIREMENTS}
-    fi
-
-    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.txt     | tr "\n" " ")
-    apt --yes --no-install-recommends install $(grep -vE "^\s*#" /requirements/requirements.system.hpx.txt | tr "\n" " ")
-
-    apt clean && rm -rf /var/lib/apt/lists/*
+    apt-helpers install-packages --clean --update           \
+        --packages ${COMPILER_FAMILY_REQUIREMENTS}          \
+        --requirement /requirements/requirements.system.txt \
+        --requirement /requirements/requirements.system.hpx.txt
 EOF
 
 ARG CMAKE_VERSION
 
 RUN <<EOF
+    set -ex
 
     if [ "${TARGETARCH}" = "amd64" ];then
         SUFFIX=x86_64
@@ -64,7 +73,6 @@ FROM requirements AS google-test-compile
 ARG GOOGLETEST_VERSION
 
 RUN <<EOF
-
     set -ex
 
     git clone --depth=1 --branch=v${GOOGLETEST_VERSION} https://github.com/google/googletest googletest
@@ -87,7 +95,6 @@ ARG HPX_SOURCE_DIR=/opt/hpx-${HPX_REF}-sources/
 RUN git clone --depth=1 --branch=${HPX_REF} -- https://github.com/STELLAR-GROUP/hpx.git ${HPX_SOURCE_DIR}
 
 RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.json <<EOF
-
     set -ex
 
     if [ "${TARGETARCH}" = "amd64" ];then
@@ -122,7 +129,6 @@ ARG KOKKOS_VERSION
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
 
 RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json <<EOF
-
     set -ex
 
     cd /kokkos-sources
@@ -160,7 +166,6 @@ ARG KOKKOS_VERSION
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_TOOLS_BRANCH} https://github.com/kokkos/kokkos-tools /kokkos-tools-sources
 
 RUN --mount=target=/cmake/presets/kokkos-tools.json,type=bind,source=cmake/presets/kokkos-tools.json <<EOF
-
     set -ex
 
     cd /kokkos-tools-sources
@@ -185,12 +190,9 @@ FROM requirements AS doxygen-compile
 ARG DOXYGEN_VERSION
 
 RUN <<EOF
-
     set -ex
 
-    apt update
-
-    apt --yes --no-install-recommends install flex bison python3
+    apt-helpers install-packages --clean --update --packages flex bison
 
     git clone --depth=1 --branch Release_$(echo ${DOXYGEN_VERSION} | tr . _) https://github.com/doxygen/doxygen doxygen
 
@@ -201,8 +203,6 @@ RUN <<EOF
     cmake --build build -j4
 
     cmake --build build --target install
-
-    apt clean && rm -rf /var/lib/apt/lists/*
 EOF
 
 # Fetch https://github.com/NVIDIA/stdexec sources.
@@ -211,7 +211,6 @@ FROM requirements AS nvidia-stdexec
 ARG NVIDIA_STDEXEC_REF
 
 RUN <<EOF
-
     set -ex
 
     git clone --branch main --shallow-since=2024-06-01 https://github.com/NVIDIA/stdexec /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
