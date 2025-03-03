@@ -149,9 +149,7 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
     cmake -S . --preset=${KOKKOS_PRESET} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 
-    cmake --build --preset=${KOKKOS_PRESET} -j4
-
-    cmake --build --preset=${KOKKOS_PRESET} --target=install
+    cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
 EOF
 
 # Compile Kokkos Tools.
@@ -179,9 +177,7 @@ RUN --mount=target=/cmake/presets/kokkos-tools.json,type=bind,source=cmake/prese
     cmake -S . --preset=${KOKKOS_PRESET} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-tools/${KOKKOS_PRESET}
 
-    cmake --build --preset=${KOKKOS_PRESET} -j4
-
-    cmake --build --preset=${KOKKOS_PRESET} --target=install
+    cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
 EOF
 
 # Compile Doxygen.
@@ -200,9 +196,7 @@ RUN <<EOF
 
     cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/opt/doxygen-${DOXYGEN_VERSION}
 
-    cmake --build build -j4
-
-    cmake --build build --target install
+    cmake --build build -j4 --target install
 EOF
 
 # Fetch https://github.com/NVIDIA/stdexec sources.
@@ -220,6 +214,28 @@ RUN <<EOF
     git checkout ${NVIDIA_STDEXEC_REF}
 EOF
 
+# Fetch https://github.com/SergiusTheBest/plog sources and install.
+FROM requirements AS sergius-plog
+
+ARG SERGIUS_PLOG_REF
+
+RUN <<EOF
+    set -ex
+
+    git clone --branch master --shallow-since=2024-06-01 https://github.com/SergiusTheBest/plog /opt/sergius/plog-${SERGIUS_PLOG_REF}-sources
+
+    cd /opt/sergius/plog-${SERGIUS_PLOG_REF}-sources
+
+    git checkout ${SERGIUS_PLOG_REF}
+
+    cmake -S . -B build \
+        -DCMAKE_INSTALL_PREFIX=/opt/sergius/plog-${SERGIUS_PLOG_REF} \
+        -DPLOG_BUILD_SAMPLES=OFF \
+        -DPLOG_BUILD_TESTS=OFF
+
+    cmake --build build -j4 --target install
+EOF
+
 # Build the final image from previous stages.
 FROM requirements AS final
 
@@ -229,6 +245,7 @@ ARG HPX_REF
 ARG KOKKOS_VERSION
 ARG KOKKOS_PRESET
 ARG NVIDIA_STDEXEC_REF
+ARG SERGIUS_PLOG_REF
 
 COPY --from=doxygen-compile      /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
 COPY --from=google-test-compile  /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
@@ -236,9 +253,11 @@ COPY --from=hpx-compile          /opt/hpx-${HPX_REF}                            
 COPY --from=kokkos-compile       /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 COPY --from=kokkos-tools-compile /opt/kokkos-tools/${KOKKOS_PRESET}             /opt/kokkos-tools/${KOKKOS_PRESET}
 COPY --from=nvidia-stdexec       /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
+COPY --from=sergius-plog         /opt/sergius/plog-${SERGIUS_PLOG_REF}          /opt/sergius/plog-${SERGIUS_PLOG_REF}
 
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+ENV Plog_ROOT=/opt/sergius/plog-${SERGIUS_PLOG_REF}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
