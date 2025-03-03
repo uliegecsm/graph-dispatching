@@ -25,6 +25,12 @@
             "stdexec" : {
                 "value" : "e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf"
             }
+        },
+        "sergius" : {
+            "plog" : {
+                "value" : "94899e0b926ac1b0f4750bfbd495167b4a6ae9ef",
+                "comment" : "Version of https://github.com/SergiusTheBest/plog."
+            }
         }
     }
 }
