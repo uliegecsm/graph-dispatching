@@ -8,11 +8,15 @@
 #include "Kokkos_Graph.hpp"
 
 #include "kokkos_ext/impl/ChainHandler.hpp"
+#include "kokkos_ext/impl/ContinuesOn.hpp"
 #include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
 #include "kokkos_ext/impl/GraphContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_Then.hpp"
+#include "kokkos_ext/impl/Split.hpp"
+#include "kokkos_ext/impl/SyncWait.hpp"
+#include "kokkos_ext/impl/WhenAll.hpp"
 
 /**
  * @file
@@ -71,9 +75,9 @@ constexpr decltype(auto) create_graph(const Exec& exec) {
     return details::ChainHandler(exec);
 }
 
-//! For @c Kokkos::Graph, @c split is a no-op.
+//! Same as @c std::execution::split.
 constexpr decltype(auto) split() {
-    return std::identity{};
+    return details::SplitPartial{};
 }
 
 //! Pipable @c Kokkos parallel-for, with partially-specified algorithm.
@@ -150,7 +154,29 @@ constexpr decltype(auto) then(Label&& label, Exec&& exec, Functor&& functor)
  */
 template <typename Exec, typename Sender>
 constexpr void submit(const Exec& exec, Sender&& sender) {
-    Kokkos::Impl::GraphAccess::get_graph_weak_ptr(sender).lock()->submit(exec);
+    sender.get_env().graph.submit(exec);
+}
+
+template <typename Graph>
+decltype(auto) ready(Graph&& g) {
+    printf("> Called ready.\n");
+    return graph::details::Ready{}.operator()(std::forward<Graph>(g));
+}
+
+/**
+ * @brief Same purpose as @c std::execution::when_all.
+ *
+ * @note It cannot be placed in @c Kokkos::Experimental namespace.
+ */
+template <typename... Args>
+decltype(auto) when_all(Args&&... args) {
+    return details::WhenAllSender<Args...>{.sndrs = {std::forward<Args>(args)...}};
+}
+
+//! Same purpose as @c std::execution::continues_on.
+template <typename Scheduler> requires scheduler<std::remove_cvref_t<Scheduler>>
+decltype(auto) continues_on(Scheduler&& sch) {
+    return details::ContinuesOnPartial{sch};
 }
 
 } // namespace graph
@@ -188,21 +214,10 @@ constexpr decltype(auto) just(Exec&& exec) {
 template <typename... Args>
 void submit(Args&&...) {}
 
-/**
- * @overload
- *
- * This is needed to support a chain of senders that are not graph-like senders.
- * It is expected that in such a case, the objects passed to this function are
- * execution space instances.
- *
- * To support eager execution, we arbitrarily fence all but the first one.
- */
-template <typename Exec, typename... Args>
-requires (! graph::details::is_graph_sender<std::remove_reference_t<Args>> && ...)
-decltype(auto) when_all(Exec&& exec, Args&&... args)
-{
-    (args.fence() && ...);
-    return std::forward<Exec>(exec);
+//! Same purpose as @c std::execution::sync_wait.
+template <typename Sender> requires sender<std::remove_cvref_t<Sender>>
+decltype(auto) sync_wait(Sender&& sndr) {
+    return graph::details::SyncWait{}.operator()(std::forward<Sender>(sndr));
 }
 
 } // namespace Kokkos::Experimental

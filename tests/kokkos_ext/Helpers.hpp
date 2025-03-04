@@ -20,6 +20,19 @@ struct MyDummyFunctor
     }
 };
 
+template <typename ViewType>
+struct CheckValue
+{
+    ViewType data;
+    typename ViewType::value_type value;
+
+    template <std::integral T>
+    KOKKOS_FUNCTION
+    void operator()(const T index) const {
+        if(data(index) != value) Kokkos::abort("Unexpected value.");
+    }
+};
+
 } // namespace tests::kokkos_ext
 
 #endif // GRAPH_DISPATCHING_TESTS_KOKKOS_EXT_HELPERS_HPP

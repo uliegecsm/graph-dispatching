@@ -33,15 +33,13 @@ TEST(graph, adoption_regular)
 
     const execution_space exec {};
 
-    decltype(auto) root = Kokkos::Experimental::just(exec);
+    auto sch = Kokkos::Experimental::ExecutionSpaceContext{exec}.get_scheduler();
 
-    static_assert(std::same_as<decltype(root), const execution_space&>);
+    auto chain = Kokkos::Experimental::schedule(sch);
 
-    decltype(auto) from_user = user_code(root);
+    decltype(auto) from_user = user_code<execution_space>(std::move(sch), std::move(chain));
 
-    Kokkos::Experimental::submit(exec, std::move(from_user));
-
-    exec.fence();
+    Kokkos::Experimental::sync_wait(std::move(from_user));
 }
 
 } // namespace tests::graph::adoption

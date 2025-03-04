@@ -1,9 +1,10 @@
 #ifndef GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTIONSPACECONTEXT_HPP
 #define GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTIONSPACECONTEXT_HPP
 
-#include <concepts>
-
 #include "Kokkos_Core.hpp"
+
+#include "kokkos_ext/impl/Concepts.hpp"
+#include "kokkos_ext/impl/Utils.hpp"
 
 namespace Kokkos::Experimental
 {
@@ -21,20 +22,59 @@ struct ContextState
  * @brief Scheduler for a @c Kokkos execution space.
  *
  * @warning It is a puppet and does not verify the @c std::execution::scheduler concept.
+ *
+ * References:
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#example-schedulers-inline
  */
 template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
 struct ExecutionSpaceScheduler
 {
     using context_state_t = ContextState<Exec>;
 
-    context_state_t context_state;
+    using Env = context_state_t; //! For now, our environment only contains the context state.
+
+    template <receiver Receiver>
+    struct OperationState
+    {
+        Receiver rcvr;
+
+        void start() { std::move(rcvr).set_value(); }
+    };
+
+    struct Sender
+    {
+        Env env;
+
+        template <typename T>
+        explicit Sender(T&& ctx) : env{std::forward<T>(ctx)} {}
+
+        template <typename Receiver> requires receiver<std::remove_cvref_t<Receiver>>
+        operation_state auto connect(Receiver&& rcvr) {
+            return OperationState<std::remove_cvref_t<Receiver>>{std::forward<Receiver>(rcvr)};
+        }
+
+        auto& get_env() const { return env; };
+
+        scheduler auto get_completion_scheduler() const {
+            return ExecutionSpaceScheduler(env.exec);
+        }
+    };
 
     template <typename T>
-    explicit ExecutionSpaceScheduler(T&& exec) : context_state{std::forward<T>(exec)} {}
+    explicit ExecutionSpaceScheduler(T&& exec) : m_context_state{std::forward<T>(exec)} {}
 
-    /// @todo Return a sender instead of @p exec.
-    /// @todo Constraint the return type to be a sender.
-    auto& schedule() const { return context_state.exec; }
+    sender auto schedule() const { return Sender{m_context_state}; }
+
+    template <typename Policy, typename Functor>
+    void parallel_for(Policy&& policy, Functor&& functor) const
+    {
+        Kokkos::parallel_for(
+            graph::details::update_policy(std::forward<Policy>(policy), m_context_state.exec),
+            std::forward<Functor>(functor)
+        );
+    }
+
+    context_state_t m_context_state;
 };
 
 //! Deduction guide for @ref ExecutionSpaceScheduler.
@@ -55,7 +95,7 @@ struct ExecutionSpaceContext
 {
     Exec exec;
 
-    auto get_scheduler() { return details::execution_space::ExecutionSpaceScheduler{exec}; }
+    scheduler auto get_scheduler() { return details::execution_space::ExecutionSpaceScheduler{exec}; }
 };
 
 } // namespace Kokkos::Experimental
