@@ -259,5 +259,5 @@ ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
-ENV Plog_ROOT=/opt/sergius/plog-${SERGIUS_PLOG_REF}
+ENV plog_ROOT=/opt/sergius/plog-${SERGIUS_PLOG_REF}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
