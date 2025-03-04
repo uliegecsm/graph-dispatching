@@ -138,9 +138,7 @@ struct ThenSender
     template <class Self, class... Env>
     static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; }
 
-    // I cannot constraint it like that, probably because not all signatures are in Rcvr?
-    // template <::stdexec::receiver_of<completion_signatures<ThenSender&&>> Rcvr>
-    template <typename Rcvr>
+    template <::stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
         using recv_t = ThenReceiver<ID, Customization, std::remove_cvref_t<Rcvr>, Functor>;
@@ -179,7 +177,6 @@ struct DomainSpecificScheduler;
 template <char ID>
 struct Domain
 {
-    static constexpr char id = ID;
     template <::stdexec::sender_expr_for<::stdexec::then_t> Sndr>
     auto transform_sender(Sndr&& sndr) const noexcept
     {
@@ -217,7 +214,7 @@ struct DomainSpecificScheduler
     struct Env
     {
         //! The accepted completion tag types must agree with @ref Sender::completion_signatures.
-        template <::stdexec::__one_of<::stdexec::set_value_t, ::stdexec::set_error_t(std::exception_ptr)> CompletionTag>
+        template <::stdexec::__one_of<::stdexec::set_value_t> CompletionTag>
         DomainSpecificScheduler query(::stdexec::get_completion_scheduler_t<CompletionTag>) const noexcept { return {}; }
     };
 
@@ -238,7 +235,7 @@ struct DomainSpecificScheduler
     {
         using sender_concept = ::stdexec::sender_t;
 
-        using completion_signatures = ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>;
+        using completion_signatures = ::stdexec::completion_signatures<::stdexec::set_value_t()>;
 
         template <::stdexec::receiver_of<completion_signatures> R>
         Op<std::remove_cvref_t<R>> connect(R&& rcvr) const noexcept(std::is_nothrow_move_constructible_v<R>) {
