@@ -16,11 +16,6 @@ project(
 #---- Enable clang-tidy. This might bloat the compile time.
 option(ENABLE_CLANG_TIDY OFF)
 
-if(ENABLE_CLANG_TIDY)
-    configure_file(${CMAKE_SOURCE_DIR}/.clang-tidy ${CMAKE_BINARY_DIR}/.clang-tidy @ONLY)
-    set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
-endif()
-
 #---- Enable further debugging by exporting compile commands.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,6 +29,15 @@ option(ENABLE_MULTIGPU "Enable multi-GPU support" OFF)
 # Since CMake 3.30, it's no longer available by default.
 # See also https://cmake.org/cmake/help/latest/policy/CMP0167.html.
 set(CMAKE_POLICY_DEFAULT_CMP0167 OLD)
+
+#---- Setup compiler warnings.
+include(cmake/modules/IgnoreWarnings.cmake)
+
+#---- Setup of clang-tidy if needed.
+if(ENABLE_CLANG_TIDY)
+    configure_file(${CMAKE_SOURCE_DIR}/.clang-tidy ${CMAKE_BINARY_DIR}/.clang-tidy @ONLY)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
+endif()
 
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
