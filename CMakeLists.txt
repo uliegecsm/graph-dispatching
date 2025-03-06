@@ -78,6 +78,9 @@ find_package(
     REQUIRED
 )
 
+#---- Find Plog.
+find_package(plog CONFIG REQUIRED)
+
 #---- Testing.
 enable_testing()
 add_subdirectory(kokkos_ext)
