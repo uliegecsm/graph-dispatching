@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
-
-#include "tests/kokkos_ext/Helpers.hpp"
+#include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
 
 /**
  * @addtogroup unittests
@@ -10,7 +8,7 @@
  * Treat @c Kokkos execution spaces within the P2300 framework
  * -----------------------------------------------------------
  *
- * Check that we can mimic the scheduler-based programming from P2300 by
+ * Check that we can use the scheduler-based programming from P2300 by
  * wrapping @c Kokkos execution spaces. It's mainly done with
  * @ref Kokkos::Experimental::ExecutionSpaceContext.
  *
@@ -22,32 +20,37 @@ using execution_space = Kokkos::DefaultExecutionSpace;
 namespace tests::kokkos_ext
 {
 
-//! @test Check that @ref Kokkos::Experimental::ExecutionSpaceContext does its duty well.
-TEST(ExecutionSpaceContext, then)
+struct ExecutionSpaceContextTest : public ::testing::Test
 {
-    using view_t = Kokkos::View<int[1], Kokkos::SharedSpace>;
+public:
+    using context_t         = Kokkos::Experimental::ExecutionSpaceContext<execution_space>;
+    using scheduler_t       = decltype(std::declval<const context_t>().get_scheduler());
+    using schedule_sender_t = decltype(::stdexec::schedule(std::declval<scheduler_t>()));
 
-    const execution_space exec {};
+public:
+    static void SetUpTestSuite() {
+        exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+    }
 
-    view_t data(Kokkos::view_alloc("data", exec));
+    static void TearDownTestSuite() { exec.reset(); }
 
-    Kokkos::Experimental::ExecutionSpaceContext esc{exec};
+protected:
+    static inline std::optional<execution_space> exec = std::nullopt;
+};
 
-    auto chain = Kokkos::Experimental::schedule(esc.get_scheduler())
-        | Kokkos::Experimental::graph::parallel_for(
-            Kokkos::RangePolicy(0, 1),
-            MyDummyFunctor{.data = data}
-        )
-        | Kokkos::Experimental::graph::parallel_for(
-            Kokkos::RangePolicy(0, 1),
-            MyDummyFunctor{.data = data}
-        );
+/// @test Check that @ref Kokkos::Experimental::ExecutionSpaceContext
+///       satisfies the @c stdexec::scheduler concept.
+///       Check that it has a valid schedule sender.
+TEST_F(ExecutionSpaceContextTest, is_a_scheduler)
+{
+    static_assert(::stdexec::sender   <schedule_sender_t>);
+    static_assert(::stdexec::scheduler<scheduler_t>);
 
-    Kokkos::Experimental::submit(exec, std::move(chain));
+    const context_t context{*exec};
 
-    exec.fence();
+    const stdexec::scheduler auto sch = context.get_scheduler();
 
-    ASSERT_EQ(data(0), 2);
+    stdexec::sender auto sndr = stdexec::schedule(sch);
 }
 
 } // namespace tests::kokkos_ext
