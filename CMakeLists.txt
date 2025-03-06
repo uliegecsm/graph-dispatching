@@ -13,6 +13,14 @@ project(
     LANGUAGES CXX
 )
 
+#---- Enable clang-tidy. This might bloat the compile time.
+option(ENABLE_CLANG_TIDY OFF)
+
+if(ENABLE_CLANG_TIDY)
+    configure_file(${CMAKE_SOURCE_DIR}/.clang-tidy ${CMAKE_BINARY_DIR}/.clang-tidy @ONLY)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
+endif()
+
 #---- Enable further debugging by exporting compile commands.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
