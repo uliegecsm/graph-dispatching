@@ -35,7 +35,7 @@ TEST(graph, then_outlook)
     const auto execs = Kokkos::Experimental::partition_space(execution_space{}, 1, 1, 1);
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc(execs.at(0), "data"));
+    const view_t data(Kokkos::view_alloc(execs.at(0), "data"));
 
     //! Define the graph. Use a simple syntax.
     auto root = Kokkos::Experimental::graph::create_graph(execs.at(0));

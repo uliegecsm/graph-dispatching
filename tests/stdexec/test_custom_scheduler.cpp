@@ -94,7 +94,7 @@ TEST(stdexec, my_scheduler_then)
 
     auto chain = ::stdexec::schedule(MyScheduler{}) | ::stdexec::then([&counter](){ ++counter; });
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(counter, 1);
 }

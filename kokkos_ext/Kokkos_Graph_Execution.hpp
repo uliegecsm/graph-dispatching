@@ -28,6 +28,8 @@
 //! Default label if none provided.
 #define DEFAULT_LABEL_IF_NONE_PROVIDED std::string("no label provided")
 
+// NOLINTBEGIN
+
 namespace Kokkos::Experimental
 {
 
@@ -205,5 +207,7 @@ decltype(auto) when_all(Exec&& exec, Args&&... args)
 }
 
 } // namespace Kokkos::Experimental
+
+// NOLINTEND
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_KOKKOS_GRAPH_EXECUTION_HPP

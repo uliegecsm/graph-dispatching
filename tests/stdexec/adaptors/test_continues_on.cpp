@@ -7,8 +7,8 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
-#include "tests/stdexec/Utils.hpp"
 #include "tests/Utils.hpp"
+#include "tests/stdexec/Utils.hpp"
 
 /**
  * @addtogroup unittests
@@ -50,7 +50,7 @@ TEST_F(ContinuesOnTest, continues_on)
         | THEN_STORE_ID(thrids[1], {++counter;})
         | THEN_STORE_ID(thrids[2], {++counter;});
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     ASSERT_THAT(thrids, ::testing::ElementsAre(
         threads.at(index_of_A),
@@ -80,13 +80,13 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     //! Next then, still on scheduler 'a'.
     std::thread::id thr_2_on_a;
-    auto then_2_on_a = std::move(then_1_on_a) | THEN_STORE_ID(thr_2_on_a);
+    auto then_2_on_a = std::move(then_1_on_a) | THEN_STORE_ID(thr_2_on_a); // NOLINT(performance-move-const-arg)
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_a)));
 
     static_assert(has_completion_signatures<decltype(then_2_on_a), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
 
     /// Now, we move on scheduler 'b'.
-    auto continues_on = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b);
+    auto continues_on = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b); // NOLINT(performance-move-const-arg)
 
     //! Let's perform some traits checks on the chain from the @c continues_on.
     using continues_on_t = decltype(continues_on);
@@ -117,7 +117,7 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     //! First then on scheduler 'b'.
     std::thread::id thr_1_on_b;
-    auto then_1_on_b = std::move(continues_on) | THEN_STORE_ID(thr_1_on_b);
+    auto then_1_on_b = std::move(continues_on) | THEN_STORE_ID(thr_1_on_b); // NOLINT(performance-move-const-arg)
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_b)));
 
     using then_1_on_b_t = decltype(then_1_on_b);
@@ -130,7 +130,7 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     //! The second then is still on scheduler 'b'.
     std::thread::id thr_2_on_b;
-    auto then_2_on_b = std::move(then_1_on_b) | THEN_STORE_ID(thr_2_on_b);
+    auto then_2_on_b = std::move(then_1_on_b) | THEN_STORE_ID(thr_2_on_b); // NOLINT(performance-move-const-arg)
     ASSERT_EQ(sch_b, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_b)));
 
     using then_2_on_b_t = decltype(then_2_on_b);
@@ -141,7 +141,7 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
     static_assert(::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<then_2_on_b_t>>);
     static_assert(std::same_as<::stdexec::__early_domain_of_t<then_2_on_b_t>, exec::_pool_::static_thread_pool_::domain>);
 
-    ::stdexec::sync_wait(std::move(then_2_on_b));
+    ::stdexec::sync_wait(std::move(then_2_on_b)); // NOLINT(performance-move-const-arg)
 
     //! Check which thread got the work.
     ASSERT_EQ(threads.at(index_of_A), thr_1_on_a); ASSERT_EQ(threads.at(index_of_B), thr_1_on_b);

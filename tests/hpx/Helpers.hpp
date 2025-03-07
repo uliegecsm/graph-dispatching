@@ -26,14 +26,14 @@ struct HPX
         ::hpx::start(nullptr, 0, nullptr, init_args);
     }
 
-    void init_resource_partitioner_handler(::hpx::resource::partitioner& rp)
+    void init_resource_partitioner_handler(::hpx::resource::partitioner& hrp)
     {
-        rp.create_thread_pool(
+        hrp.create_thread_pool(
             single_thread_pool_name,
             ::hpx::resource::scheduling_policy::unspecified,
             ::hpx::threads::policies::scheduler_mode::enable_stealing
         );
-        rp.add_resource(::hpx::resource::pu(0), single_thread_pool_name);
+        hrp.add_resource(::hpx::resource::pu(0), single_thread_pool_name);
     }
 
     ~HPX()

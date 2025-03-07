@@ -30,15 +30,6 @@ option(ENABLE_MULTIGPU "Enable multi-GPU support" OFF)
 # See also https://cmake.org/cmake/help/latest/policy/CMP0167.html.
 set(CMAKE_POLICY_DEFAULT_CMP0167 OLD)
 
-#---- Setup compiler warnings.
-include(cmake/modules/IgnoreWarnings.cmake)
-
-#---- Setup of clang-tidy if needed.
-if(ENABLE_CLANG_TIDY)
-    configure_file(${CMAKE_SOURCE_DIR}/.clang-tidy ${CMAKE_BINARY_DIR}/.clang-tidy @ONLY)
-    set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
-endif()
-
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION  GET "${VERSION_JSON}" dependencies kokkos value)
 
@@ -51,12 +42,22 @@ find_package(
 
 kokkos_check(DEVICES "${EXPECTED_Kokkos_DEVICES}")
 
+#---- Setup compiler warnings.
+include(cmake/modules/IgnoreWarnings.cmake)
+
+#---- Setup of clang-tidy if needed.
+if(ENABLE_CLANG_TIDY)
+    configure_file(${CMAKE_SOURCE_DIR}/.clang-tidy ${CMAKE_BINARY_DIR}/.clang-tidy @ONLY)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
+endif()
+
 # As 'stdexec' is an include-only library, we will not use a 'FetchContent' approach because the root 'CMakeLists.txt'
 # of 'stdexec' does a ton of things we just don't want at all.
 add_library(stdexec INTERFACE)
 
 target_include_directories(
     stdexec
+    SYSTEM
     INTERFACE
         $ENV{Stdexec_ROOT}/include
 )

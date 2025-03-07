@@ -37,13 +37,15 @@ decltype(auto) library(Sender&& input, ViewType data)
 {
     auto continued = std::forward<Sender>(input) | ::stdexec::split();
 
+    const auto half = data.size() / 2;
+
     ::stdexec::sender auto one = continued | ::stdexec::bulk(
-        data.size() / 2,
+        half,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
 
     ::stdexec::sender auto two = continued | ::stdexec::bulk(
-        data.size() / 2,
-        diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C, .offset = data.size() / 2});
+        half,
+        diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C, .offset = half});
 
     return ::stdexec::when_all(std::move(one), std::move(two));
 }
@@ -65,7 +67,7 @@ TEST(graph, intertwine_stdexec)
     ::exec::static_thread_pool pool{1};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc("data"));
+    const view_t data(Kokkos::view_alloc("data"));
 
     //! Define the graph. Use a simple syntax.
     ::stdexec::sender auto entry = ::stdexec::just();

@@ -10,8 +10,8 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
-#include "tests/stdexec/Utils.hpp"
 #include "tests/Utils.hpp"
+#include "tests/stdexec/Utils.hpp"
 
 /**
  * @addtogroup unittests
@@ -112,7 +112,7 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op)
                 data[index] = ::utils::get_thread_id();
     });
 
-    ::stdexec::sync_wait(::stdexec::starts_on(pools.at(index_of_B).get_scheduler(), std::move(chain)));
+    ::stdexec::sync_wait(::stdexec::starts_on(pools.at(index_of_B).get_scheduler(), std::move(chain))); // NOLINT(performance-move-const-arg)
 
     ASSERT_THAT(data, ::testing::Each(std::hash<std::thread::id>{}(threads.at(index_of_A))));
 }
@@ -128,10 +128,10 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain)
 
     static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
 
-    auto work = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), std::move(chain))
+    auto work = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), std::move(chain)) // NOLINT(performance-move-const-arg)
         | ::stdexec::then([&ids]{ ids[2] = std::this_thread::get_id(); });
 
-    ::stdexec::sync_wait(std::move(work));
+    ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     ASSERT_THAT(ids, ::testing::Each(threads.at(index_of_A)));
 }
@@ -159,7 +159,7 @@ public:
     template <::stdexec::sender Chain>
     ::stdexec::sender auto get_starts_on(Chain&& chain)
     {
-        auto starts_on = ::stdexec::starts_on(pools.front().get_scheduler(), std::move(chain));
+        auto starts_on = ::stdexec::starts_on(pools.front().get_scheduler(), std::forward<Chain>(chain));
 
         //! The chain cannot be queried for its completion scheduler on the value channel.
         static_assert(!::stdexec::__has_completion_scheduler<decltype(starts_on), ::stdexec::set_value_t>);
@@ -178,11 +178,11 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
 
     static_assert(has_completion_signatures<decltype(chain), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
 
-    auto starts_on = this->get_starts_on(std::move(chain));
+    auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     static_assert(has_completion_signatures<decltype(starts_on), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
 
-    ::stdexec::sync_wait(std::move(starts_on));
+    ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
 }
 
 /**
@@ -195,11 +195,11 @@ TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
 
     static_assert(has_completion_signatures<decltype(chain), ::stdexec::set_value_t()>);
 
-    auto starts_on = this->get_starts_on(std::move(chain));
+    auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     static_assert(has_completion_signatures<decltype(starts_on), ::stdexec::set_stopped_t(),::stdexec::set_value_t()>);
 
-    ::stdexec::sync_wait(std::move(starts_on));
+    ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
 }
 
 } // namespace tests::stdexec::adaptors

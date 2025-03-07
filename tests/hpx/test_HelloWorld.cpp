@@ -31,7 +31,7 @@ TEST_F(HPXTest, hello_world)
     pool.print_pool(std::cout);
 
     //! Get a scheduler for that thread pool with asynchronous execution.
-    execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
+    const execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
 
     //! Say hello to the world from within a chain of senders.
     std::atomic<std::size_t> count{0};
@@ -41,7 +41,7 @@ TEST_F(HPXTest, hello_world)
         ++count;
     });
 
-    ::hpx::this_thread::experimental::sync_wait(std::move(work));
+    ::hpx::this_thread::experimental::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(count, 1);
 }

@@ -1,7 +1,7 @@
 #ifndef GRAPH_DISPATCHING_TESTS_GRAPH_RUNTIME_HELPERS_HPP
 #define GRAPH_DISPATCHING_TESTS_GRAPH_RUNTIME_HELPERS_HPP
 
-#define DEFINE_TEST_SUITE class graph : public ::testing::TestWithParam<std::array<bool, 2>> {};
+#define DEFINE_TEST_SUITE class GraphTest : public ::testing::TestWithParam<std::array<bool, 2>> {};
 
 /// Randomizer to disable some nodes.
 /// Note that as of @c nvcc 12.6, at least one of the B or C node must be
@@ -10,7 +10,7 @@
 #define INSTANTIATE_TEST_SUITE                 \
     INSTANTIATE_TEST_SUITE_P(                  \
         Randomize,                             \
-        graph,                                 \
+        GraphTest,                             \
         ::testing::Values(                     \
             std::array<bool, 2>{true , false}, \
             std::array<bool, 2>{false, true},  \

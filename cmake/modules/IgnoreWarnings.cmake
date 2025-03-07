@@ -16,9 +16,12 @@ if(
         -Werror=suggest-override
         -Werror=overloaded-virtual
         -Werror
-        # Prevent cross execution space call on CUDA. More generally treat any warning as an error.
-        "$<$<IN_LIST:CUDA,${Kokkos_DEVICES}>:--Werror=cross-execution-space-call,all-warnings>"
     )
+
+    if(Kokkos_CXX_COMPILER_ID STREQUAL NVIDIA)
+        # Prevent cross execution space call on CUDA. More generally treat any warning as an error.
+        add_compile_options(--Werror=cross-execution-space-call,all-warnings)
+    endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         # For Clang, diagnostic flags are listed at https://clang.llvm.org/docs/DiagnosticsReference.html.

@@ -39,7 +39,9 @@ TEST(graph, adoption_regular)
 
     decltype(auto) from_user = user_code(root);
 
-    Kokkos::Experimental::submit(exec, std::move(from_user));
+    static_assert(std::same_as<decltype(from_user), const execution_space&>);
+
+    Kokkos::Experimental::submit(exec, from_user);
 
     exec.fence();
 }

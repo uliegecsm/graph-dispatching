@@ -41,7 +41,7 @@ struct GraphContext
     graph::details::ChainHandler<Exec> chain;
 
     template <typename... Args> requires (std::same_as<std::remove_cvref_t<Args>, Exec> && ...)
-    GraphContext(Args&&... args) : pool{.execs = {std::forward<Args>(args)...}}, chain(pool.execs.at(0)) {}
+    explicit GraphContext(Args&&... args) : pool{.execs = {std::forward<Args>(args)...}}, chain(pool.execs.at(0)) {}
 
     // return the scheduler from the right device
     auto get_scheduler(const unsigned short int devID = 0) { return graph::details::GraphScheduler{.chain = chain, .exec = pool.execs.at(devID)}; }

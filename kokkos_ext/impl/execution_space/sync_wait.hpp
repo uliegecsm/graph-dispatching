@@ -50,6 +50,6 @@ struct SyncWait
     }
 };
 
-} // Kokkos::Experimental::details::execution_space
+} // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_SYNC_WAIT_HPP

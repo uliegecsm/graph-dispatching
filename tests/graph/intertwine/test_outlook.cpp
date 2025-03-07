@@ -38,8 +38,9 @@ decltype(auto) library(Sender&& input, ViewType data)
         policy_t(0, data.size() / 2),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
 
+    policy_t policy(data.size() / 2, data.size());
     auto two = input | Kokkos::Experimental::graph::parallel_for(
-        policy_t(data.size() / 2, data.size()),
+        std::move(policy),
         diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C});
 
     return Kokkos::Experimental::when_all(std::move(one), std::move(two));
@@ -62,7 +63,7 @@ TEST(graph, intertwine_outlook)
     const execution_space exec {};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc(exec, "data"));
+    const view_t data(Kokkos::view_alloc(exec, "data"));
 
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;

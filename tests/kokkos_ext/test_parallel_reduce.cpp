@@ -56,7 +56,7 @@ public:
     {
         this->execs = Kokkos::Experimental::partition_space(execution_space {}, 1, 1);
 
-        typename view_t::non_const_type tmp(Kokkos::view_alloc("data", Kokkos::WithoutInitializing, execs.at(0)));
+        typename view_t::non_const_type tmp(Kokkos::view_alloc("data", Kokkos::WithoutInitializing, execs.at(0))); // NOLINT(misc-const-correctness)
         KokkosExt::fill_sequence(execs.at(0), tmp, 0);
         this->data = std::move(tmp);
         execs.at(0).fence("Ensure that the setup is finished before running the test.");
@@ -119,7 +119,7 @@ TYPED_TEST(ParallelReduceTest, graph)
     decltype(auto) root = Kokkos::Experimental::graph::create_graph(this->execs.at(0));
 
     typename TestFixture::result_t reduced_sum = 0;
-    Kokkos::View<typename TestFixture::result_t, memory_space> reduction_result(Kokkos::view_alloc("reduction result on device", this->execs.at(0)));
+    const Kokkos::View<typename TestFixture::result_t, memory_space> reduction_result(Kokkos::view_alloc("reduction result on device", this->execs.at(0)));
     CALL_FUNCTION(root, memory_space, reduction_result)
 
     static_assert(Kokkos::Impl::is_specialization_of<decltype(tail), Kokkos::Experimental::GraphNodeRef>::value);
@@ -157,10 +157,10 @@ TEST(ParallelReduce, submit_twice)
 
     const execution_space exec {};
 
-    view_t data(Kokkos::view_alloc(Kokkos::WithoutInitializing, "data", exec));
+    const view_t data(Kokkos::view_alloc(Kokkos::WithoutInitializing, "data", exec));
     KokkosExt::fill_sequence(exec, data, 0);
 
-    Kokkos::View<value_t, memory_space> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", exec));
+    const Kokkos::View<value_t, memory_space> result(Kokkos::view_alloc(Kokkos::WithoutInitializing, "result", exec));
 
     decltype(auto) root = Kokkos::Experimental::graph::create_graph(exec);
 

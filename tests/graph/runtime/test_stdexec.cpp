@@ -4,8 +4,8 @@
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-#include "exec/static_thread_pool.hpp"
 #include "exec/any_sender_of.hpp"
+#include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -51,7 +51,7 @@ using any_sender_of =
  *  - We must move them.
  *  - There is no "dynamic" @c when_all, so we need to create fake empty nodes (sse below).
  */
-TEST_P(graph, runtime_stdexec)
+TEST_P(GraphTest, runtime_stdexec)
 {
     //! Use @c Kokkos::Serial because we have no mean to synchronize in this setup.
     using execution_space = Kokkos::Serial;
@@ -70,7 +70,7 @@ TEST_P(graph, runtime_stdexec)
     ::exec::static_thread_pool pool{1};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc("data"));
+    const view_t data(Kokkos::view_alloc("data"));
 
     //! Indices wherein each functor places its value.
     constexpr size_t index_A = 0, index_B = 1, index_C = 2, index_D = 3;

@@ -54,6 +54,6 @@ bool check_data(const Exec& exec, const ViewType& data)
     return result;
 }
 
-} // tests::graph::diamond
+} // namespace tests::graph::diamond
 
 #endif // GRAPH_DISPATCHING_TESTS_GRAPH_DIAMOND_HELPERS_HPP

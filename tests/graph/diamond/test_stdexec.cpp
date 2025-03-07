@@ -43,7 +43,7 @@ TEST(graph, diamond_stdexec)
     ::exec::static_thread_pool pool{1};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc("data"));
+    const view_t data(Kokkos::view_alloc("data"));
 
     //! Define the graph. Use a simple syntax.
     ::stdexec::sender auto entry = ::stdexec::just();
