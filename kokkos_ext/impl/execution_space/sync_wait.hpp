@@ -15,11 +15,18 @@ struct SyncWaitReceiver
 
     Schd schd;
 
+    std::shared_ptr<std::exception_ptr> error;
+
     void set_value() && noexcept
     {
         const auto& exec = schd.env.exec;
 
         exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
+    }
+
+    template <class Error>
+    void set_error(Error&& err) && noexcept {
+        *error = std::forward<Error>(err);
     }
 
     decltype(auto) get_env() const noexcept { return schd.env; }
@@ -32,16 +39,21 @@ struct SyncWait
      * it has to return an engaged optional (on the value channel).
      *
      * @todo Better constrain the scheduler type.
+     * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
      */
     template <stdexec::scheduler Schd, stdexec::sender Sndr>
-    auto operator()(Schd&& schd, Sndr&& sndr) const -> std::optional<std::tuple<>>
+    auto operator()(Schd&& schd, Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>>
     {
+        auto error = std::make_shared<std::exception_ptr>();
+
         auto op_state = stdexec::connect(
             std::forward<Sndr>(sndr),
-            SyncWaitReceiver{.schd = std::forward<Schd>(schd)}
+            SyncWaitReceiver{.schd = std::forward<Schd>(schd), .error = error}
         );
 
         stdexec::start(op_state);
+
+        if (*error) std::rethrow_exception(std::move(*error));
 
         return std::tuple{};
     }
