@@ -42,7 +42,7 @@ TEST(graph, complex_dag_stdexec)
     ::exec::static_thread_pool pool{1};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc("data"));
+    const view_t data(Kokkos::view_alloc("data"));
 
     //! Define the graph. Use a simple syntax.
     DEFINE_VALUES
@@ -94,4 +94,4 @@ TEST(graph, complex_dag_stdexec)
     ASSERT_IT_WENT_FINE(data)
 }
 
-} // namespace tests::graph::diamond
+} // namespace tests::graph::complex_dag

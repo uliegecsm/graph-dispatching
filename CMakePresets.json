@@ -40,6 +40,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
         },
         {
+            // Inherit from this preset to use clang-tidy.
+            "name"          : "clang-tidy",
+            "hidden"        : true,
+            "cacheVariables": {"ENABLE_CLANG_TIDY" : "ON"}
+        },
+        {
             // Inherit from this preset to use the ROCm compiler family.
             "name"           : "ROCm",
             "hidden"         : true,
@@ -60,7 +66,7 @@
         },
         {
             "name"           : "clang-OpenMP",
-            "inherits"       : ["default", "clang", "ccache"],
+            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }

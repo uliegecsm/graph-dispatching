@@ -34,7 +34,7 @@ struct GenerateAt
         data(index) = gen(index);
     }
 };
-}
+} // namespace Impl
 
 /// Some principle as @c std::generate, but the generator takes the index and all elements
 /// of the sequence can be initialized independantly.
@@ -44,11 +44,11 @@ void generate_at(Label&& label, Exec&& exec, ViewType&& data, Generator&& gen)
 {
     static_assert(std::remove_cvref_t<ViewType>::rank() == 1, "Rank-1 view required.");
 
-    static_assert(std::is_invocable_r<
+    static_assert(std::is_invocable_r_v<
         typename std::remove_cvref_t<ViewType>::value_type,
         Generator,
         typename std::remove_cvref_t<Exec>::size_type
-    >::value);
+    >);
 
     Kokkos::parallel_for(
         std::forward<Label>(label),

@@ -44,16 +44,16 @@ FetchValuesAndContribute(ViewType, const size_t (&)[NumIndices],
     constexpr int value_B1 = 6, value_B2 = 2, value_B3 = 93, value_B4 = 186; \
     constexpr int value_C1 = 7, value_C2 = 1;
 
-#define DEFINE_INDICES                          \
-    std::integral_constant<size_t, 0> index_A1; \
-    std::integral_constant<size_t, 1> index_A2; \
-    std::integral_constant<size_t, 2> index_A3; \
-    std::integral_constant<size_t, 3> index_B1; \
-    std::integral_constant<size_t, 4> index_B2; \
-    std::integral_constant<size_t, 5> index_B3; \
-    std::integral_constant<size_t, 6> index_B4; \
-    std::integral_constant<size_t, 7> index_C1; \
-    std::integral_constant<size_t, 8> index_C2;
+#define DEFINE_INDICES                                    \
+    constexpr std::integral_constant<size_t, 0> index_A1; \
+    constexpr std::integral_constant<size_t, 1> index_A2; \
+    constexpr std::integral_constant<size_t, 2> index_A3; \
+    constexpr std::integral_constant<size_t, 3> index_B1; \
+    constexpr std::integral_constant<size_t, 4> index_B2; \
+    constexpr std::integral_constant<size_t, 5> index_B3; \
+    constexpr std::integral_constant<size_t, 6> index_B4; \
+    constexpr std::integral_constant<size_t, 7> index_C1; \
+    constexpr std::integral_constant<size_t, 8> index_C2;
 
 #define ASSERT_IT_WENT_FINE(data)                                                              \
     ASSERT_EQ(data(index_A1()), value_A1);                                                     \

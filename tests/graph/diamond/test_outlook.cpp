@@ -38,7 +38,7 @@ TEST(graph, diamond_outlook)
     const execution_space exec {};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc(exec, "data"));
+    const view_t data(Kokkos::view_alloc(exec, "data"));
 
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;

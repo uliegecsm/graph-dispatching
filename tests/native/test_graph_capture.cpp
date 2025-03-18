@@ -185,10 +185,10 @@ PRAGMA_DIAGNOSTIC_POP
         this->check_buffer<mode>(nodes);
     }
 
-    //! Call @c cusparseSpVV on @p stream.
-    void cusparseSpVV(const Stream& stream)
+    //! Call @c cusparseSpVV on @p cu_stream.
+    void cusparseSpVV(const Stream& cu_stream)
     {
-        handle.set_stream(stream);
+        handle.set_stream(cu_stream);
 
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")

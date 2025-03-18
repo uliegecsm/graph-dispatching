@@ -34,7 +34,7 @@ TEST(graph, complex_dag_outlook)
     const execution_space exec {};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc(exec, "data"));
+    const view_t data(Kokkos::view_alloc(exec, "data"));
 
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
@@ -90,4 +90,4 @@ TEST(graph, complex_dag_outlook)
     ASSERT_IT_WENT_FINE(mirror)
 }
 
-} // namespace tests::graph::diamond
+} // namespace tests::graph::complex_dag

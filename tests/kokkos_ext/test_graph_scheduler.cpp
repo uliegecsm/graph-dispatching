@@ -29,7 +29,7 @@ TEST(GraphContext, then)
 
     const execution_space exec {};
 
-    view_t data(Kokkos::view_alloc("data", exec));
+    const view_t data(Kokkos::view_alloc("data", exec));
 
     Kokkos::Experimental::GraphContext graph_ctx {exec};
 

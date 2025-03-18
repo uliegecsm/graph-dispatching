@@ -26,7 +26,7 @@ namespace tests::graph::runtime
 DEFINE_TEST_SUITE
 
 //! @test Runtime graph using @c Kokkos.
-TEST_P(graph, runtime_kokkos)
+TEST_P(GraphTest, runtime_kokkos)
 {
     //! Use @c Kokkos::DefaultExecutionSpace because we can synchronize in this setup.
     using execution_space = Kokkos::DefaultExecutionSpace;
@@ -45,7 +45,7 @@ TEST_P(graph, runtime_kokkos)
     const execution_space exec {};
 
     //! Initialize the data.
-    view_t data(Kokkos::view_alloc(exec, "data"));
+    const view_t data(Kokkos::view_alloc(exec, "data"));
 
     //! Indices wherein each functor places its value.
     constexpr size_t index_A = 0, index_B = 1, index_C = 2, index_D = 3;

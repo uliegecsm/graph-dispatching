@@ -45,7 +45,7 @@ TEST_F(OnTest, on)
         | ::stdexec::v2::on(scheduler_B, THEN_STORE_ID(thrids[1], {++counter;}))
         |                                THEN_STORE_ID(thrids[2], {++counter;});
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     //! The second @c then has indeed been executed by the second thread pool.
     ASSERT_THAT(thrids, ::testing::ElementsAre(

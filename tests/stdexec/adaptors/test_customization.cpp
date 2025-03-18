@@ -7,7 +7,6 @@
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-#include <stdexec/execution.hpp>
 #include "exec/static_thread_pool.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -55,11 +54,11 @@ struct ThenReceiver
     template <class... Args> requires std::invocable<Functor, Args...>
     void set_value(Args&&... args) && noexcept
     {
-        std::future result = std::async(std::launch::async,
-            [functor = std::move(functor)] (Args&&... args) {
+        auto result = std::async(std::launch::async,
+            [func = std::move(functor)] (Args&&... func_args) {
                 thread_id = ID;
                 thread_customization = Customization;
-                return std::move(functor)(std::forward<Args>(args)...);
+                return std::move(func)(std::forward<Args>(func_args)...);
             }, std::forward<Args>(args)...);
 
         result.wait();
@@ -136,7 +135,7 @@ struct ThenSender
     ///@}
 
     template <class Self, class... Env>
-    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; }
+    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     template <::stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
@@ -295,7 +294,7 @@ TEST_F(CustomizationTest, begins_with_schedule_sender_followed_by_custom_then)
 
     static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(work)>, Domain<'A'>>);
 
-    ::stdexec::sync_wait(std::move(work));
+    ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     CHECK_TRACE
 }
@@ -310,13 +309,13 @@ TEST_F(CustomizationTest, continues_on_uses_custom_then)
 
     ::stdexec::sender auto chain = ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1) | ADD_THEN(2);
 
-    ::stdexec::sender auto work = std::move(chain)
+    ::stdexec::sender auto work = std::move(chain) // NOLINT(performance-move-const-arg)
         | ::stdexec::continues_on(DomainSpecificScheduler<Domain<'B'>>{})
         | ADD_THEN(3) | ADD_THEN(4) | ADD_THEN(5)
         | ::stdexec::continues_on(DomainSpecificScheduler<Domain<'C'>>{})
         | ADD_THEN(6) | ADD_THEN(7);
 
-    ::stdexec::sync_wait(std::move(work));
+    ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     CHECK_TRACE
 }
@@ -329,14 +328,14 @@ TEST_F(CustomizationTest, starts_on)
 
     ::stdexec::sender auto begin = ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1);
 
-    ::stdexec::sender auto starts_on = ::stdexec::starts_on(DomainSpecificScheduler<Domain<'C'>>{}, std::move(begin));
+    ::stdexec::sender auto starts_on = ::stdexec::starts_on(DomainSpecificScheduler<Domain<'C'>>{}, std::move(begin)); // NOLINT(performance-move-const-arg)
 
-    ::stdexec::sender auto work = std::move(starts_on) | ADD_THEN(2)
+    ::stdexec::sender auto work = std::move(starts_on) | ADD_THEN(2) // NOLINT(performance-move-const-arg)
         | ::stdexec::continues_on(DomainSpecificScheduler<Domain<'D'>>{})
         | ADD_THEN(3)
         | ADD_THEN(4);
 
-    ::stdexec::sync_wait(std::move(work));
+    ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     CHECK_TRACE
 }
@@ -393,7 +392,7 @@ TEST_F(CustomizationTest, on)
         | ADD_THEN(6)
         | ADD_THEN(7);
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     CHECK_TRACE
 }

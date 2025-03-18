@@ -5,8 +5,8 @@
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-#include "stdexec/execution.hpp"
 #include "exec/static_thread_pool.hpp"
+#include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
 #include "tests/Utils.hpp"
@@ -40,7 +40,7 @@ TEST_F(StaticThreadPoolTest, then_early_domain)
 
     static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(work)>, ::exec::_pool_::static_thread_pool_::domain>);
 
-    ASSERT_EQ(std::get<0>(::stdexec::sync_wait(std::move(work)).value()), threads.front());
+    ASSERT_EQ(std::get<0>(::stdexec::sync_wait(std::move(work)).value()), threads.front()); // NOLINT(performance-move-const-arg)
 }
 
 //! @test It supports @c on and @c continues_on.
@@ -55,7 +55,7 @@ TEST_F(StaticThreadPoolTest, transitioning)
         | THEN_STORE_ID(thrids[2])
         | THEN_STORE_ID(thrids[3]);
 
-    ::stdexec::sync_wait(std::move(work));
+    ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
     ASSERT_THAT(thrids, ::testing::ElementsAre(
         threads.at(index_of_A),

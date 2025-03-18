@@ -3,6 +3,8 @@
 
 #include "Kokkos_Core.hpp"
 
+// NOLINTBEGIN
+
 namespace Kokkos::Experimental::graph::details
 {
 
@@ -40,5 +42,7 @@ struct ChainHandler
 };
 
 } // namespace Kokkos::Experimental::graph::details
+
+// NOLINTEND
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_CHAINHANDLER_HPP

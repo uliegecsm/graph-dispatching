@@ -15,6 +15,6 @@ namespace Kokkos::Experimental::graph::details
 template <typename Tag, typename ...>
 struct PartialAlgorithm;
 
-} // Kokkos::Experimental::graph::details
+} // namespace Kokkos::Experimental::graph::details
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_PARTIALALGORITHM_HPP

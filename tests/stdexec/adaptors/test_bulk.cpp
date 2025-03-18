@@ -35,7 +35,7 @@ TEST_F(BulkTest, bulk_with_functor)
     ::stdexec::scheduler auto scheduler = pools.front().get_scheduler();
 
     /// The kernel will execute @ref utils::FillWithThreadID.
-    ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
+    const ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
 
     ::stdexec::sender auto chain = ::stdexec::schedule(scheduler) | ::stdexec::bulk(size, functor);
 

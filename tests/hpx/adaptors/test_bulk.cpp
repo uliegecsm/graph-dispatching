@@ -38,7 +38,7 @@ TEST_F(HPXTest, bulk_with_functor)
     ASSERT_EQ(pool.get_os_thread_count(), 1);
 
     //! Get a scheduler for that thread pool with asynchronous execution.
-    execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
+    const execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
 
     //! Retrive the thread ID.
     const auto [pool_thread_ID] = ::hpx::this_thread::experimental::sync_wait(
@@ -47,7 +47,7 @@ TEST_F(HPXTest, bulk_with_functor)
     ASSERT_NE(pool_thread_ID, 0);
 
     /// The kernel will execute @ref utils::FillWithThreadID.
-    ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
+    const ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
 
     auto chain = execution::schedule(scheduler) | execution::bulk(size, functor);
 
