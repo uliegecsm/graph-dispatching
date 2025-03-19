@@ -98,6 +98,9 @@ function(add_one_test)
     set_property(TEST ${EXECUTABLE_NAME} APPEND PROPERTY ENVIRONMENT "GTEST_RANDOM_SEED=0")
 endfunction()
 
+#---- Find kokkos-utils.
+find_package(KokkosUtils CONFIG REQUIRED)
+
 #---- Common test object library.
 add_library(test_common OBJECT)
 target_sources(test_common PRIVATE main.cpp)

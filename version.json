@@ -21,6 +21,10 @@
             "sha"    : "79b3104cd563cdb357e702a8d838ac5225187f23",
             "comment": "We want to build against the Kokkos develop branch. Providing a SHA is a convenient way to force image rebuild."
         },
+        "kokkos-utils" : {
+            "branch" : "develop",
+            "sha"    : "cee74ab22633665c30d48d0327365e316108f366"
+        },
         "nvidia" : {
             "stdexec" : {
                 "value" : "e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf"

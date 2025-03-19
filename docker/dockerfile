@@ -12,6 +12,9 @@ RUN <<EOF
     apt update
     apt --yes --no-install-recommends install python3 python3-pip python3-venv git
     python3 -m venv $VIRTUAL_ENV
+
+    printf "import re, sys\nif re.match(r'Python ${PYTHON_VERSION}.[0-9]+', '$(python3 --version)') is None: raise RuntimeError(f'Your Python version {sys.version} does not match ${PYTHON_VERSION}.')" | python3
+
     apt clean && rm -rf /var/lib/apt/lists/*
 EOF
 
@@ -248,6 +251,35 @@ RUN <<EOF
     cmake --build build -j4 --target install
 EOF
 
+# Fetch https://github.com/uliegecsm/kokkos-utils sources and install.
+FROM kokkos-compile AS kokkos-utils-compile
+
+ARG KOKKOS_UTILS_BRANCH
+ARG KOKKOS_UTILS_SHA
+
+RUN --mount=target=/cmake/presets/kokkos-utils.json,type=bind,source=cmake/presets/kokkos-utils.json \
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
+    set -ex
+
+    git clone --branch ${KOKKOS_UTILS_BRANCH} https://github.com/uliegecsm/kokkos-utils /opt/kokkos-utils-sources
+
+    cd /opt/kokkos-utils-sources
+
+    git checkout ${KOKKOS_UTILS_SHA}
+
+    python3 /cmake/presets/generate.py                 \
+        --input-file  /cmake/presets/kokkos-utils.json \
+        --output-file CMakePresets.json                \
+        --preset ${KOKKOS_PRESET}
+
+    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+
+    cmake -S . --preset=${KOKKOS_PRESET} \
+        -DCMAKE_INSTALL_PREFIX=/opt/kokkos-utils/${KOKKOS_PRESET}
+
+    cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
+EOF
+
 # Build the final image from previous stages.
 FROM requirements AS final
 
@@ -264,6 +296,7 @@ COPY --from=google-test-compile  /opt/google-test-${GOOGLETEST_VERSION}         
 COPY --from=hpx-compile          /opt/hpx-${HPX_REF}                            /opt/hpx-${HPX_REF}
 COPY --from=kokkos-compile       /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 COPY --from=kokkos-tools-compile /opt/kokkos-tools/${KOKKOS_PRESET}             /opt/kokkos-tools/${KOKKOS_PRESET}
+COPY --from=kokkos-utils-compile /opt/kokkos-utils/${KOKKOS_PRESET}             /opt/kokkos-utils/${KOKKOS_PRESET}
 COPY --from=nvidia-stdexec       /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 COPY --from=sergius-plog         /opt/sergius/plog-${SERGIUS_PLOG_REF}          /opt/sergius/plog-${SERGIUS_PLOG_REF}
 
@@ -271,5 +304,6 @@ ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+ENV KokkosUtils_ROOT=/opt/kokkos-utils/${KOKKOS_PRESET}
 ENV plog_ROOT=/opt/sergius/plog-${SERGIUS_PLOG_REF}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
