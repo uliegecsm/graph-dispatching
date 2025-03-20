@@ -94,7 +94,8 @@ ARG HPX_SOURCE_DIR=/opt/hpx-${HPX_REF}-sources/
 
 RUN git clone --depth=1 --branch=${HPX_REF} -- https://github.com/STELLAR-GROUP/hpx.git ${HPX_SOURCE_DIR}
 
-RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.json <<EOF
+RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.json \
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
     set -ex
 
     if [ "${TARGETARCH}" = "amd64" ];then
@@ -110,7 +111,10 @@ RUN --mount=target=/cmake/presets/hpx.json,type=bind,source=cmake/presets/hpx.js
 
     cd ${HPX_SOURCE_DIR}
 
-    cp /cmake/presets/hpx.json CMakePresets.json
+    python3 /cmake/presets/generate.py        \
+        --input-file  /cmake/presets/hpx.json \
+        --output-file CMakePresets.json       \
+        --preset      ${COMPILER_FAMILY}
 
     cmake -S . --preset=${COMPILER_FAMILY} ${ADDITIONAL_CONFIG_ARGS}
     cmake --build --preset=${COMPILER_FAMILY} -j4
@@ -128,14 +132,18 @@ ARG KOKKOS_VERSION
 
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
 
-RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json <<EOF
+RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
     set -ex
 
     cd /kokkos-sources
 
     git checkout ${KOKKOS_SHA}
 
-    cp /cmake/presets/kokkos.json CMakePresets.json
+    python3 /cmake/presets/generate.py           \
+        --input-file  /cmake/presets/kokkos.json \
+        --output-file CMakePresets.json          \
+        --preset      ${KOKKOS_PRESET}
 
     if [ -z "${KOKKOS_ARCH}" ];then
         echo "> No Kokkos architecture given."
@@ -163,14 +171,18 @@ ARG KOKKOS_VERSION
 
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_TOOLS_BRANCH} https://github.com/kokkos/kokkos-tools /kokkos-tools-sources
 
-RUN --mount=target=/cmake/presets/kokkos-tools.json,type=bind,source=cmake/presets/kokkos-tools.json <<EOF
+RUN --mount=target=/cmake/presets/kokkos-tools.json,type=bind,source=cmake/presets/kokkos-tools.json \
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
     set -ex
 
     cd /kokkos-tools-sources
 
     git checkout ${KOKKOS_TOOLS_SHA}
 
-    cp /cmake/presets/kokkos-tools.json CMakePresets.json
+    python3 /cmake/presets/generate.py                 \
+        --input-file  /cmake/presets/kokkos-tools.json \
+        --output-file CMakePresets.json                \
+        --preset      ${KOKKOS_PRESET}
 
     export Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 

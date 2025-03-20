@@ -100,41 +100,6 @@
             "name"            : "default",
             "configurePreset" : "default",
             "inheritConfigureEnvironment" : true
-        },
-        {
-            "name"            : "gcc-OpenMP",
-            "configurePreset" : "gcc-OpenMP",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "clang-OpenMP",
-            "configurePreset" : "clang-OpenMP",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "clang-HPX",
-            "configurePreset" : "clang-HPX",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "gcc-Cuda",
-            "configurePreset" : "gcc-Cuda",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "clang-Cuda",
-            "configurePreset" : "clang-Cuda",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "clang-HPX-Cuda",
-            "configurePreset" : "clang-HPX-Cuda",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "ROCm-HIP",
-            "configurePreset" : "ROCm-HIP",
-            "inherits"        : "default"
         }
     ]
 }

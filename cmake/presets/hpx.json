@@ -44,21 +44,6 @@
             "name"            : "default",
             "configurePreset" : "default",
             "inheritConfigureEnvironment" : true
-        },
-        {
-            "name"            : "gcc",
-            "configurePreset" : "gcc",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "clang",
-            "configurePreset" : "clang",
-            "inherits"        : "default"
-        },
-        {
-            "name"            : "ROCm",
-            "configurePreset" : "ROCm",
-            "inherits"        : "default"
         }
     ]
 }
