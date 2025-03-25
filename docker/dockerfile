@@ -229,28 +229,6 @@ RUN <<EOF
     git checkout ${NVIDIA_STDEXEC_REF}
 EOF
 
-# Fetch https://github.com/SergiusTheBest/plog sources and install.
-FROM requirements AS sergius-plog
-
-ARG SERGIUS_PLOG_REF
-
-RUN <<EOF
-    set -ex
-
-    git clone --branch master --shallow-since=2024-06-01 https://github.com/SergiusTheBest/plog /opt/sergius/plog-${SERGIUS_PLOG_REF}-sources
-
-    cd /opt/sergius/plog-${SERGIUS_PLOG_REF}-sources
-
-    git checkout ${SERGIUS_PLOG_REF}
-
-    cmake -S . -B build \
-        -DCMAKE_INSTALL_PREFIX=/opt/sergius/plog-${SERGIUS_PLOG_REF} \
-        -DPLOG_BUILD_SAMPLES=OFF \
-        -DPLOG_BUILD_TESTS=OFF
-
-    cmake --build build -j4 --target install
-EOF
-
 # Fetch https://github.com/uliegecsm/kokkos-utils sources and install.
 FROM kokkos-compile AS kokkos-utils-compile
 
@@ -289,7 +267,6 @@ ARG HPX_REF
 ARG KOKKOS_VERSION
 ARG KOKKOS_PRESET
 ARG NVIDIA_STDEXEC_REF
-ARG SERGIUS_PLOG_REF
 
 COPY --from=doxygen-compile      /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
 COPY --from=google-test-compile  /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
@@ -298,12 +275,10 @@ COPY --from=kokkos-compile       /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} 
 COPY --from=kokkos-tools-compile /opt/kokkos-tools/${KOKKOS_PRESET}             /opt/kokkos-tools/${KOKKOS_PRESET}
 COPY --from=kokkos-utils-compile /opt/kokkos-utils/${KOKKOS_PRESET}             /opt/kokkos-utils/${KOKKOS_PRESET}
 COPY --from=nvidia-stdexec       /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
-COPY --from=sergius-plog         /opt/sergius/plog-${SERGIUS_PLOG_REF}          /opt/sergius/plog-${SERGIUS_PLOG_REF}
 
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
 ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
 ENV KokkosUtils_ROOT=/opt/kokkos-utils/${KOKKOS_PRESET}
-ENV plog_ROOT=/opt/sergius/plog-${SERGIUS_PLOG_REF}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
