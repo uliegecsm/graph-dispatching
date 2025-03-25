@@ -23,7 +23,7 @@
         },
         "kokkos-utils" : {
             "branch" : "develop",
-            "sha"    : "cee74ab22633665c30d48d0327365e316108f366"
+            "sha"    : "8ccccb94299a294923f7836806d69b76be8d326f"
         },
         "nvidia" : {
             "stdexec" : {
