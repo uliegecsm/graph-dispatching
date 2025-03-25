@@ -21,8 +21,7 @@ struct SyncWaitReceiver
     {
         const auto& exec = schd.env.exec;
 
-        PLOG_INFO << "SyncWaitReceiver: fencing " << Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name() << " (" << exec.impl_instance_id() << ')';
-        exec.fence();
+        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
     }
 
     decltype(auto) get_env() const noexcept { return schd.env; }
