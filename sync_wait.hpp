@@ -3,8 +3,6 @@
 
 #include <concepts>
 
-#include "plog/Log.h"
-
 #include "stdexec/execution.hpp"
 
 namespace Kokkos::Experimental::details::execution_space
