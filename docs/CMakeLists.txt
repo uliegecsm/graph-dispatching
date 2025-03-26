@@ -20,13 +20,18 @@ set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
 set(DOXYGEN_ENABLE_PREPROCESSING YES)
 set(DOXYGEN_MACRO_EXPANSION YES)
 
-get_target_property(GTest_INTERFACE_INCLUDE_DIRECTORIES GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
-set(DOXYGEN_INCLUDE_PATH "${GTest_INTERFACE_INCLUDE_DIRECTORIES}")
+get_target_property(GTest_gtest_INTERFACE_INCLUDE_DIRECTORIES GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(Kokkos_kokkoscore_INTERFACE_INCLUDE_DIRECTORIES Kokkos::kokkoscore INTERFACE_INCLUDE_DIRECTORIES)
+set(DOXYGEN_INCLUDE_PATH
+    ${Kokkos_kokkoscore_INTERFACE_INCLUDE_DIRECTORIES}
+    ${GTest_gtest_INTERFACE_INCLUDE_DIRECTORIES}
+    ${CMAKE_SOURCE_DIR}
+)
 
 #---- Extract files for documentation.
 get_property(GraphDispatching_FILES_FOR_DOC GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC)
 list(LENGTH GraphDispatching_FILES_FOR_DOC GraphDispatching_FILES_FOR_DOC_LENGTH)
-if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 72)
+if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 74)
     message(FATAL_ERROR "You have ${GraphDispatching_FILES_FOR_DOC_LENGTH} files for documentation.")
 endif()
 

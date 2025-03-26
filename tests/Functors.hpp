@@ -3,13 +3,14 @@
 
 namespace tests
 {
-template <typename ViewType>
+template <typename ViewType, bool MayThrow = true>
 struct ThenFunctor
 {
     ViewType data;
 
+    //! @warning The @c noexcept might change how sender's completion signatures are computed. Without the @c noexcept, it might also complete on the error channel.
     KOKKOS_FUNCTION
-    void operator()() const { ++data(); }
+    void operator()() const noexcept(MayThrow == false) { ++data(); }
 };
 } // namespace tests
 

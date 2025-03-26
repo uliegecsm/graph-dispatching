@@ -185,7 +185,7 @@ struct Domain
         return sndr.apply(std::forward<Sndr>(sndr), TransformThen<ID, 'E', decltype(schd)>{.schd = std::move(schd)});
     }
 
-    template <::stdexec::sender_expr_for<::stdexec::then_t> Sndr, class Env>
+    template <::stdexec::sender_expr_for<::stdexec::then_t> Sndr, typename Env>
     auto transform_sender(Sndr&& sndr, const Env& env) const noexcept
     {
         std::cout << "> From domain " << ID << ": transform_sender (late)" << std::endl;
