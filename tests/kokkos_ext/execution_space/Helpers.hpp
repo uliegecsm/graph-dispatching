@@ -16,9 +16,10 @@ namespace tests::kokkos_ext
 {
 namespace impl
 {
-template <typename Exec>
+template <typename Exec, typename HostExec = Kokkos::DefaultHostExecutionSpace>
 struct ExecutionSpaceContextTest : public virtual ::testing::Test,
-                                   public Kokkos::utils::tests::scoped::ExecutionSpace<Exec>
+                                   public Kokkos::utils::tests::scoped::ExecutionSpace<Exec>,
+                                   public Kokkos::utils::tests::scoped::ExecutionSpace<HostExec>
 {
 public:
     using context_t          = Kokkos::Experimental::ExecutionSpaceContext<Exec>;
@@ -26,6 +27,11 @@ public:
     using schedule_sender_t  = decltype(::stdexec::schedule(std::declval<scheduler_t>()));
     using scheduler_domain_t = std::invoke_result_t<::stdexec::get_domain_t, scheduler_t>;
 
+    using context_h_t          = Kokkos::Experimental::ExecutionSpaceContext<HostExec>;
+    using scheduler_h_t        = decltype(std::declval<const context_h_t>().get_scheduler());
+    using scheduler_h_domain_t = std::invoke_result_t<::stdexec::get_domain_t, scheduler_h_t>;
+
+    using view_t   = Kokkos::View<int, typename Exec::memory_space>;
     using view_s_t = Kokkos::View<int, Kokkos::SharedSpace>;
 };
 

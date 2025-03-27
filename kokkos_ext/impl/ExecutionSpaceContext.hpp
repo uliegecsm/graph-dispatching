@@ -17,6 +17,7 @@ PRAGMA_DIAGNOSTIC_POP
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 
 #include "kokkos_ext/impl/execution_space/bulk.hpp"
+#include "kokkos_ext/impl/execution_space/continues_on.hpp"
 #include "kokkos_ext/impl/execution_space/sync_wait.hpp"
 #include "kokkos_ext/impl/execution_space/then.hpp"
 
@@ -115,6 +116,44 @@ struct ExecutionSpaceScheduler
         }
     };
 
+    //! For @c continues_on.
+    template <stdexec::scheduler Schd>
+    struct TransformContinuesOn
+    {
+        Schd schd;
+
+        template <class Env, stdexec::sender Sndr>
+        auto operator()(stdexec::continues_on_t, const Env&, Sndr&& sndr) && noexcept
+        {
+            if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>)
+            {
+                auto completion_schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+
+                const bool fencing_required = [&]() {
+                    if constexpr (std::same_as<std::remove_cvref_t<decltype(schd)>, std::remove_cvref_t<decltype(completion_schd)>>)
+                        return schd != completion_schd;
+                    else
+                        return true;
+                }();
+
+                return stdexec::schedule_from(
+                    std::move(schd),
+                    ContinuesOnSender{.schd = std::move(completion_schd), .sndr = std::forward<Sndr>(sndr), .fencing_required = fencing_required}
+                );
+            } else {
+                return stdexec::schedule_from(
+                    std::move(schd),
+                    std::forward<Sndr>(sndr)
+                );
+            }
+        }
+    };
+
+#if defined(KOKKOS_ENABLE_HIP)
+    template <typename Schd>
+    TransformContinuesOn(Schd&&) -> TransformContinuesOn<std::remove_cvref_t<Schd>>;
+#endif
+
     struct Domain
     {
         /**
@@ -151,6 +190,36 @@ struct ExecutionSpaceScheduler
                 return sndr.apply(std::forward<Sndr>(sndr), TransformDispatch{.schd = std::move(schd)});
             } else {
                 static_assert(::stdexec::__completes_on<Sndr, ExecutionSpaceScheduler, Env>);
+            }
+        }
+
+        /**
+         * @brief Intercept @c continues_on.
+         *
+         * @note We don't need to customize @c schedule_from for now, because we don't handle the value channel.
+         *       If we were supporting it, it would require that the @c schedule_from customization puts the values on the device, similarly
+         *       to https://github.com/NVIDIA/stdexec/blob/46f8c6368dc419260e19f585de35ca3c1bb47ee0/include/nvexec/stream/schedule_from.cuh#L55.
+         *
+         * References:
+         *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-transition-details.
+         *  - https://github.com/NVIDIA/stdexec/blob/e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf/include/nvexec/stream_context.cuh#L223-L230.
+         */
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr>
+        auto transform_sender(Sndr&& sndr) const noexcept
+        {
+            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+            return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{.schd = std::move(schd)});
+        }
+
+        //! Late customization for @c continues_on.
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr, class Env>
+        auto transform_sender(Sndr&& sndr, const Env&) const noexcept
+        {
+            if constexpr (::stdexec::__completes_on<Sndr, ExecutionSpaceScheduler>) {
+                auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+                return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{.schd = std::move(schd)});
+            } else {
+                static_assert(false, "No 'ExecutionSpaceScheduler' can be found on which to continue on.");
             }
         }
     };
