@@ -92,6 +92,22 @@ constexpr auto check_scheduler() {
     return impl::CheckScheduler<Scheduler, Tag>{}();
 };
 
+//! Receiver for a value, inspired by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/test/test_common/receivers.hpp#L95.
+template <typename ValueType, typename Env = ::stdexec::env<>>
+struct value_receiver
+{
+    using receiver_concept = ::stdexec::receiver_t;
+
+    ValueType* value;
+    Env env_ {};
+
+    void set_value(ValueType value_) noexcept { *value = value_; }
+    void set_error(std::exception_ptr) noexcept {} // NOLINT(performance-unnecessary-value-param)
+    void set_stopped() noexcept {}
+
+    decltype(auto) get_env() const noexcept { return env_; }
+};
+
 } // namespace tests::stdexec
 
 #endif // GRAPH_DISPATCHING_TESTS_STDEXEC_UTILS_HPP

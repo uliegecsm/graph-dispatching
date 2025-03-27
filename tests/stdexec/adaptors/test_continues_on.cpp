@@ -61,6 +61,32 @@ TEST_F(ContinuesOnTest, continues_on)
     ASSERT_EQ(counter, 3);
 }
 
+/**
+ * @test @c continues_on advertises the default domain, and completes on the @c exec::static_thread_pool domain,
+ *       even when the chain is not started with a schedule sender.
+ */
+TEST_F(ContinuesOnTest, no_schedule_sender_continues_on)
+{
+    auto continues_on = ::stdexec::just() | ::stdexec::continues_on(pools.at(index_of_A).get_scheduler());
+
+    using continues_on_t = decltype(continues_on);
+
+    static_assert(std::same_as<
+        ::stdexec::__domain_of_t<::stdexec::env_of_t<continues_on_t>>,
+        ::stdexec::default_domain
+    >);
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, continues_on_t>,
+        ::exec::_pool_::_static_thread_pool::domain
+    >);
+
+    //! It also has a completion scheduler for the value channel.
+    static_assert(std::same_as<
+        ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t>,
+        ::exec::_pool_::_static_thread_pool::scheduler
+    >);
+}
+
 //! @test This test checks that using @c continues_on persists the scheduler.
 TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 {
