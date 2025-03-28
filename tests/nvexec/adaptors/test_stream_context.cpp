@@ -150,6 +150,7 @@ TEST_F(StreamContextTest, split)
 //! @test Check that @c nvexec::stream_context correctly synchronizes the kernels before switching to @c exec::static_thread_pool.
 TEST_F(StreamContextTest, move_to_static_thread_pool)
 {
+#if false
     using value_t = unsigned int;
     using  view_t = Kokkos::View<value_t, Kokkos::SharedSpace>;
 
@@ -168,6 +169,9 @@ TEST_F(StreamContextTest, move_to_static_thread_pool)
     ::stdexec::sync_wait(std::move(chain));
 
     ASSERT_EQ(witness(), 21);
+#else
+    GTEST_SKIP() << "This test does not compile, see https://github.com/NVIDIA/stdexec/issues/1505.";
+#endif
 }
 
 } // namespace tests::nvexec::adaptors
