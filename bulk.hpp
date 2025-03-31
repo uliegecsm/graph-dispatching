@@ -3,6 +3,8 @@
 
 #include "stdexec/execution.hpp"
 
+#include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+
 namespace Kokkos::Experimental::details::execution_space
 {
 
@@ -10,10 +12,8 @@ namespace Kokkos::Experimental::details::execution_space
  * @brief Receiver for @c bulk.
  *
  * @note Only integral shape is supported for now.
- *
- * @todo Better constrain the scheduler type.
  */
-template <stdexec::receiver Rcvr, std::integral Shape, typename Functor, stdexec::scheduler Schd>
+template <stdexec::receiver Rcvr, std::integral Shape, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
 struct BulkReceiver
 {
     using receiver_concept = stdexec::receiver_t;

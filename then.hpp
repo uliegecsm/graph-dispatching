@@ -3,11 +3,13 @@
 
 #include "stdexec/execution.hpp"
 
+#include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+
 namespace Kokkos::Experimental::details::execution_space
 {
 
-//! Receiver for @c then. @todo Better constrain the scheduler type.
-template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd>
+//! Receiver for @c then.
+template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
 struct ThenReceiver
 {
     using receiver_concept = stdexec::receiver_t;
