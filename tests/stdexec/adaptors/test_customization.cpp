@@ -69,7 +69,7 @@ struct ThenReceiver
             ::stdexec::set_value(std::move(rcvr), std::move(result.get()));
     }
 
-    template <class Error>
+    template <typename Error>
     void set_error(Error&& err) && noexcept {
         ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
     }

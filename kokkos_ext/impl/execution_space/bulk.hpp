@@ -1,37 +1,35 @@
-#ifndef GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_THEN_HPP
-#define GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_THEN_HPP
+#ifndef GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_BULK_HPP
+#define GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_BULK_HPP
 
 #include "stdexec/execution.hpp"
 
 namespace Kokkos::Experimental::details::execution_space
 {
 
-//! Receiver for @c then. @todo Better constrain the scheduler type.
-template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd>
-struct ThenReceiver
+/**
+ * @brief Receiver for @c bulk.
+ *
+ * @note Only integral shape is supported for now.
+ *
+ * @todo Better constrain the scheduler type.
+ */
+template <stdexec::receiver Rcvr, std::integral Shape, typename Functor, stdexec::scheduler Schd>
+struct BulkReceiver
 {
     using receiver_concept = stdexec::receiver_t;
 
     Rcvr rcvr;
+    Shape shape;
     Functor functor;
     Schd schd;
-
-    //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
-    struct ThenWrapper
-    {
-        Functor functor;
-
-        template <std::integral T>
-        KOKKOS_FUNCTION void operator()(const T) const { functor(); }
-    };
 
     void set_value() && noexcept
     {
         try {
             Kokkos::parallel_for(
-                std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
-                Kokkos::RangePolicy(std::move(schd).env.exec, 0, 1),
-                ThenWrapper{.functor = std::move(functor)}
+                std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
+                Kokkos::RangePolicy(std::move(schd).env.exec, 0, shape),
+                std::move(functor)
             );
         } catch(...) {
             stdexec::set_error(std::move(rcvr), std::current_exception());
@@ -48,14 +46,14 @@ struct ThenReceiver
 };
 
 /**
- * @brief Sender for @c then.
+ * @brief Sender for @c bulk.
  *
- * @todo We should decide what to do with a "throwing situation". There are 2 reasons for @c ThenReceiver::set_value to throw:
+ * @todo We should decide what to do with a "throwing situation". There are 2 reasons for @c BulkReceiver::set_value to throw:
  *          1. The functor itself has a call operator that may throw.
  *          2. @c Kokkos itself throws before launching the functor (for some reason).
  */
-template <stdexec::sender Sndr, typename Functor, typename Schd>
-struct ThenSender
+template <stdexec::sender Sndr, typename Shape, typename Functor, stdexec::scheduler Schd>
+struct BulkSender
 {
     using sender_concept = stdexec::sender_t;
 
@@ -74,19 +72,19 @@ struct ThenSender
     template <typename Self, typename... Env>
     static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
-    //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
-        using recv_t = ThenReceiver<std::remove_cvref_t<Rcvr>, Functor, Schd>;
+        using recv_t = BulkReceiver<std::remove_cvref_t<Rcvr>, Shape, Functor, Schd>;
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .functor = std::move(functor), .schd = std::move(schd)}
+            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .shape = std::move(shape), .functor = std::move(functor), .schd = std::move(schd)}
         );
     }
 
     Sndr sndr;
+    Shape shape;
     Functor functor;
     Schd schd;
 
@@ -95,4 +93,4 @@ struct ThenSender
 
 } // namespace Kokkos::Experimental::details::execution_space
 
-#endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_THEN_HPP
+#endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_BULK_HPP

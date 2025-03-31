@@ -24,7 +24,7 @@ struct SyncWaitReceiver
         exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
     }
 
-    template <class Error>
+    template <typename Error>
     void set_error(Error&& err) && noexcept {
         *error = std::forward<Error>(err);
     }
