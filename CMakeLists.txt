@@ -51,6 +51,12 @@ find_package(
 
 kokkos_check(DEVICES "${EXPECTED_Kokkos_DEVICES}")
 
+target_compile_definitions(
+    Kokkos::kokkoscore
+    INTERFACE
+        KOKKOS_IMPL_PUBLIC_INCLUDE
+)
+
 #---- Setup compiler warnings.
 include(cmake/modules/IgnoreWarnings.cmake)
 

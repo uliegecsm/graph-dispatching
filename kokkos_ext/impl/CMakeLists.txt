@@ -1,1 +1,4 @@
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/ExecutionSpaceContext.hpp)
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/ExecutionSpaceContext_fwd.hpp)
+
 add_subdirectory(execution_space)
