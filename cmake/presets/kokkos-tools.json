@@ -26,7 +26,7 @@
         },
         {
             // Inherit from this preset to use the ROCm compiler family.
-            "name"           : "ROCm",
+            "name"           : "rocm",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
@@ -55,8 +55,8 @@
             "inherits" : ["default", "clang"]
         },
         {
-            "name"        : "ROCm-HIP",
-            "inherits"    : ["default", "ROCm"],
+            "name"        : "rocm-HIP",
+            "inherits"    : ["default", "rocm"],
             "environment" : {
                 "ROCM_PATH" : "/opt/rocm"
             }

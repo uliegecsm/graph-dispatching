@@ -110,7 +110,7 @@ jobs:
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
                     - backend        : HIP
-                      compiler_family: ROCm
+                      compiler_family: rocm
                       base_image     : rocm/dev-ubuntu-24.04:6.3
                       platforms      : linux/amd64
                       kokkos_arch    : AMD_GFX906
@@ -197,7 +197,7 @@ jobs:
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
                       docker_arch    : -volta70
                     - backend        : HIP
-                      compiler_family: ROCm
+                      compiler_family: rocm
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906']"
                       docker_run_args: --privileged
                       docker_arch    : -amd-gfx906

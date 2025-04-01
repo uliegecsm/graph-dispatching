@@ -50,9 +50,11 @@ void generate_at(Label&& label, Exec&& exec, ViewType&& data, Generator&& gen)
         typename std::remove_cvref_t<Exec>::size_type
     >);
 
+    Kokkos::RangePolicy policy(std::forward<Exec>(exec), 0, data.size()); // NOLINT(misc-const-correctness)
+
     Kokkos::parallel_for(
         std::forward<Label>(label),
-        Kokkos::RangePolicy(std::forward<Exec>(exec), 0, data.size()),
+        std::move(policy),
         Impl::GenerateAt{.data = std::forward<ViewType>(data), .gen = std::forward<Generator>(gen)}
     );
 }

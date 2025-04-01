@@ -47,7 +47,7 @@
         },
         {
             // Inherit from this preset to use the ROCm compiler family.
-            "name"           : "ROCm",
+            "name"           : "rocm",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
@@ -102,8 +102,8 @@
             }
         },
         {
-            "name"           : "ROCm-HIP",
-            "inherits"       : ["default", "ROCm", "ccache"],
+            "name"           : "rocm-HIP",
+            "inherits"       : ["default", "rocm", "ccache"],
             "cacheVariables" : {
                 "ENABLE_MULTIGPU"         : "ON",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;HIP"
@@ -147,8 +147,8 @@
             "inherits"        : "default"
         },
         {
-            "name"            : "ROCm-HIP",
-            "configurePreset" : "ROCm-HIP",
+            "name"            : "rocm-HIP",
+            "configurePreset" : "rocm-HIP",
             "inherits"        : "default"
         }
     ],
@@ -195,8 +195,8 @@
             "inherits"        : "default"
         },
         {
-            "name"            : "ROCm-HIP",
-            "configurePreset" : "ROCm-HIP",
+            "name"            : "rocm-HIP",
+            "configurePreset" : "rocm-HIP",
             "inherits"        : "default"
         }
     ]
