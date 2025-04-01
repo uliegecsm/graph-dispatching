@@ -1,7 +1,8 @@
 ARG BASE_IMAGE
+ARG COMPILER_FAMILY
 
 # Install Python3 (with the trickery for virtual environment).
-FROM ${BASE_IMAGE} AS requirements
+FROM ${BASE_IMAGE} AS requirements-python
 
 ARG PYTHON_VERSION=3.12
 ENV VIRTUAL_ENV=/opt/venv-${PYTHON_VERSION}
@@ -15,35 +16,55 @@ RUN <<EOF
 
     printf "import re, sys\nif re.match(r'Python ${PYTHON_VERSION}.[0-9]+', '$(python3 --version)') is None: raise RuntimeError(f'Your Python version {sys.version} does not match ${PYTHON_VERSION}.')" | python3
 
+    python3 -m pip install git+https://github.com/uliegecsm/system-helpers
+
     apt clean && rm -rf /var/lib/apt/lists/*
 EOF
 
-ARG COMPILER_FAMILY
-ARG TARGETARCH
+FROM requirements-python AS requirements-compiler-rocm
 
-# Install APT requirements and compiler.
+FROM requirements-python AS requirements-compiler-gcc
+
+RUN apt-helpers install-packages --clean --update --packages g++
+
+FROM requirements-python AS requirements-compiler-clang
+
+ARG CLANG_VERSION
+
+RUN <<EOF
+    set -ex
+
+    apt-helpers install-packages --update --packages wget lsb-release gpg software-properties-common
+
+    wget https://apt.llvm.org/llvm.sh
+    chmod +x llvm.sh
+    ./llvm.sh ${CLANG_VERSION}
+    rm llvm.sh
+
+    apt-helpers install-packages --clean \
+        --update --packages              \
+        clang-${CLANG_VERSION}           \
+        clang-tidy-${CLANG_VERSION}      \
+        libomp-${CLANG_VERSION}-dev
+
+    update-alternatives-helpers --prefix /usr/bin --level 10 \
+        --display --for-each-of                              \
+        clang=clang-${CLANG_VERSION}                         \
+        clang++=clang++-${CLANG_VERSION}                     \
+        clang-tidy=clang-tidy-${CLANG_VERSION}
+EOF
+
+FROM requirements-compiler-${COMPILER_FAMILY} AS requirements
+
 RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
     set -ex
 
-    python3 -m pip install git+https://github.com/uliegecsm/system-helpers
-
-    if [ "${COMPILER_FAMILY}" = "gcc" ];then
-        COMPILER_FAMILY_REQUIREMENTS=g++
-    elif [ "${COMPILER_FAMILY}" = "clang" ];then
-        COMPILER_FAMILY_REQUIREMENTS="clang clang-tidy libomp-dev"
-    elif [ "${COMPILER_FAMILY}" = "ROCm" ];then
-        COMPILER_FAMILY_REQUIREMENTS=
-    else
-        echo "unsupported compiler family ${COMPILER_FAMILY}"
-        exit -1
-    fi
-
     apt-helpers install-packages --clean --update           \
-        --packages ${COMPILER_FAMILY_REQUIREMENTS}          \
         --requirement /requirements/requirements.system.txt \
         --requirement /requirements/requirements.system.hpx.txt
 EOF
 
+ARG TARGETARCH
 ARG CMAKE_VERSION
 
 RUN <<EOF
@@ -92,6 +113,7 @@ EOF
 # Fetch HPX sources, configure, build and install.
 FROM requirements AS hpx-compile
 
+ARG COMPILER_FAMILY
 ARG HPX_REF
 ARG HPX_SOURCE_DIR=/opt/hpx-${HPX_REF}-sources/
 

@@ -17,6 +17,7 @@ inputs:
         options:
             - gcc
             - clang
+            - rocm
 
     kokkos_arch:
         description: >
@@ -46,6 +47,7 @@ runs:
     steps:
         - shell: sh
           run  : |
+            echo "CLANG_VERSION=$(      jq '.dependencies.clang.value'           version.json -j)" >> $GITHUB_ENV
             echo "CMAKE_VERSION=$(      jq '.dependencies.cmake.value'           version.json -j)" >> $GITHUB_ENV
             echo "DOXYGEN_VERSION=$(    jq '.dependencies.doxygen.value'         version.json -j)" >> $GITHUB_ENV
             echo "GOOGLETEST_VERSION=$( jq '.dependencies.googletest.value'      version.json -j)" >> $GITHUB_ENV
@@ -70,8 +72,9 @@ runs:
               cache-to: type=inline
               build-args: |
                   BASE_IMAGE=${{ inputs.base_image }}
-                  COMPILER_FAMILY=${{ inputs.compiler_family }}
+                  CLANG_VERSION=${{ env.CLANG_VERSION }}
                   CMAKE_VERSION=${{ env.CMAKE_VERSION }}
+                  COMPILER_FAMILY=${{ inputs.compiler_family }}
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}

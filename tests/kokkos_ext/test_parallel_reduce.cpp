@@ -58,7 +58,7 @@ public:
 
         typename view_t::non_const_type tmp(Kokkos::view_alloc("data", Kokkos::WithoutInitializing, execs.at(0))); // NOLINT(misc-const-correctness)
         KokkosExt::fill_sequence(execs.at(0), tmp, 0);
-        this->data = std::move(tmp);
+        this->data = std::move(tmp); // NOLINT(performance-move-const-arg)
         execs.at(0).fence("Ensure that the setup is finished before running the test.");
     }
 protected:

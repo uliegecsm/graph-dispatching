@@ -32,7 +32,7 @@
             }
         },
         {
-            "name"           : "ROCm",
+            "name"           : "rocm",
             "inherits"       : "default",
             "cacheVariables" : {
                 "CMAKE_CXX_COMPILER" : "hipcc"
