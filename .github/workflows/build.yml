@@ -105,7 +105,7 @@ jobs:
                       platforms      : linux/amd64
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
@@ -122,19 +122,19 @@ jobs:
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      kokkos_arch    : VOLTA70
-                      docker_arch    : -volta70
+                      kokkos_arch    : BLACKWELL120
+                      docker_arch    : -blackwell120
                     - backend        : HPX-Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : VOLTA70
                       docker_arch    : -volta70
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.0-devel-ubuntu24.04
+                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_arch    : AMPERE80
                       docker_arch    : -ampere80
@@ -149,6 +149,7 @@ jobs:
               uses: tj-actions/changed-files@v45
               with:
                   files: |
+                      .github/**
                       cmake/presets/**
                       docker/**
                       requirements/**
@@ -190,8 +191,8 @@ jobs:
                       docker_arch    : -volta70
                     - backend        : Cuda
                       compiler_family: clang
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
-                      docker_arch    : -volta70
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120']"
+                      docker_arch    : -blackwell120
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
