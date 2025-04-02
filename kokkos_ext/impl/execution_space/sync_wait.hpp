@@ -5,10 +5,12 @@
 
 #include "stdexec/execution.hpp"
 
+#include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+
 namespace Kokkos::Experimental::details::execution_space
 {
-//! Receiver for @c sync_wait. @todo Better constrain the scheduler type.
-template <stdexec::scheduler Schd>
+//! Receiver for @c sync_wait.
+template <stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
 struct SyncWaitReceiver
 {
     using receiver_concept = stdexec::receiver_t;
@@ -38,7 +40,6 @@ struct SyncWait
      * According to https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#spec-execution.senders.consumers.sync_wait,
      * it has to return an engaged optional (on the value channel).
      *
-     * @todo Better constrain the scheduler type.
      * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
      */
     template <stdexec::scheduler Schd, stdexec::sender Sndr>
