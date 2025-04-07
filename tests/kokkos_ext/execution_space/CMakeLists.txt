@@ -6,3 +6,5 @@ add_one_test(NAME scoped_region ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS}
 add_one_test(NAME sync_wait     ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS} ADDITIONAL_LINK_LIBRARIES Kokkos::kokkosutils)
 add_one_test(NAME then          ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS} ADDITIONAL_LINK_LIBRARIES Kokkos::kokkosutils)
 add_one_test(NAME Traits        ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS} ADDITIONAL_LINK_LIBRARIES Kokkos::kokkosutils)
+
+add_compile_options(--target=tests_kokkos_ext_execution_space_inter_op PRIVATE -ggdb -O0)

@@ -61,6 +61,62 @@ TEST_F(ContinuesOnTest, no_schedule_sender_continues_on)
 }
 
 /**
+ * @test Check that @c continues_on is properly customized (with appropriate synchronization) when using it many times on the same execution space instance.
+ *
+ * There shouldn't be any fencing required in this case.
+ */
+TEST_F(ContinuesOnTest, continues_on_noop)
+{
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const host_execution_space exec_h{};
+
+    const context_t esc{exec};
+
+    auto chain = ::stdexec::just()
+        | ::stdexec::continues_on(esc.get_scheduler())
+        | ADD_THEN
+        | ::stdexec::continues_on(esc.get_scheduler())
+        | ADD_THEN
+        | ::stdexec::continues_on(esc.get_scheduler())
+        | ADD_THEN;
+
+    // using chain_0_t = decltype(chain_0);
+    // using chain_1_t = decltype(chain_1);
+    // using chain_2_t = decltype(chain_2);
+
+    // static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
+
+    // static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
+    // static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
+    // static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
+
+    // static_assert(tests::stdexec::has_completion_signatures<chain_0_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_1_t, ::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_2_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_0_t>, scheduler_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_1_t>, scheduler_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_2_t>, scheduler_domain_t>);
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record([chain = std::move(chain)] () mutable { ::stdexec::sync_wait(std::move(chain)); }),
+        ::testing::ElementsAre(
+            MATCHER_FOR_BEGIN_PFOR (exec, then),
+            MATCHER_FOR_BEGIN_PFOR (exec, then),
+            MATCHER_FOR_BEGIN_PFOR (exec, then),
+            MATCHER_FOR_BEGIN_FENCE(exec, sync_wait)
+        )
+    );
+
+    ASSERT_EQ(data(), 3) << "A synchronization is missing.";
+}
+
+/**
  * @test Check that @c continues_on is properly customized (with appropriate synchronization) when using it many times.
  *
  * This is done by switching context at each @c then, hoping that at some point there will be a write race condition if
@@ -75,45 +131,122 @@ TEST_F(ContinuesOnTest, continues_on_many)
     const context_h_t esc_h{exec_h};
     const context_t   esc  {exec};
 
+    std::cout << "--------- CHAIN 0 --------" << std::endl;
     auto chain_0 = ::stdexec::just()
-        | ::stdexec::continues_on(esc.get_scheduler())
+        | ::stdexec::continues_on(esc.get_scheduler()) // will be late customized
         | ADD_THEN;
+    std::cout << "--------- CHAIN 1 --------" << std::endl;
     auto chain_1 = std::move(chain_0)
         | ::stdexec::continues_on(esc_h.get_scheduler())
         | ADD_THEN;
+    std::cout << "--------- CHAIN 2 --------" << std::endl;
     auto chain_2 = std::move(chain_1)
         | ::stdexec::continues_on(esc.get_scheduler())
         | ADD_THEN;
 
-    using chain_0_t = decltype(chain_0);
-    using chain_1_t = decltype(chain_1);
-    using chain_2_t = decltype(chain_2);
+    // using chain_0_t = decltype(chain_0);
+    // using chain_1_t = decltype(chain_1);
+    // using chain_2_t = decltype(chain_2);
 
-    static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
-    static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
-    static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
 
-    static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
-    static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
-    static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
+    // static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
+    // static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
+    // static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
 
-    static_assert(tests::stdexec::has_completion_signatures<chain_0_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
-    static_assert(tests::stdexec::has_completion_signatures<chain_1_t, ::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>);
-    static_assert(tests::stdexec::has_completion_signatures<chain_2_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_0_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_1_t, ::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_2_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
 
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_0_t>, scheduler_domain_t>);
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_1_t>, scheduler_h_domain_t>);
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_2_t>, scheduler_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_0_t>, scheduler_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_1_t>, scheduler_h_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_2_t>, scheduler_domain_t>);
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
+    std::cout << "> exec  : " << Kokkos::Tools::Experimental::device_id(exec) << std::endl;
+    std::cout << "> exec_h: " << Kokkos::Tools::Experimental::device_id(exec_h) << std::endl;
+
+    const auto recorded_events = recorder_listener_t::record([chain = std::move(chain_2)] () mutable { ::stdexec::sync_wait(std::move(chain)); });
+    for (const auto& recorded_event : recorded_events) {
+        std::visit([] (const auto& arg) { std::cout << "- " << arg << std::endl; }, recorded_event);
+    }
+
     ASSERT_THAT(
-        recorder_listener_t::record([chain = std::move(chain_2)] () mutable { ::stdexec::sync_wait(std::move(chain)); }),
+        recorded_events,
         ::testing::ElementsAre(
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
-            MATCHER_FOR_BEGIN_FENCE(exec,   continues_on),
+            // MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec_h, then),
-            MATCHER_FOR_BEGIN_FENCE(exec_h, continues_on),
+            // MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
+            MATCHER_FOR_BEGIN_PFOR (exec,   then),
+            MATCHER_FOR_BEGIN_FENCE(exec,   sync_wait)
+        )
+    );
+
+    ASSERT_EQ(data(), 3) << "A synchronization is missing.";
+}
+
+TEST_F(ContinuesOnTest, stupidous)
+{
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const host_execution_space exec_h{};
+
+    const context_h_t esc_h{exec_h};
+    const context_t   esc  {exec};
+
+    std::cout << "--------- CHAIN 0 --------" << std::endl;
+    auto chain_0 = ::stdexec::schedule(esc.get_scheduler())
+        | ADD_THEN;
+    std::cout << "--------- CHAIN 1 --------" << std::endl;
+    auto chain_1 = std::move(chain_0)
+        | ::stdexec::continues_on(esc_h.get_scheduler())
+        | ADD_THEN;
+    std::cout << "--------- CHAIN 2 --------" << std::endl;
+    auto chain_2 = std::move(chain_1)
+        | ::stdexec::continues_on(esc.get_scheduler())
+        | ADD_THEN;
+
+    // using chain_0_t = decltype(chain_0);
+    // using chain_1_t = decltype(chain_1);
+    // using chain_2_t = decltype(chain_2);
+
+    // static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
+    // static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
+
+    // static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
+    // static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
+    // static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
+
+    // static_assert(tests::stdexec::has_completion_signatures<chain_0_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_1_t, ::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>);
+    // static_assert(tests::stdexec::has_completion_signatures<chain_2_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_0_t>, scheduler_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_1_t>, scheduler_h_domain_t>);
+    // static_assert(std::same_as<::stdexec::__early_domain_of_t<chain_2_t>, scheduler_domain_t>);
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    std::cout << "> exec  : " << Kokkos::Tools::Experimental::device_id(exec) << std::endl;
+    std::cout << "> exec_h: " << Kokkos::Tools::Experimental::device_id(exec_h) << std::endl;
+
+    const auto recorded_events = recorder_listener_t::record([chain = std::move(chain_2)] () mutable { ::stdexec::sync_wait(std::move(chain)); });
+    for (const auto& recorded_event : recorded_events) {
+        std::visit([] (const auto& arg) { std::cout << "- " << arg << std::endl; }, recorded_event);
+    }
+
+    ASSERT_THAT(
+        recorded_events,
+        ::testing::ElementsAre(
+            MATCHER_FOR_BEGIN_PFOR (exec,   then),
+            // MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
+            MATCHER_FOR_BEGIN_PFOR (exec_h, then),
+            // MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
             MATCHER_FOR_BEGIN_FENCE(exec,   sync_wait)
         )

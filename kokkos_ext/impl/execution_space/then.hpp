@@ -41,6 +41,7 @@ struct ThenReceiver
 
     void set_value() && noexcept
     {
+        std::cout << "then: set_value" << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")" << std::endl;
         try {
             Kokkos::parallel_for(
                 std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
@@ -63,10 +64,12 @@ struct ThenReceiver
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
+        std::cout << "then: set_error" << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")" << std::endl;
         ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
+        std::cout << "then: set_stopped" << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")" << std::endl;
         ::stdexec::set_stopped(std::move(rcvr));
     }
 

@@ -1,8 +1,6 @@
 #ifndef GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_SYNC_WAIT_HPP
 #define GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_SYNC_WAIT_HPP
 
-#include <concepts>
-
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
