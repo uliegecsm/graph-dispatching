@@ -101,7 +101,13 @@ struct ScheduleFromSender
     size_t id = 0;
 
     // THIS IS KEY
-    decltype(auto) get_env() const noexcept { return schd.env; }
+    decltype(auto) get_env() const noexcept {
+        if constexpr (stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>) {
+            return schd.env;
+        } else {
+            return stdexec::get_env(schd);
+        }
+    }
 };
 } // namespace Kokkos::Experimental::details::execution_space
 

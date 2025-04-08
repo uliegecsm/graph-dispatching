@@ -97,7 +97,7 @@ TEST_F(InterOpTest, static_thread_pool)
         recorded_events,
         ::testing::ElementsAre(
             MATCHER_FOR_BEGIN_PFOR (exec, then),
-            MATCHER_FOR_BEGIN_PFOR (exec, scheduler_from),
+            MATCHER_FOR_BEGIN_FENCE(exec, schedule_from),
             // then on pool lol
             MATCHER_FOR_BEGIN_PFOR (exec_h, then),
             MATCHER_FOR_BEGIN_FENCE(exec_h, sync_wait)
