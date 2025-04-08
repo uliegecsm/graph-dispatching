@@ -104,9 +104,10 @@ TEST_F(InterOpTest, static_thread_pool)
         )
     );
 
-    // ASSERT_EQ(data(), 12);
+    ASSERT_EQ(data(), 12);
 
-    run loop issue stuff
+    // run loop issue stuff if we had a transition after the thread pool.
+    // must show the run_loop in the env of the sync wait receiver
 }
 
 } // namespace tests::kokkos_ext

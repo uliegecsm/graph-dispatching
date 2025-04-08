@@ -148,6 +148,27 @@ struct ExecutionSpaceScheduler
                 }
             );
         }
+
+        template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
+        auto operator()(stdexec::continues_on_t, Schd&& schd , Sndr&& sndr) && noexcept
+        {
+            // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
+            static_assert(stdexec::__is_instance_of_<
+                std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
+                ExecutionSpaceScheduler
+            >);
+
+            std::cout << "TransformContinuesOn<schedule_from_t>:" << std::endl
+                      << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
+
+            auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+            std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
+
+            return stdexec::schedule_from(
+                std::forward<Schd>(schd),
+                std::forward<Sndr>(sndr)
+            );
+        }
     };
 
 #if defined(KOKKOS_ENABLE_HIP)
@@ -220,6 +241,18 @@ struct ExecutionSpaceScheduler
             return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
         }
 
+        // continues on another scheduler but we transition from ours
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr> requires (!stdexec::__is_instance_of_<
+            std::remove_cvref_t<std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>>,
+            ExecutionSpaceScheduler>)
+        auto transform_sender(Sndr&& sndr) const noexcept
+        {
+            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+            std::cout << "transform_sender<continues_on_t>[early]:" << std::endl
+                      << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name() << std::endl;
+            return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
+        }
+
         // //! Late customization for @c continues_on.
         // template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr, class Env>
         // auto transform_sender(Sndr&& sndr, const Env&) const noexcept
@@ -261,6 +294,26 @@ struct ExecutionSpaceScheduler
                 } else {
                 std::cout << "\t- comp: no completion scheduler for the sender" << std::endl;
                 }
+
+                return ScheduleFromSender{
+                    .schd = std::forward<Schd>(schd),
+                    .sndr = std::forward<Sndr>(sndr)
+                };
+            }
+
+            template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
+            auto operator()(stdexec::schedule_from_t, Schd&& schd, Sndr&& sndr) && noexcept
+            {
+                // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
+                static_assert(stdexec::__is_instance_of_<
+                    std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
+                    ExecutionSpaceScheduler
+                >);
+
+                std::cout << "TransformScheduleFrom<schedule_from_t>:" << std::endl
+                          << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
+                auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+                std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
 
                 return ScheduleFromSender{
                     .schd = std::forward<Schd>(schd),

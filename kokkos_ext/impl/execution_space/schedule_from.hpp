@@ -66,12 +66,33 @@ struct ScheduleFromSender
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
-        using recv_t = ScheduleFromReceiver<std::remove_cvref_t<Rcvr>, Schd>;
+        
 
-        return ::stdexec::connect(
-            std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .schd = std::move(schd), .fencing_required = fencing_required, .id = id}
-        );
+        if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>)
+        {
+            auto completion_schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+
+            const bool fencing_required__ = [&]() {
+                if constexpr (std::same_as<std::remove_cvref_t<decltype(schd)>, std::remove_cvref_t<decltype(completion_schd)>>)
+                    return schd != completion_schd;
+                else
+                    return true;
+            }();
+
+            using recv_t = ScheduleFromReceiver<std::remove_cvref_t<Rcvr>, decltype(completion_schd)>;
+
+            return ::stdexec::connect(
+                std::move(sndr),
+                recv_t{.rcvr = std::forward<Rcvr>(rcvr), .schd = std::move(completion_schd), .fencing_required = fencing_required__, .id = id}
+            );
+        } else {
+            using recv_t = ScheduleFromReceiver<std::remove_cvref_t<Rcvr>, Schd>;
+
+            return ::stdexec::connect(
+                std::move(sndr),
+                recv_t{.rcvr = std::forward<Rcvr>(rcvr), .schd = std::move(schd), .fencing_required = false, .id = id}
+            );
+        }
     }
 
     Schd schd;

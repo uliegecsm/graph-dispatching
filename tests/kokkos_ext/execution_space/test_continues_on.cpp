@@ -144,17 +144,17 @@ TEST_F(ContinuesOnTest, continues_on_many)
         | ::stdexec::continues_on(esc.get_scheduler())
         | ADD_THEN;
 
-    // using chain_0_t = decltype(chain_0);
-    // using chain_1_t = decltype(chain_1);
-    // using chain_2_t = decltype(chain_2);
+    using chain_0_t = decltype(chain_0);
+    using chain_1_t = decltype(chain_1);
+    using chain_2_t = decltype(chain_2);
 
-    // static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
-    // static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
-    // static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
+    static_assert(::stdexec::__has_completion_scheduler<chain_0_t, ::stdexec::set_value_t>);
+    static_assert(::stdexec::__has_completion_scheduler<chain_1_t, ::stdexec::set_value_t>);
+    static_assert(::stdexec::__has_completion_scheduler<chain_2_t, ::stdexec::set_value_t>);
 
-    // static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
-    // static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
-    // static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
+    static_assert(::stdexec::__completes_on<chain_0_t, scheduler_t>);
+    static_assert(::stdexec::__completes_on<chain_1_t, scheduler_h_t>);
+    static_assert(::stdexec::__completes_on<chain_2_t, scheduler_t>);
 
     // static_assert(tests::stdexec::has_completion_signatures<chain_0_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
     // static_assert(tests::stdexec::has_completion_signatures<chain_1_t, ::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>);
@@ -178,9 +178,9 @@ TEST_F(ContinuesOnTest, continues_on_many)
         recorded_events,
         ::testing::ElementsAre(
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
-            // MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
+            MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec_h, then),
-            // MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
+            MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
             MATCHER_FOR_BEGIN_FENCE(exec,   sync_wait)
         )
@@ -244,9 +244,9 @@ TEST_F(ContinuesOnTest, stupidous)
         recorded_events,
         ::testing::ElementsAre(
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
-            // MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
+            MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec_h, then),
-            // MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
+            MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
             MATCHER_FOR_BEGIN_PFOR (exec,   then),
             MATCHER_FOR_BEGIN_FENCE(exec,   sync_wait)
         )
