@@ -57,6 +57,13 @@ target_compile_definitions(
         KOKKOS_IMPL_PUBLIC_INCLUDE
 )
 
+#---- Find Kokkos Kernels.
+find_package(
+    KokkosKernels
+    CONFIG
+    REQUIRED
+)
+
 #---- Setup compiler warnings.
 include(cmake/modules/IgnoreWarnings.cmake)
 

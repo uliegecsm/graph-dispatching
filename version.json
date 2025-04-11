@@ -24,6 +24,10 @@
             "sha"    : "79d2a342fed1daa31508f50d4c3b15d4d61c82f1",
             "comment": "We want to build against the Kokkos develop branch. Providing a SHA is a convenient way to force image rebuild."
         },
+        "kokkos-kernels" : {
+            "branch" : "develop",
+            "sha"    : "9bca19c85b88aeca97209ec7cde858447e16696c"
+        },
         "kokkos-utils" : {
             "branch" : "develop",
             "sha"    : "8ccccb94299a294923f7836806d69b76be8d326f"

@@ -47,17 +47,26 @@ runs:
     steps:
         - shell: sh
           run  : |
-            echo "CLANG_VERSION=$(      jq '.dependencies.clang.value'           version.json -j)" >> $GITHUB_ENV
-            echo "CMAKE_VERSION=$(      jq '.dependencies.cmake.value'           version.json -j)" >> $GITHUB_ENV
-            echo "DOXYGEN_VERSION=$(    jq '.dependencies.doxygen.value'         version.json -j)" >> $GITHUB_ENV
-            echo "GOOGLETEST_VERSION=$( jq '.dependencies.googletest.value'      version.json -j)" >> $GITHUB_ENV
-            echo "HPX_REF=v$(           jq '.dependencies.hpx.value'             version.json -j)" >> $GITHUB_ENV
-            echo "KOKKOS_BRANCH=$(      jq '.dependencies.kokkos.branch'         version.json -j)" >> $GITHUB_ENV
-            echo "KOKKOS_SHA=$(         jq '.dependencies.kokkos.sha'            version.json -j)" >> $GITHUB_ENV
-            echo "KOKKOS_VERSION=$(     jq '.dependencies.kokkos.value'          version.json -j)" >> $GITHUB_ENV
+            echo "CLANG_VERSION=$(jq '.dependencies.clang.value' version.json -j)" >> $GITHUB_ENV
+
+            echo "CMAKE_VERSION=$(jq '.dependencies.cmake.value' version.json -j)" >> $GITHUB_ENV
+
+            echo "DOXYGEN_VERSION=$(jq '.dependencies.doxygen.value' version.json -j)" >> $GITHUB_ENV
+
+            echo "GOOGLETEST_VERSION=$(jq '.dependencies.googletest.value' version.json -j)" >> $GITHUB_ENV
+
+            echo "HPX_REF=v$(jq '.dependencies.hpx.value' version.json -j)" >> $GITHUB_ENV
+
+            echo "KOKKOS_BRANCH=$(jq '.dependencies.kokkos.branch' version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_SHA=$(   jq '.dependencies.kokkos.sha'    version.json -j)" >> $GITHUB_ENV
+
+            echo "KOKKOS_KERNELS_BRANCH=$(jq '.dependencies."kokkos-kernels".branch' version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_KERNELS_SHA=$(   jq '.dependencies."kokkos-kernels".branch' version.json -j)" >> $GITHUB_ENV
+
             echo "KOKKOS_UTILS_BRANCH=$(jq '.dependencies."kokkos-utils".branch' version.json -j)" >> $GITHUB_ENV
             echo "KOKKOS_UTILS_SHA=$(   jq '.dependencies."kokkos-utils".sha'    version.json -j)" >> $GITHUB_ENV
-            echo "NVIDIA_STDEXEC_REF=$( jq '.dependencies.nvidia.stdexec.value'  version.json -j)" >> $GITHUB_ENV
+
+            echo "NVIDIA_STDEXEC_REF=$(jq '.dependencies.nvidia.stdexec.value' version.json -j)" >> $GITHUB_ENV
 
         - uses: docker/setup-buildx-action@v3
 
@@ -78,12 +87,17 @@ runs:
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}
+
                   KOKKOS_ARCH=${{ inputs.kokkos_arch }}
                   KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
                   KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
                   KOKKOS_SHA=${{ env.KOKKOS_SHA }}
-                  KOKKOS_VERSION=${{ env.KOKKOS_VERSION }}
+
+                  KOKKOS_KERNELS_BRANCH=${{ env.KOKKOS_KERNELS_BRANCH }}
+                  KOKKOS_KERNELS_SHA=${{ env.KOKKOS_KERNELS_SHA }}
+
                   KOKKOS_UTILS_BRANCH=${{ env.KOKKOS_UTILS_BRANCH }}
                   KOKKOS_UTILS_SHA=${{ env.KOKKOS_UTILS_SHA }}
+
                   NVIDIA_STDEXEC_REF=${{ env.NVIDIA_STDEXEC_REF }}
               labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"

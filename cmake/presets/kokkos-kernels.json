@@ -1,0 +1,69 @@
+{
+    "version"   : 3,
+    "configurePresets" : [
+        {
+            // Configuration common to all available presets.
+            "name"           : "default",
+            "hidden"         : true,
+            "binaryDir"      : "${sourceDir}/build-with-${presetName}",
+            "cacheVariables" : {
+                "CMAKE_BUILD_TYPE"     : "Release",
+                "CMAKE_CXX_STANDARD"   : "20",
+                "CMAKE_C_COMPILER"     : "should-not-be-needed"
+            }
+        },
+        {
+            // Inherit from this preset to use the gcc compiler family.
+            "name"           : "gcc",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
+        },
+        {
+            // Inherit from this preset to use the clang compiler family.
+            "name"           : "clang",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
+        },
+        {
+            // Inherit from this preset to use the ROCm compiler family.
+            "name"           : "rocm",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
+        },
+        {
+            "name"     : "gcc-OpenMP",
+            "inherits" : ["default", "gcc"]
+        },
+        {
+            "name"     : "clang-OpenMP",
+            "inherits" : ["default", "clang"]
+        },
+        {
+            "name"     : "clang-HPX",
+            "inherits" : ["default", "clang"]
+        },
+        {
+            "name"     : "gcc-Cuda",
+            "inherits" : ["default", "gcc"]
+        },
+        {
+            "name"     : "clang-Cuda",
+            "inherits" : ["default", "clang"]
+        },
+        {
+            "name"     : "clang-HPX-Cuda",
+            "inherits" : ["default", "clang"]
+        },
+        {
+            "name"     : "rocm-HIP",
+            "inherits" : ["default", "rocm"]
+        }
+    ],
+    "buildPresets" : [
+        {
+            "name"            : "default",
+            "configurePreset" : "default",
+            "inheritConfigureEnvironment" : true
+        }
+    ]
+}
