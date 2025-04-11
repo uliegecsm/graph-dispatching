@@ -72,7 +72,7 @@ struct ScheduleFromSender
         {
             auto completion_schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 
-            const bool fencing_required__ = [&]() {
+            const bool fencing_required_ = [&]() {
                 if constexpr (std::same_as<std::remove_cvref_t<decltype(schd)>, std::remove_cvref_t<decltype(completion_schd)>>)
                     return schd != completion_schd;
                 else
@@ -83,7 +83,7 @@ struct ScheduleFromSender
 
             return ::stdexec::connect(
                 std::move(sndr),
-                recv_t{.rcvr = std::forward<Rcvr>(rcvr), .schd = std::move(completion_schd), .fencing_required = fencing_required__, .id = id}
+                recv_t{.rcvr = std::forward<Rcvr>(rcvr), .schd = std::move(completion_schd), .fencing_required = fencing_required_, .id = id}
             );
         } else {
             using recv_t = ScheduleFromReceiver<std::remove_cvref_t<Rcvr>, Schd>;

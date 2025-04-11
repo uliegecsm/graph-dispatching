@@ -7,20 +7,18 @@
 
 namespace Kokkos::Experimental::details::execution_space
 {
-    struct __env {
-        using __t = __env;
-        using __id = __env;
+    struct my_env {
   
-        stdexec::run_loop::__scheduler __sched_;
+        stdexec::run_loop::__scheduler schd;
   
         [[nodiscard]]
         auto query(stdexec::get_scheduler_t) const noexcept -> stdexec::run_loop::__scheduler {
-          return __sched_;
+          return schd;
         }
   
         [[nodiscard]]
         auto query(stdexec::get_delegation_scheduler_t) const noexcept -> stdexec::run_loop::__scheduler {
-          return __sched_;
+          return schd;
         }
       };
 //! Receiver for @c sync_wait.
@@ -31,7 +29,7 @@ struct SyncWaitReceiver
 
     Schd schd;
 
-    stdexec::run_loop* loop_;
+    stdexec::run_loop* loop_ = nullptr;
 
     std::shared_ptr<std::exception_ptr> error;
 
@@ -51,7 +49,7 @@ struct SyncWaitReceiver
 
     decltype(auto) get_env() const noexcept {
         // return schd.env;
-        return __env{loop_->get_scheduler()};
+        return my_env{loop_->get_scheduler()};
     }
 };
 

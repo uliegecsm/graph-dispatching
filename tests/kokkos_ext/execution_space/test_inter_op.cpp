@@ -47,9 +47,11 @@ struct LoadCheckAddFunctor
     KOKKOS_FUNCTION
     void operator()() const
     {
-        std::flush(std::cout);
-        std::cout << "Running LoadCheckAddFunctor with prev " << prev << " and " << value << " at " << data << std::endl;
-        std::flush(std::cout);
+        KOKKOS_IF_ON_HOST(
+            std::flush(std::cout);
+            std::cout << "Running LoadCheckAddFunctor with prev " << prev << " and " << value << " at " << data << std::endl;
+            std::flush(std::cout);
+        )
         // if constexpr (OnDevice) { KOKKOS_IF_ON_HOST  (/*Kokkos::abort*/printf("Bulk: you should not be running on host.");) }
         // else                    { KOKKOS_IF_ON_DEVICE(/*Kokkos::abort*/printf("Bulk: you should not be running on device.");) }
 
