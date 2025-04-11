@@ -153,9 +153,8 @@ ARG KOKKOS_ARCH
 ARG KOKKOS_BRANCH
 ARG KOKKOS_PRESET
 ARG KOKKOS_SHA
-ARG KOKKOS_VERSION
 
-RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
+RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
 
 RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
     --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
@@ -180,19 +179,45 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
     fi
 
     cmake -S . --preset=${KOKKOS_PRESET} \
-        -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+        -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
+
+    cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
+EOF
+
+# Compile Kokkos Kernels.
+FROM kokkos-compile AS kokkos-kernels-compile
+
+ARG KOKKOS_KERNELS_BRANCH
+ARG KOKKOS_KERNELS_SHA
+
+RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_KERNELS_BRANCH} https://github.com/kokkos/kokkos-kernels /kokkos-kernels-sources
+
+RUN --mount=target=/cmake/presets/kokkos-kernels.json,type=bind,source=cmake/presets/kokkos-kernels.json \
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
+    set -ex
+
+    cd /kokkos-kernels-sources
+
+    git checkout ${KOKKOS_KERNELS_SHA}
+
+    python3 /cmake/presets/generate.py                   \
+        --input-file  /cmake/presets/kokkos-kernels.json \
+        --output-file CMakePresets.json                  \
+        --preset      ${KOKKOS_PRESET}
+
+    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
+
+    cmake -S . --preset=${KOKKOS_PRESET} \
+        -DCMAKE_INSTALL_PREFIX=/opt/kokkos-kernels-${KOKKOS_KERNELS_SHA}/${KOKKOS_PRESET}
 
     cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
 EOF
 
 # Compile Kokkos Tools.
-# It seems that Kokkos from the previous stage will be detected, so we don't need a presets file.
 FROM kokkos-compile AS kokkos-tools-compile
 
-ARG KOKKOS_PRESET
 ARG KOKKOS_TOOLS_BRANCH=develop
 ARG KOKKOS_TOOLS_SHA=a9453b21e09c7555096f3a96bb3fa8b34afe19f8
-ARG KOKKOS_VERSION
 
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_TOOLS_BRANCH} https://github.com/kokkos/kokkos-tools /kokkos-tools-sources
 
@@ -209,7 +234,7 @@ RUN --mount=target=/cmake/presets/kokkos-tools.json,type=bind,source=cmake/prese
         --output-file CMakePresets.json                \
         --preset      ${KOKKOS_PRESET}
 
-    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
 
     cmake -S . --preset=${KOKKOS_PRESET} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-tools/${KOKKOS_PRESET}
@@ -272,7 +297,7 @@ RUN --mount=target=/cmake/presets/kokkos-utils.json,type=bind,source=cmake/prese
         --output-file CMakePresets.json                \
         --preset ${KOKKOS_PRESET}
 
-    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+    export Kokkos_ROOT=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
 
     cmake -S . --preset=${KOKKOS_PRESET} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-utils/${KOKKOS_PRESET}
@@ -286,21 +311,24 @@ FROM requirements AS final
 ARG DOXYGEN_VERSION
 ARG GOOGLETEST_VERSION
 ARG HPX_REF
-ARG KOKKOS_VERSION
+ARG KOKKOS_KERNELS_SHA
 ARG KOKKOS_PRESET
+ARG KOKKOS_SHA
 ARG NVIDIA_STDEXEC_REF
 
-COPY --from=doxygen-compile      /opt/doxygen-${DOXYGEN_VERSION}                /opt/doxygen-${DOXYGEN_VERSION}
-COPY --from=google-test-compile  /opt/google-test-${GOOGLETEST_VERSION}         /opt/google-test-${GOOGLETEST_VERSION}
-COPY --from=hpx-compile          /opt/hpx-${HPX_REF}                            /opt/hpx-${HPX_REF}
-COPY --from=kokkos-compile       /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET} /opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
-COPY --from=kokkos-tools-compile /opt/kokkos-tools/${KOKKOS_PRESET}             /opt/kokkos-tools/${KOKKOS_PRESET}
-COPY --from=kokkos-utils-compile /opt/kokkos-utils/${KOKKOS_PRESET}             /opt/kokkos-utils/${KOKKOS_PRESET}
-COPY --from=nvidia-stdexec       /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}      /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
+COPY --from=doxygen-compile        /opt/doxygen-${DOXYGEN_VERSION}                            /opt/doxygen-${DOXYGEN_VERSION}
+COPY --from=google-test-compile    /opt/google-test-${GOOGLETEST_VERSION}                     /opt/google-test-${GOOGLETEST_VERSION}
+COPY --from=hpx-compile            /opt/hpx-${HPX_REF}                                        /opt/hpx-${HPX_REF}
+COPY --from=kokkos-compile         /opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}                 /opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
+COPY --from=kokkos-kernels-compile /opt/kokkos-kernels-${KOKKOS_KERNELS_SHA}/${KOKKOS_PRESET} /opt/kokkos-kernels-${KOKKOS_KERNELS_SHA}/${KOKKOS_PRESET}
+COPY --from=kokkos-tools-compile   /opt/kokkos-tools/${KOKKOS_PRESET}                         /opt/kokkos-tools/${KOKKOS_PRESET}
+COPY --from=kokkos-utils-compile   /opt/kokkos-utils/${KOKKOS_PRESET}                         /opt/kokkos-utils/${KOKKOS_PRESET}
+COPY --from=nvidia-stdexec         /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}                  /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
-ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_VERSION}/${KOKKOS_PRESET}
+ENV Kokkos_ROOT=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
+ENV KokkosKernels_ROOT=/opt/kokkos-kernels-${KOKKOS_KERNELS_SHA}/${KOKKOS_PRESET}
 ENV KokkosUtils_ROOT=/opt/kokkos-utils/${KOKKOS_PRESET}
 ENV Stdexec_ROOT=/opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
