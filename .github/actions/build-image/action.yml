@@ -59,6 +59,7 @@ runs:
 
             echo "KOKKOS_BRANCH=$(jq '.dependencies.kokkos.branch' version.json -j)" >> $GITHUB_ENV
             echo "KOKKOS_SHA=$(   jq '.dependencies.kokkos.sha'    version.json -j)" >> $GITHUB_ENV
+            echo "KOKKOS_URL=$(   jq '.dependencies.kokkos.url'    version.json -j)" >> $GITHUB_ENV
 
             echo "KOKKOS_KERNELS_BRANCH=$(jq '.dependencies."kokkos-kernels".branch' version.json -j)" >> $GITHUB_ENV
             echo "KOKKOS_KERNELS_SHA=$(   jq '.dependencies."kokkos-kernels".branch' version.json -j)" >> $GITHUB_ENV
@@ -92,6 +93,7 @@ runs:
                   KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
                   KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
                   KOKKOS_SHA=${{ env.KOKKOS_SHA }}
+                  KOKKOS_URL=${{ env.KOKKOS_URL }}
 
                   KOKKOS_KERNELS_BRANCH=${{ env.KOKKOS_KERNELS_BRANCH }}
                   KOKKOS_KERNELS_SHA=${{ env.KOKKOS_KERNELS_SHA }}
