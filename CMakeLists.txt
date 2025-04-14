@@ -42,7 +42,6 @@ endif()
 #---- Find Kokkos.
 string(JSON Kokkos_REQUIRED_VERSION GET "${VERSION_JSON}" dependencies kokkos value)
 
-# Don't forget export Kokkos_ROOT=$PWD/kokkos-compiled/ROCm-HIP
 find_package(
     Kokkos
     ${Kokkos_REQUIRED_VERSION}

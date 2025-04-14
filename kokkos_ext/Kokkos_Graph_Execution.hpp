@@ -8,8 +8,6 @@
 #include "Kokkos_Graph.hpp"
 
 #include "kokkos_ext/impl/ChainHandler.hpp"
-#include "kokkos_ext/impl/ExecutionSpaceContext.hpp"
-#include "kokkos_ext/impl/GraphCapture.hpp"
 #include "kokkos_ext/impl/GraphContext.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
@@ -152,30 +150,9 @@ constexpr decltype(auto) then(Label&& label, Exec&& exec, Functor&& functor)
  * @warning Non-blocking.
  */
 template <typename Exec, typename Sender>
-constexpr void submit(const Exec& exec, const Sender& sender) {
+constexpr void submit(const Exec& exec, Sender&& sender) {
     Kokkos::Impl::GraphAccess::get_graph_weak_ptr(sender).lock()->submit(exec);
 }
-
-//! @overload
-template <typename Exec>
-constexpr void submit(const Exec& exec, const details::ChainHandler<Exec>& chain) {
-    chain.graph.submit(exec);
-}
-
-//! @name Extract the execution space instance.
-///@{
-//! If @p T is a @c Kokkos execution space instance, return it.
-template <typename T> requires Kokkos::is_execution_space_v<T>
-decltype(auto) get_exec(T&& exec) { return std::forward<T>(exec); }
-
-//! If @c T is a @c Kokkos graph node, return the execution space instance attached to its graph.
-template <typename T> requires Kokkos::Impl::is_specialization_of<std::remove_cvref_t<T>, Kokkos::Experimental::GraphNodeRef>::value
-decltype(auto) get_exec(const T& node) { return Kokkos::Impl::GraphAccess::get_graph_weak_ptr(node).lock()->get_execution_space(); }
-
-//! Otherwise, it's probably a @ref ChainHandler.
-template <typename T>
-decltype(auto) get_exec(const T& sender) { return sender.graph.get_execution_space(); }
-///@}
 
 } // namespace graph
 
