@@ -13,9 +13,9 @@
  * Conjugate gradient solver with regular @c Kokkos execution space instances
  * --------------------------------------------------------------------------
  *
- * Implement a portable conjugate gradient solver without using @c Kokkos::Graph.
+ * Implement a portable conjugate gradient (CG) solver without using @c Kokkos::Graph.
  *
- * The test can be found in @ref cg/test_regular.cpp.
+ * The test can be found in @ref tests/cg/test_regular.cpp.
  */
 
 namespace tests::cg
