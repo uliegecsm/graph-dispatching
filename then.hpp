@@ -14,10 +14,6 @@ struct ThenReceiver
 {
     using receiver_concept = stdexec::receiver_t;
 
-    Rcvr rcvr;
-    Functor functor;
-    Schd schd;
-
     //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
     struct ThenWrapper
     {
@@ -27,13 +23,25 @@ struct ThenReceiver
         KOKKOS_FUNCTION void operator()(const T) const { functor(); }
     };
 
+    Rcvr rcvr;
+    ThenWrapper wrapper;
+    Schd schd;
+
     void set_value() && noexcept
     {
         try {
             Kokkos::parallel_for(
                 std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
                 Kokkos::RangePolicy(std::move(schd).env.exec, 0, 1),
-                ThenWrapper{.functor = std::move(functor)}
+                /// We cannot write:
+                /// @code
+                /// ThenWrapper{.functor = std::move(functor)}
+                /// @endcode
+                /// because, as @c Kokkos::parallel_for spawns a possibly asynchronous
+                /// kernel, we must keep any resource alive.
+                /// @todo Using @c async_scope from https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3149r3.html#executionasync_scope
+                ///       would move the responsability of lifetime bookkeeping to the user.
+                wrapper
             );
         } catch(...) {
             stdexec::set_error(std::move(rcvr), std::current_exception());
@@ -84,7 +92,7 @@ struct ThenSender
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .functor = std::move(functor), .schd = std::move(schd)}
+            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .wrapper = {std::move(functor)}, .schd = std::move(schd)}
         );
     }
 
