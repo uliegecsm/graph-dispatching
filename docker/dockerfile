@@ -153,8 +153,9 @@ ARG KOKKOS_ARCH
 ARG KOKKOS_BRANCH
 ARG KOKKOS_PRESET
 ARG KOKKOS_SHA
+ARG KOKKOS_URL=kokkos
 
-RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_BRANCH} https://github.com/kokkos/kokkos /kokkos-sources
+RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_BRANCH} https://github.com/${KOKKOS_URL}/kokkos /kokkos-sources
 
 RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
     --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
@@ -162,7 +163,9 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
 
     cd /kokkos-sources
 
-    git checkout ${KOKKOS_SHA}
+    if [ -z "${KOKKOS_SHA}" ];then
+        git checkout ${KOKKOS_SHA}
+    fi
 
     python3 /cmake/presets/generate.py           \
         --input-file  /cmake/presets/kokkos.json \

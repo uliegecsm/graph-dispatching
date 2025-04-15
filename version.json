@@ -20,9 +20,9 @@
         },
         "kokkos" : {
             "value"  : "4.5.99",
-            "branch" : "develop",
-            "sha"    : "79d2a342fed1daa31508f50d4c3b15d4d61c82f1",
-            "comment": "We want to build against the Kokkos develop branch. Providing a SHA is a convenient way to force image rebuild."
+            "branch" : "graph-capture",
+            "sha"    : "",
+            "url"    : "romintomasetti"
         },
         "kokkos-kernels" : {
             "branch" : "develop",
