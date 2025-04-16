@@ -38,7 +38,7 @@ if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
     # use it for the 'while' test. See https://gist.github.com/romintomasetti/6ddb4e5528fe3eabd0860ca8009e24d5.
     add_one_test(NAME conditional_while COMPILE_DEFINITIONS ${enabled_backend} ADD_BINARY_DIR)
     # This test uses cuSparse, but capture works for HIP.
-    add_one_test(NAME graph_capture  COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher})
+    add_one_test(NAME graph_capture COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher})
 endif()
 
 # Jobs that enable Doxygen might not have 'CUDA::cusparse' available.
