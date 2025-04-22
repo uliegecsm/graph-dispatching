@@ -7,6 +7,14 @@ find_package(
     REQUIRED
 )
 
+#---- Fetch tag files of other projects.
+set(KokkosUtils_DOC_URL https://uliegecsm.github.io/kokkos-utils/)
+file(DOWNLOAD ${KokkosUtils_DOC_URL}/kokkos-utils.tag ${CMAKE_CURRENT_BINARY_DIR}/kokkos-utils.tag STATUS fetch_tag_file)
+if(NOT fetch_tag_file EQUAL 0)
+    message(FATAL_ERROR "An error occurred while fetching tag file for 'kokkos-utils' from ${KokkosUtils_DOC_URL} (${fetch_tag_file})")
+endif()
+set(DOXYGEN_TAGFILES ${CMAKE_CURRENT_BINARY_DIR}/kokkos-utils.tag=${KokkosUtils_DOC_URL})
+
 #---- Our 'homepage' is the README file.
 set(HOMEPAGE_MD ${CMAKE_SOURCE_DIR}/README.md)
 
@@ -31,7 +39,7 @@ set(DOXYGEN_INCLUDE_PATH
 #---- Extract files for documentation.
 get_property(GraphDispatching_FILES_FOR_DOC GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC)
 list(LENGTH GraphDispatching_FILES_FOR_DOC GraphDispatching_FILES_FOR_DOC_LENGTH)
-if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 79)
+if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 80)
     message(FATAL_ERROR "You have ${GraphDispatching_FILES_FOR_DOC_LENGTH} files for documentation.")
 endif()
 
