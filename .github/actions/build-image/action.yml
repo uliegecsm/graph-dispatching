@@ -53,6 +53,8 @@ runs:
 
             echo "DOXYGEN_VERSION=$(jq '.dependencies.doxygen.value' version.json -j)" >> $GITHUB_ENV
 
+            echo "GOOGLEBENCHMARK_VERSION=$(jq '.dependencies.googlebenchmark.value' version.json -j)" >> $GITHUB_ENV
+
             echo "GOOGLETEST_VERSION=$(jq '.dependencies.googletest.value' version.json -j)" >> $GITHUB_ENV
 
             echo "HPX_REF=v$(jq '.dependencies.hpx.value' version.json -j)" >> $GITHUB_ENV
@@ -86,6 +88,9 @@ runs:
                   CMAKE_VERSION=${{ env.CMAKE_VERSION }}
                   COMPILER_FAMILY=${{ inputs.compiler_family }}
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
+
+                  GOOGLEBENCHMARK_VERSION=${{ env.GOOGLEBENCHMARK_VERSION }}
+
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}
 
