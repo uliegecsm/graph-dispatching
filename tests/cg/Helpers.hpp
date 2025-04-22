@@ -9,8 +9,6 @@
 #include "kokkos-utils/concepts/ExecutionSpace.hpp"
 #include "kokkos-utils/concepts/MemorySpace.hpp"
 
-#include "kokkos_ext/Kokkos_Graph_Execution.hpp"
-
 namespace tests::cg
 {
 /**
@@ -172,7 +170,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     EXPECT_EQ(num_iters, _expt_niters_);                                                               \
                                                                                                        \
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace{}, sol); \
-    for(typename std::remove_cvref_t<decltype(exec)>::size_type irow = 0; irow < _nrows_; ++irow) {    \
+    for(typename std::remove_cvref_t<decltype(_exec_)>::size_type irow = 0; irow < _nrows_; ++irow) {  \
         const Kokkos::complex<double> value {double(2 * irow) / _nrows_, double(2 * irow) / _nrows_};  \
         EXPECT_LE(                                                                                     \
             relDifference(mirror(irow), value),                                                        \
@@ -202,7 +200,7 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
 
     if(mode[0] != 'N') Kokkos::abort("Unsupported mode.");
 
-    const auto rows_per_team = mat.numRows();
+    const auto num_rows = mat.numRows();
 
     KokkosSparse::Impl::SPMV_Functor< // NOLINT(misc-const-correctness)
         execution_space,
@@ -217,19 +215,19 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
         std::forward<XVector>(vec_x),
         std::forward<Beta>(beta),
         std::forward<YVector>(vec_y),
-        rows_per_team
+        0
     );
 
     if constexpr (Kokkos::utils::concepts::ExecutionSpace<Pred>) {
         Kokkos::parallel_for(
             "tests::cg::spmv",
-            Kokkos::TeamPolicy<execution_space>(pred, 1, Kokkos::AUTO),
+            Kokkos::RangePolicy<execution_space>(pred, 0, num_rows),
             std::move(functor)
         );
     } else {
         return pred.then_parallel_for(
             "tests::cg::spmv",
-            Kokkos::TeamPolicy<execution_space>(1, Kokkos::AUTO),
+            Kokkos::RangePolicy<execution_space>(0, num_rows),
             std::move(functor)
         );
     }
@@ -341,6 +339,10 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
             return _with_(std::forward<Args>(args)...);   \
         }                                                 \
     };
+
+DEFINE_FUNCTOR(TestsCgSpmv,  ::tests::cg::spmv)
+DEFINE_FUNCTOR(TestsCgDot,   ::tests::cg::dot)
+DEFINE_FUNCTOR(TestsCgAxpby, ::tests::cg::axpby)
 
 } // namespace tests::cg
 

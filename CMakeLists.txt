@@ -113,6 +113,9 @@ find_package(
     REQUIRED
 )
 
+#---- Algorithms.
+add_subdirectory(algorithms)
+
 #---- Testing.
 enable_testing()
 add_subdirectory(kokkos_ext)
