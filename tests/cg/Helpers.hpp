@@ -149,40 +149,50 @@ struct NbyNSolverTestHelper
     using initializer_t   = FakeFEMLaplacian1D<Kokkos::complex<double>, memory_space>;
 };
 
-template <typename SolverType>
-class NbyNSolverTest : public virtual ::testing::Test
+template <typename SolverType> requires std::is_aggregate_v<SolverType>
+struct NbyNSolverTest
 {
-public:
-    static constexpr SolverType::mag_t tolerance = 1.e-12;
+    using solver_t = SolverType;
 
-public:
     template <Kokkos::utils::concepts::ExecutionSpace Exec>
-    auto run(const Exec& exec, const typename Exec::size_type nrows)
+    static auto run(const Exec& exec, const typename Exec::size_type nrows, const SolverType::mag_t tol)
     {
         auto system = NbyNSolverTestHelper::initializer_t::create(exec, nrows);
 
-        static_assert(std::is_aggregate_v<SolverType>);
-
-        SolverType solver{{}, std::move(system.mat), std::move(system.rhs)};
+        solver_t solver{{}, std::move(system.mat), std::move(system.rhs)};
 
         const Kokkos::Timer timer;
-        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tolerance, 2 * nrows);
+        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tol, 2 * nrows);
         const auto elapsed = timer.seconds();
 
-        EXPECT_LT(res_nrm2,  tolerance);
-        EXPECT_EQ(num_iters, nrows - 1);
-
-        //! Check that the solution is correct. @todo Make it more efficient.
-        const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace{}, system.guess);
-        for(typename Exec::size_type irow = 0; irow < nrows; ++irow)
-        {
-            EXPECT_NEAR(mirror(irow).real(), 2 * irow, 1.e-14);
-            EXPECT_NEAR(mirror(irow).imag(), 2 * irow, 1.e-14);
-        }
-
-        return elapsed;
+        return std::tuple{elapsed, res_nrm2, num_iters, std::move(system.guess)};
     }
 };
+
+//! Relative difference between two @c Kokkos::complex.
+template <std::floating_point T>
+KOKKOS_FORCEINLINE_FUNCTION
+auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val2)
+{
+    constexpr auto epsilon = Kokkos::Experimental::epsilon_v<T>;
+    return abs(val1 - val2) / (epsilon + (abs(val1) <= abs(val2) ? abs(val1) : abs(val2)));
+}
+
+//! Helper for writing tests that use @ref NbyNSolverTest.
+#define RUN_AND_CHECK(_exec_, _nrows_, _tol_, _expt_niters_)                                           \
+    const auto [elapsed, res_nrm2, num_iters, sol] = this->run(_exec_, _nrows_, _tol_);                \
+                                                                                                       \
+    EXPECT_LT(res_nrm2,  _tol_);                                                                       \
+    EXPECT_EQ(num_iters, _expt_niters_);                                                               \
+                                                                                                       \
+    const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace{}, sol); \
+    for(typename std::remove_cvref_t<decltype(exec)>::size_type irow = 0; irow < _nrows_; ++irow) {    \
+        const Kokkos::complex<double> value {double(2 * irow) / _nrows_, double(2 * irow) / _nrows_};  \
+        EXPECT_LE(                                                                                     \
+            relDifference(mirror(irow), value),                                                        \
+            _tol_                                                                                      \
+        ) << mirror(irow) << " not close to " << value;                                                \
+    }
 
 /**
  * @brief Perform a sparse matrix-vector multiply, graph-compatible.

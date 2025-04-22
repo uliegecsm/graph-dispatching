@@ -1,4 +1,5 @@
-#include "gtest/gtest.h"
+#ifndef GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
+#define GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
 
 #include "Kokkos_Profiling_ScopedRegion.hpp"
 
@@ -135,3 +136,5 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
 };
 
 } // namespace tests::cg
+
+#endif // GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
