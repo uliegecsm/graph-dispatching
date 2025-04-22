@@ -20,9 +20,9 @@
         },
         "kokkos" : {
             "value"  : "4.5.99",
-            "branch" : "graph-capture",
-            "sha"    : "",
-            "url"    : "romintomasetti"
+            "branch" : "develop",
+            "sha"    : "2e419cb02f5331181d6103c69b7f2359bd5ccf5c",
+            "url"    : "kokkos"
         },
         "kokkos-kernels" : {
             "branch" : "develop",
