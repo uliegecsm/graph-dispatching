@@ -116,6 +116,11 @@ find_package(
 #---- Algorithms.
 add_subdirectory(algorithms)
 
+#---- Find kokkos-utils.
+#     Note that we need kokkos-utils in both the 'tests' and 'benchmarks' subdirectories,
+#     so we search for it here.
+find_package(KokkosUtils CONFIG REQUIRED)
+
 #---- Testing.
 enable_testing()
 add_subdirectory(kokkos_ext)

@@ -33,6 +33,25 @@ void check_cublas_uses_host_pointer_mode()
 #endif
 }
 
+/**
+ * @brief Use this helper to better describe which region is being closed.
+ *
+ * It would also prevent you from deleting the push but keeping the pop.
+ *
+ * @note It does not store the name of the region to ensure that the footprint
+ *       of this helper is minimum.
+ *
+ * @note In debug mode, we could add a check in the destructor that the @ref pop has been
+ *       called.
+ */
+struct Region
+{
+    template <typename T>
+    explicit Region(T&& arg) { Kokkos::Profiling::pushRegion(std::forward<T>(arg)); }
+
+    static void pop() { Kokkos::Profiling::popRegion(); }
+};
+
 } // namespace algorithms::cg
 
 #endif // GRAPH_DISPATCHING_ALGORITHMS_CG_HELPERS_HPP
