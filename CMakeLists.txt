@@ -118,6 +118,9 @@ enable_testing()
 add_subdirectory(kokkos_ext)
 add_subdirectory(tests)
 
+#---- Benchmarking.
+add_subdirectory(benchmarks)
+
 #---- Documentation.
 if(ENABLE_DOXYGEN)
     add_subdirectory(docs)

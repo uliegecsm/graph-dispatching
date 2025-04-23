@@ -110,6 +110,29 @@ RUN <<EOF
     cmake --build build --target install
 EOF
 
+# Compile Google Benchmark.
+FROM requirements AS google-benchmark-compile
+
+ARG GOOGLEBENCHMARK_VERSION
+
+RUN <<EOF
+    set -ex
+
+    git clone --depth=1 --branch=v${GOOGLEBENCHMARK_VERSION} https://github.com/google/benchmark googlebenchmark
+
+    cd googlebenchmark
+
+    cmake -S . -B build \
+        -DCMAKE_INSTALL_PREFIX=/opt/google-benchmark-${GOOGLEBENCHMARK_VERSION} \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBENCHMARK_ENABLE_TESTING=OFF \
+        -DBENCHMARK_INSTALL_DOCS=OFF
+
+    cmake --build build -j4
+
+    cmake --build build --target install
+EOF
+
 # Fetch HPX sources, configure, build and install.
 FROM requirements AS hpx-compile
 
@@ -312,6 +335,7 @@ EOF
 FROM requirements AS final
 
 ARG DOXYGEN_VERSION
+ARG GOOGLEBENCHMARK_VERSION
 ARG GOOGLETEST_VERSION
 ARG HPX_REF
 ARG KOKKOS_KERNELS_SHA
@@ -319,7 +343,10 @@ ARG KOKKOS_PRESET
 ARG KOKKOS_SHA
 ARG NVIDIA_STDEXEC_REF
 
-COPY --from=doxygen-compile        /opt/doxygen-${DOXYGEN_VERSION}                            /opt/doxygen-${DOXYGEN_VERSION}
+COPY --from=doxygen-compile /opt/doxygen-${DOXYGEN_VERSION} /opt/doxygen-${DOXYGEN_VERSION}
+
+COPY --from=google-benchmark-compile /opt/google-benchmark-${GOOGLEBENCHMARK_VERSION} /opt/google-benchmark-${GOOGLEBENCHMARK_VERSION}
+
 COPY --from=google-test-compile    /opt/google-test-${GOOGLETEST_VERSION}                     /opt/google-test-${GOOGLETEST_VERSION}
 COPY --from=hpx-compile            /opt/hpx-${HPX_REF}                                        /opt/hpx-${HPX_REF}
 COPY --from=kokkos-compile         /opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}                 /opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
@@ -328,6 +355,7 @@ COPY --from=kokkos-tools-compile   /opt/kokkos-tools/${KOKKOS_PRESET}           
 COPY --from=kokkos-utils-compile   /opt/kokkos-utils/${KOKKOS_PRESET}                         /opt/kokkos-utils/${KOKKOS_PRESET}
 COPY --from=nvidia-stdexec         /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}                  /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
+ENV benchmark_ROOT=/opt/google-benchmark-${GOOGLEBENCHMARK_VERSION}
 ENV Doxygen_ROOT=/opt/doxygen-${DOXYGEN_VERSION}
 ENV GTest_ROOT=/opt/google-test-${GOOGLETEST_VERSION}
 ENV HPX_ROOT=/opt/hpx-${HPX_REF}
