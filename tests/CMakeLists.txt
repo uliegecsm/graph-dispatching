@@ -107,6 +107,7 @@ target_sources(test_common PRIVATE main.cpp)
 target_link_libraries(test_common PUBLIC GTest::gtest Kokkos::kokkoscore)
 
 # Add helper files to the documentation.
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/CallbackMatchers.hpp)
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Functors.hpp)
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
