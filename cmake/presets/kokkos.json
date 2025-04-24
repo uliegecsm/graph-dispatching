@@ -53,7 +53,8 @@
             "cacheVariables" : {
                     "Kokkos_ENABLE_CUDA"           : "ON",
                     "Kokkos_ENABLE_CUDA_CONSTEXPR" : "ON",
-                    "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON"
+                    "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON",
+                    "Kokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC" : "ON"
             }
         },
         {
@@ -63,7 +64,8 @@
             "cacheVariables" : {
                 "Kokkos_ENABLE_HIP"            : "ON",
                 "Kokkos_ENABLE_ROCTHRUST"      : "OFF",
-                "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON"
+                "REPL_STR_KOKKOS_ARCH_ENABLED" : "ON",
+                "Kokkos_ENABLE_IMPL_HIP_MALLOC_ASYNC" : "ON"
             }
         },
         {
