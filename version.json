@@ -13,7 +13,7 @@
             "value" : "1.13.2"
         },
         "googletest" : {
-            "value" : "1.16.0"
+            "value" : "1.17.0"
         },
         "googlebenchmark" : {
             "value" : "1.9.2"
