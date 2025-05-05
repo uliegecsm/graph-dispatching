@@ -1,8 +1,11 @@
 #ifndef GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP
 #define GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP
 
+#include "Kokkos_InnerProductSpaceTraits.hpp"
 #include "KokkosSparse_CrsMatrix.hpp"
+#include "KokkosSparse_spmv.hpp"
 
+#include "kokkos-utils/concepts/ExecutionSpace.hpp"
 #include "kokkos-utils/concepts/MemorySpace.hpp"
 
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
