@@ -1,5 +1,9 @@
 #include "gtest/gtest.h"
 
+#include "kokkos-utils/callbacks/EventInRegionMatcher.hpp"
+#include "kokkos-utils/callbacks/EventRegexMatcher.hpp"
+#include "kokkos-utils/callbacks/RecorderListener.hpp"
+
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
 #include "tests/cg/Regular.hpp"
@@ -24,9 +28,9 @@ class CGRegularTest : public NbyNSolverTest<CGRegular<NbyNSolverTestHelper::init
                       public Kokkos::utils::callbacks::ManagerTestFixture
 {
 public:
-    using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent, ProfileEvent, CreateProfileSectionEvent, StartProfileSectionEvent, StopProfileSectionEvent>;
+    using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
 
-    using event_in_profile_section_recorder_t = RecorderListener<EventInProfileSectionRegexMatcher, event_types_list_t>;
+    using event_in_profile_section_recorder_t = RecorderListener<EventInRegionMatcher<EventRegexMatcher>, event_types_list_t>;
 };
 
 TEST_F(CGRegularTest, 10x10)
@@ -34,7 +38,7 @@ TEST_F(CGRegularTest, 10x10)
     const NbyNSolverTestHelper::execution_space exec {};
 
 #if defined(KOKKOS_ENABLE_CUDA)
-    EventInProfileSectionRegexMatcher matcher(std::regex("CG iteration 7"));
+    EventInRegionMatcher matcher{.matcher = EventRegexMatcher{.regex = std::regex("CGRegular - iter 7")}};
     const auto recorder = std::make_shared<event_in_profile_section_recorder_t>(std::move(matcher));
 
     Manager::register_listener(recorder);
