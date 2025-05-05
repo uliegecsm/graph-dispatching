@@ -2,6 +2,7 @@
 #define GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP
 
 #include "Kokkos_InnerProductSpaceTraits.hpp"
+
 #include "KokkosSparse_CrsMatrix.hpp"
 #include "KokkosSparse_spmv.hpp"
 
