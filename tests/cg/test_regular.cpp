@@ -22,9 +22,21 @@
 namespace tests::cg
 {
 
+DEFINE_FUNCTOR(KokkosSparseSpmv, KokkosSparse::spmv)
+DEFINE_FUNCTOR(KokkosBlasDot,    KokkosBlas::dot)
+DEFINE_FUNCTOR(KokkosBlasAxpby,  KokkosBlas::axpby)
+
+using solver_t = CGRegular<
+    NbyNSolverTestHelper::initializer_t::matrix_t,
+    NbyNSolverTestHelper::initializer_t::rhs_t,
+    KokkosSparseSpmv,
+    KokkosBlasDot,
+    KokkosBlasAxpby
+>;
+
 using namespace Kokkos::utils::callbacks;
 
-class CGRegularTest : public NbyNSolverTest<CGRegular<NbyNSolverTestHelper::initializer_t::matrix_t, NbyNSolverTestHelper::initializer_t::rhs_t>>,
+class CGRegularTest : public NbyNSolverTest<solver_t>,
                       public Kokkos::utils::callbacks::ManagerTestFixture
 {
 public:
