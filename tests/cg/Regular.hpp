@@ -10,8 +10,17 @@
 namespace tests::cg
 {
 
-//! Conjugate gradient solver with regular @c Kokkos execution space instances.
-template <typename MatrixType, typename VectorType>
+/**
+ * @brief Conjugate gradient solver with regular @c Kokkos execution space instances.
+ *
+ * @note @c SpmvType, @c DotType and @c AxpbyType are used only during the @c while loop.
+ */
+template <
+    typename MatrixType, typename VectorType,
+    typename SpmvType,
+    typename DotType,
+    typename AxpbyType
+>
 struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
 {
     using base_t = ConjugateGradientSolverBase<MatrixType, VectorType>;
@@ -87,9 +96,9 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
             const Kokkos::Profiling::ScopedRegion region("CGRegular - iter " + std::to_string(iter));
 
             //! Compute @c alpha.
-            KokkosSparse::spmv(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
+            SpmvType{}(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
 
-            KokkosBlas::dot(exec, pinned, dir, mat_dir);
+            DotType{}(exec, pinned, dir, mat_dir);
 
             exec.fence("waiting for dot (quadratic)");
 
@@ -98,11 +107,11 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
             /// Update the solution candidate and residual.
             /// These two updates are independant, but since we have only one execution space instance, all we gain is
             /// the launch overhead.
-            KokkosBlas::axpby(exec,   alpha, dir,     1., sol);
-            KokkosBlas::axpby(exec, - alpha, mat_dir, 1., res);
+            AxpbyType{}(exec,   alpha, dir,     1., sol);
+            AxpbyType{}(exec, - alpha, mat_dir, 1., res);
 
             //! At this point, we can already check the condition and exit.
-            KokkosBlas::dot(exec, pinned, res, res);
+            DotType{}(exec, pinned, res, res);
 
             exec.fence("waiting for dot (norm)");
 
@@ -113,7 +122,7 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
                 const auto beta = pinned() / res_dot_old;
 
                 //! Update search direction.
-                KokkosBlas::axpby(exec, 1., res, beta, dir);
+                AxpbyType{}(exec, 1., res, beta, dir);
 
                 res_dot_old = pinned();
             }

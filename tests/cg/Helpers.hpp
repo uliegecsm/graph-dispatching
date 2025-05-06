@@ -184,6 +184,16 @@ public:
     }
 };
 
+//! Helper to defined a new type whose call operator wraps another callable.
+#define DEFINE_FUNCTOR(_for_, _with_)                     \
+    struct _for_                                          \
+    {                                                     \
+        template <typename... Args>                       \
+        decltype(auto) operator()(Args&&... args) const { \
+            return _with_(std::forward<Args>(args)...);   \
+        }                                                 \
+    };
+
 } // namespace tests::cg
 
 #endif // GRAPH_DISPATCHING_TESTS_CG_HELPERS_HPP
