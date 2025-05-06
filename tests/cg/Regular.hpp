@@ -1,13 +1,10 @@
 #include "gtest/gtest.h"
 
-#include "Kokkos_Profiling_ProfileSection.hpp"
 #include "Kokkos_Profiling_ScopedRegion.hpp"
 
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/callbacks/EventInProfileSectionRegexMatcher.hpp"
-#include "kokkos-utils/callbacks/RecorderListener.hpp"
 #include "kokkos-utils/concepts/ExecutionSpace.hpp"
 
 namespace tests::cg
@@ -84,11 +81,10 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
         const Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace> pinned("intermediate dot result");
 
         //! Loop until the norm of the residual is smaller than @p tol or the maximum number of iterations is reached.
-        Kokkos::Profiling::ProfilingSection profile_section("CG iteration 7");
         SizeType iter = 0;
         while(res_nrm2 > tol && iter < max_iter)
         {
-            if(iter == 7) profile_section.start();
+            const Kokkos::Profiling::ScopedRegion region("CGRegular - iter " + std::to_string(iter));
 
             //! Compute @c alpha.
             KokkosSparse::spmv(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
@@ -121,8 +117,6 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
 
                 res_dot_old = pinned();
             }
-
-            if(iter == 7) profile_section.stop();
 
             ++iter;
         }
