@@ -19,6 +19,9 @@ namespace tests::cg
  * Inspired by a 1D Laplacian FEM problem with a Dirichlet BC on the left and
  * a non-homogenous Neumann on the right.
  *
+ * The right-hand side value is scaled by the number of rows
+ * to keep the solution values in a relatively small range.
+ *
  * @verbatim
  * 1  0                     0
  * 0  2 -1                  0
@@ -26,7 +29,7 @@ namespace tests::cg
  *           *              *
  *              *           *
  *             -1  2 -1     0
- *                -1  1     2 + 2i
+ *                -1  1     (2 + 2i) / size
  * @endverbatim
  *
  * The solution is trivial.
@@ -110,7 +113,7 @@ struct FakeFEMLaplacian1D
                     values(offset + 0) = -1.;
                     values(offset + 1) =  1.;
 
-                    rhs_(irow) = ScalarType{2., 2.};
+                    rhs_(irow) = ScalarType{2. / size, 2. / size};
                 }
 
                 guess_(irow) = rhs_(irow);
@@ -159,7 +162,7 @@ struct NbyNSolverTest
     {
         auto system = NbyNSolverTestHelper::initializer_t::create(exec, nrows);
 
-        solver_t solver{{}, std::move(system.mat), std::move(system.rhs)};
+        solver_t solver{{}, std::move(system.mat), std::move(system.rhs)}; // NOLINT(misc-const-correctness)
 
         const Kokkos::Timer timer;
         const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tol, 2 * nrows);
@@ -178,7 +181,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     return abs(val1 - val2) / (epsilon + (abs(val1) <= abs(val2) ? abs(val1) : abs(val2)));
 }
 
-//! Helper for writing tests that use @ref NbyNSolverTest.
+//! Helper for writing tests that use @ref tests::cg::NbyNSolverTest.
 #define RUN_AND_CHECK(_exec_, _nrows_, _tol_, _expt_niters_)                                           \
     const auto [elapsed, res_nrm2, num_iters, sol] = this->run(_exec_, _nrows_, _tol_);                \
                                                                                                        \
