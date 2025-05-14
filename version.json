@@ -23,9 +23,9 @@
         },
         "kokkos" : {
             "value"  : "4.5.99",
-            "branch" : "develop",
-            "sha"    : "2e419cb02f5331181d6103c69b7f2359bd5ccf5c",
-            "url"    : "kokkos"
+            "branch" : "graph-host-node",
+            "sha"    : "",
+            "url"    : "romintomasetti"
         },
         "kokkos-kernels" : {
             "branch" : "develop",
