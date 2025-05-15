@@ -111,7 +111,7 @@ jobs:
                       docker_arch    : -volta70
                     - backend        : HIP
                       compiler_family: rocm
-                      base_image     : rocm/dev-ubuntu-24.04:6.3
+                      base_image     : rocm/dev-ubuntu-24.04:6.4
                       platforms      : linux/amd64
                       kokkos_arch    : AMD_GFX906
                       docker_arch    : -amd-gfx906
