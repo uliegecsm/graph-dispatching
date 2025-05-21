@@ -46,7 +46,7 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
     /// to the connected receiver.
     ::stdexec::sender auto chain = ::stdexec::just(std::vector<size_t>(size, 0))
         | ::stdexec::bulk(
-            size, [](const auto index, auto& data) {
+            ::stdexec::par, size, [](const auto index, auto& data) {
                 data[index] = ::utils::get_thread_id();
     });
 
@@ -108,7 +108,7 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op)
 
     ::stdexec::sender auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
         | ::stdexec::bulk(
-            size, [&](const auto index) {
+            ::stdexec::par, size, [&](const auto index) {
                 data[index] = ::utils::get_thread_id();
     });
 

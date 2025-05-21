@@ -123,7 +123,7 @@ TEST_F(StreamContextTest, split)
 
     constexpr size_t size = 4;
 
-    auto fork = stdexec::schedule(sch) | stdexec::bulk(size, BulkFunctor{.id = 0}) | stdexec::split();
+    auto fork = stdexec::schedule(sch) | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | stdexec::split();
 
     /// Here, we mustn't use @c stdexec::when_all alone.
     /// Indeed, using @c stdexec::when_all alone would result in the last node being run on host.
@@ -138,11 +138,11 @@ TEST_F(StreamContextTest, split)
     ///     - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__when_all.hpp#L453-L463
     ///     - https://github.com/pika-org/pika/blob/11dfb31d37e9395dc42416a53d39d46335f9fd70/libs/pika/execution/include/pika/execution/algorithms/transfer_when_all.hpp#L23
     auto snd = stdexec::when_all(
-        fork | stdexec::bulk(size, BulkFunctor{.id = 1}),
-        fork | stdexec::then(      ThenFunctor{.id = 0}),
-        fork | stdexec::bulk(size, BulkFunctor{.id = 2}))
+        fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 1}),
+        fork | stdexec::then(                      ThenFunctor{.id = 0}),
+        fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 2}))
              | stdexec::continues_on(sch)
-             | stdexec::then(ThenFunctor{.id = 1});
+             | stdexec::then(                      ThenFunctor{.id = 1});
 
     stdexec::sync_wait(std::move(snd));
 }

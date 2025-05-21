@@ -40,11 +40,11 @@ decltype(auto) library(Sender&& input, ViewType data)
     const auto half = data.size() / 2;
 
     ::stdexec::sender auto one = continued | ::stdexec::bulk(
-        half,
+        ::stdexec::par, half,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
 
     ::stdexec::sender auto two = continued | ::stdexec::bulk(
-        half,
+        ::stdexec::par, half,
         diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C, .offset = half});
 
     return ::stdexec::when_all(std::move(one), std::move(two));
@@ -73,13 +73,13 @@ TEST(graph, intertwine_stdexec)
     ::stdexec::sender auto entry = ::stdexec::just();
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
-        size,
+        ::stdexec::par, size,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
 
     ::stdexec::sender auto from_library = library(node_A, data);
 
     ::stdexec::sender auto node_D = from_library | ::stdexec::bulk(
-        size,
+        ::stdexec::par, size,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
 
     //! Execute the graph and check results.

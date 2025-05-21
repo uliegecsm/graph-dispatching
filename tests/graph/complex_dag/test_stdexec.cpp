@@ -51,41 +51,41 @@ TEST(graph, complex_dag_stdexec)
     ::stdexec::sender auto entry = ::stdexec::just() | ::stdexec::split();
 
     ::stdexec::sender auto node_A1 = entry | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, index_A1, value_A1))
         | ::stdexec::split();
 
     ::stdexec::sender auto node_A2 = entry | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, index_A2, value_A2))
         | ::stdexec::split();
 
     ::stdexec::sender auto node_A3 = entry | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, index_A3, value_A3));
 
     ::stdexec::sender auto node_B1 = ::stdexec::when_all(node_A1, node_A2) | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_A1, index_A2}, index_B1, value_B1));
 
     ::stdexec::sender auto node_B2 = node_A1 | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_A1}, index_B2, value_B2));
 
     ::stdexec::sender auto node_B3 = ::stdexec::when_all(node_A1, node_A2) | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_A1, index_A2}, index_B3, value_B3));
 
     ::stdexec::sender auto node_B4 = node_A3 | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_A3}, index_B4, value_B4));
 
     ::stdexec::sender auto node_C1 = ::stdexec::when_all(node_B1, node_B3) | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_B1, index_B3}, index_C1, value_C1));
 
     ::stdexec::sender auto node_C2 = ::stdexec::when_all(node_B2, node_B4) | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         FetchValuesAndContribute(data, {index_B2, index_B4}, index_C2, value_C2));
 
     //! Execute the graph and check results.
