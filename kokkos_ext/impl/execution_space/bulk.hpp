@@ -13,12 +13,16 @@ namespace Kokkos::Experimental::details::execution_space
  *
  * @note Only integral shape is supported for now.
  */
-template <stdexec::receiver Rcvr, std::integral Shape, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+template <stdexec::receiver Rcvr, typename Policy, std::integral Shape, typename Functor, stdexec::scheduler Schd> requires (
+    stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+    && std::same_as<Policy, ::stdexec::__bulk::__policy_wrapper<::stdexec::parallel_policy>>
+)
 struct BulkReceiver
 {
     using receiver_concept = stdexec::receiver_t;
 
     Rcvr rcvr;
+    Policy policy;
     Shape shape;
     Functor functor;
     Schd schd;
@@ -52,7 +56,7 @@ struct BulkReceiver
  *          1. The functor itself has a call operator that may throw.
  *          2. @c Kokkos itself throws before launching the functor (for some reason).
  */
-template <stdexec::sender Sndr, typename Shape, typename Functor, stdexec::scheduler Schd>
+template <stdexec::sender Sndr, typename Policy, typename Shape, typename Functor, stdexec::scheduler Schd>
 struct BulkSender
 {
     using sender_concept = stdexec::sender_t;
@@ -75,15 +79,16 @@ struct BulkSender
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
-        using recv_t = BulkReceiver<std::remove_cvref_t<Rcvr>, Shape, Functor, Schd>;
+        using recv_t = BulkReceiver<std::remove_cvref_t<Rcvr>, Policy, Shape, Functor, Schd>;
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .shape = std::move(shape), .functor = std::move(functor), .schd = std::move(schd)}
+            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .policy = std::move(policy), .shape = std::move(shape), .functor = std::move(functor), .schd = std::move(schd)}
         );
     }
 
     Sndr sndr;
+    Policy policy;
     Shape shape;
     Functor functor;
     Schd schd;

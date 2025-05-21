@@ -37,7 +37,7 @@ TEST_F(BulkTest, bulk_with_functor)
     /// The kernel will execute @ref utils::FillWithThreadID.
     const ::utils::FillWithThreadID functor {.ids = std::make_shared<std::vector<size_t>>(size, 0)};
 
-    ::stdexec::sender auto chain = ::stdexec::schedule(scheduler) | ::stdexec::bulk(size, functor);
+    ::stdexec::sender auto chain = ::stdexec::schedule(scheduler) | ::stdexec::bulk(::stdexec::par, size, functor);
 
     ::stdexec::sync_wait(std::move(chain));
 

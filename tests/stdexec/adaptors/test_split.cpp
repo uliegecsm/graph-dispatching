@@ -33,7 +33,7 @@ TEST(stdexec, split)
     std::thread::id thr_A, thr_B;
 
     auto start = ::stdexec::schedule(scheduler)
-        | ::stdexec::bulk(2, [&](const auto index) -> void { bulk_thr[index] = std::this_thread::get_id(); })
+        | ::stdexec::bulk(::stdexec::par, 2, [&](const auto index) -> void { bulk_thr[index] = std::this_thread::get_id(); })
         | ::stdexec::split();
 
     auto node_A =           start  | ::stdexec::then([&] { thr_A = std::this_thread::get_id(); });

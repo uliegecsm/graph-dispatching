@@ -79,7 +79,7 @@ TEST_P(GraphTest, runtime_stdexec)
     ::stdexec::sender auto entry = ::stdexec::just();
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A})
         | ::stdexec::split();
 
@@ -92,7 +92,7 @@ TEST_P(GraphTest, runtime_stdexec)
 
     if(add_B) {
         for_B = node_A | ::stdexec::bulk(
-            1,
+            ::stdexec::par, 1,
             diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B, .offset = index_B});
     } else {
         for_B = node_A;
@@ -100,14 +100,14 @@ TEST_P(GraphTest, runtime_stdexec)
 
     if(add_C) {
         for_C = node_A | ::stdexec::bulk(
-            1,
+            ::stdexec::par, 1,
             diamond::AddValueOffset{.data = data, .value = diamond::Values::value_C, .offset = index_C});
     } else {
         for_C = node_A;
     }
 
     ::stdexec::sender auto node_D = ::stdexec::when_all(std::move(*for_B), std::move(*for_C)) | ::stdexec::bulk(
-        1,
+        ::stdexec::par, 1,
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D, .offset = index_D});
 
     //! Execute the graph and check results.

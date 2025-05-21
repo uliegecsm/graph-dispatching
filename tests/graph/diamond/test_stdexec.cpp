@@ -49,19 +49,19 @@ TEST(graph, diamond_stdexec)
     ::stdexec::sender auto entry = ::stdexec::just();
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
-        size,
+        ::stdexec::par, size,
         AddValueOffset{.data = data, .value = Values::value_A})
         | ::stdexec::split();
 
     ::stdexec::sender auto node_B = node_A | ::stdexec::bulk(
-        size / 2,
+        ::stdexec::par, size / 2,
         AddValueOffset{.data = data, .value = Values::value_B});
     ::stdexec::sender auto node_C = node_A | ::stdexec::bulk(
-        size / 2,
+        ::stdexec::par, size / 2,
         AddValueOffset{.data = data, .value = Values::value_C, .offset = size / 2});
 
     ::stdexec::sender auto node_D = ::stdexec::when_all(node_B, node_C) | ::stdexec::bulk(
-        size,
+        ::stdexec::par, size,
         AddValueOffset{.data = data, .value = Values::value_D});
 
     //! Execute the graph and check results.

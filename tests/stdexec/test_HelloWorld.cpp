@@ -46,7 +46,7 @@ template <::stdexec::sender Sender>
         });
 
     //! Perform some bulky operation. Each work item atomically adds its index to the first element of the input.
-    ::stdexec::sender auto bulky = ::stdexec::bulk(std::move(add_42), parallel,
+    ::stdexec::sender auto bulky = ::stdexec::bulk(std::move(add_42), ::stdexec::par, parallel,
         [](size_t index, std::vector<int>& arg) {
             std::atomic_ref<int>(arg[0]) += index;
         }
