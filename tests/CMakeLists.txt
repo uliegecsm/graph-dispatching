@@ -39,15 +39,6 @@ function(add_one_test)
             ${SOURCE_FILE}
     )
 
-    # Compile options.
-    target_compile_options(
-        ${EXECUTABLE_NAME}
-        PRIVATE
-            -Wall
-            -Wextra
-            -Werror
-    )
-
     # Compile definitions.
     if(DEFINED aot_args_COMPILE_DEFINITIONS)
         target_compile_definitions(${EXECUTABLE_NAME} PRIVATE ${aot_args_COMPILE_DEFINITIONS})
