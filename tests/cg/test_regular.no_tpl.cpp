@@ -49,16 +49,13 @@ TEST_F(CGRegularNoTPLTest, 10x10)
 {
     const NbyNSolverTestHelper::execution_space exec {};
 
-#if defined(KOKKOS_ENABLE_CUDA)
     EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGRegular - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
     Manager::register_listener(recorder);
-#endif
 
     RUN_AND_CHECK(exec, 10, 1.e-12, 9)
 
-#if defined(KOKKOS_ENABLE_CUDA)
     Manager::unregister_listener(recorder.get());
 
     ASSERT_THAT(
@@ -80,7 +77,6 @@ TEST_F(CGRegularNoTPLTest, 10x10)
             MATCHER_FOR_BEGIN_PFOR(exec, "tests::cg::axpby")
         )
     );
-#endif
 }
 
 } // namespace tests::cg
