@@ -15,14 +15,14 @@ struct ChainHandler
     using execution_space = Exec;
 
     using graph_t = Kokkos::Experimental::Graph<Exec>;
-    using root_t  = decltype(Kokkos::Impl::GraphAccess::create_root_ref(std::declval<graph_t&>()));
+    using root_t  = typename graph_t::root_t;
 
     graph_t graph;
     root_t  root;
 
     ChainHandler(const Exec& exec)
-        : graph(Kokkos::Impl::GraphAccess::construct_graph(exec)),
-          root (Kokkos::Impl::GraphAccess::create_root_ref(graph))
+        : graph(exec),
+          root (graph.root_node())
     {}
 
     template <typename... Args>

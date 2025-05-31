@@ -24,7 +24,7 @@
         "kokkos" : {
             "value"  : "4.5.99",
             "branch" : "graph-host-node",
-            "sha"    : "",
+            "sha"    : "06d12b3de5b373a5820faad1665bf4bfa985310b",
             "url"    : "romintomasetti"
         },
         "kokkos-kernels" : {
@@ -33,7 +33,7 @@
         },
         "kokkos-utils" : {
             "branch" : "develop",
-            "sha"    : "67ab031a2bb08e545a7a79eb39da12a68456436f"
+            "sha"    : "ec184e9f622ac9deed0f9f8f703f4789aaa795f8"
         },
         "nvidia" : {
             "stdexec" : {

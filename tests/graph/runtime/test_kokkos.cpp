@@ -53,11 +53,9 @@ TEST_P(GraphTest, runtime_kokkos)
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec);
+    const Kokkos::Experimental::Graph<execution_space> graph(exec);
 
-    auto root = Kokkos::Impl::GraphAccess::create_root_ref(graph);
-
-    auto node_A = root.then_parallel_for(
+    auto node_A = graph.root_node().then_parallel_for(
         policy_t(0, 1),
         diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A});
 
