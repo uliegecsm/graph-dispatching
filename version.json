@@ -10,13 +10,13 @@
             "value" : "3.31.6"
         },
         "doxygen" : {
-            "value" : "1.13.2"
+            "value" : "1.14.0"
         },
         "googletest" : {
             "value" : "1.17.0"
         },
         "googlebenchmark" : {
-            "value" : "1.9.2"
+            "value" : "1.9.4"
         },
         "hpx" : {
             "value" : "1.10.0"
