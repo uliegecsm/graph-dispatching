@@ -43,9 +43,9 @@ TEST(graph, complex_dag_kokkos)
     DEFINE_VALUES
     DEFINE_INDICES
 
-    auto graph = Kokkos::Experimental::create_graph<execution_space>(exec);
+    const Kokkos::Experimental::Graph<execution_space> graph(exec);
 
-    auto root = Kokkos::Impl::GraphAccess::create_root_ref(graph);
+    auto root = graph.root_node();
 
     auto node_A1 = root.then_parallel_for(
         policy_t(0, 1),
