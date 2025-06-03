@@ -118,9 +118,11 @@ ARG GOOGLEBENCHMARK_VERSION
 RUN <<EOF
     set -ex
 
-    git clone --depth=1 --branch=v${GOOGLEBENCHMARK_VERSION} https://github.com/google/benchmark googlebenchmark
+    git clone --depth=1 --branch=min_rel_accuracy https://github.com/uliegecsm/benchmark googlebenchmark
 
     cd googlebenchmark
+
+    git checkout 0bf52e0fe082a8d1d64a28f614359af36579cb15
 
     cmake -S . -B build \
         -DCMAKE_INSTALL_PREFIX=/opt/google-benchmark-${GOOGLEBENCHMARK_VERSION} \
