@@ -122,7 +122,7 @@ RUN <<EOF
 
     cd googlebenchmark
 
-    git checkout 0bf52e0fe082a8d1d64a28f614359af36579cb15
+    git checkout 84b9b21a125b504864fa9876946207b3e8cb389d
 
     cmake -S . -B build \
         -DCMAKE_INSTALL_PREFIX=/opt/google-benchmark-${GOOGLEBENCHMARK_VERSION} \
