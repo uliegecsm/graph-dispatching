@@ -3,6 +3,7 @@
 #include "kokkos-utils/callbacks/EventNameMatcher.hpp"
 #include "kokkos-utils/callbacks/EventRegionMatcher.hpp"
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
+#include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
@@ -36,8 +37,9 @@ using solver_t = CGRegular<
 
 using namespace Kokkos::utils::callbacks;
 
-class CGRegularTest : public NbyNSolverTest<solver_t>,
-                      public Kokkos::utils::callbacks::ManagerTestFixture
+class CGRegularTest : public ::testing::Test,
+                      public NbyNSolverTest<solver_t>,
+                      public Kokkos::utils::tests::scoped::callbacks::Manager
 {
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
@@ -53,13 +55,13 @@ TEST_F(CGRegularTest, 10x10)
     EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGRegular - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
-    Manager::register_listener(recorder);
+    Kokkos::utils::callbacks::Manager::register_listener(recorder);
 #endif
 
     RUN_AND_CHECK(exec, 10, 1.e-12, 9)
 
 #if defined(KOKKOS_ENABLE_CUDA)
-    Manager::unregister_listener(recorder.get());
+    Kokkos::utils::callbacks::Manager::unregister_listener(recorder.get());
 
     /// When the backend is @c Cuda, there won't be any call to @c cublasDdot because of
     /// https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_dot_tpl_spec_avail.hpp#L81-L90.
