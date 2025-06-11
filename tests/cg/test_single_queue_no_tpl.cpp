@@ -5,6 +5,7 @@
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
 #include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
+#define GRAPH_DISPATCHING_ALGORITHMS_CG_CGSINGLEQUEUE_ENABLE_SCOPEDREGION_IN_LOOP
 #include "algorithms/cg/SingleQueue.hpp"
 
 #include "tests/CallbackMatchers.hpp"
@@ -23,10 +24,6 @@
 
 namespace tests::cg
 {
-
-DEFINE_FUNCTOR(TestsCgSpmv,  ::tests::cg::spmv)
-DEFINE_FUNCTOR(TestsCgDot,   ::tests::cg::dot)
-DEFINE_FUNCTOR(TestsCgAxpby, ::tests::cg::axpby)
 
 using solver_t = algorithms::cg::CGSingleQueue<
     NbyNSolverTestHelper::initializer_t::matrix_t,

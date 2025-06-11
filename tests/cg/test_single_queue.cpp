@@ -5,6 +5,7 @@
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
 #include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
+#define GRAPH_DISPATCHING_ALGORITHMS_CG_CGSINGLEQUEUE_ENABLE_SCOPEDREGION_IN_LOOP
 #include "algorithms/cg/SingleQueue.hpp"
 
 #include "tests/CallbackMatchers.hpp"

@@ -19,6 +19,10 @@ struct CGBase
 
     //! Result of @c dot.
     using dot_t = typename Kokkos::Details::InnerProductSpaceTraits<typename VectorType::non_const_value_type>::dot_type;
+
+    //! @c KokkosSparse::spmv handle.
+    template <typename Exec>
+    using spmv_handle_t = KokkosSparse::SPMVHandle<Exec, MatrixType, VectorType, VectorType>;
 };
 
 } // namespace algorithms::cg
