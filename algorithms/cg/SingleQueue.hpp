@@ -1,5 +1,5 @@
-#ifndef GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
-#define GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
+#ifndef GRAPH_DISPATCHING_ALGORITHMS_CG_SINGLEQUEUE_HPP
+#define GRAPH_DISPATCHING_ALGORITHMS_CG_SINGLEQUEUE_HPP
 
 #include "Kokkos_Profiling_ScopedRegion.hpp"
 
@@ -8,7 +8,9 @@
 
 #include "kokkos-utils/concepts/ExecutionSpace.hpp"
 
-namespace tests::cg
+#include "algorithms/cg/Base.hpp"
+
+namespace algorithms::cg
 {
 
 /**
@@ -22,9 +24,9 @@ template <
     typename DotType,
     typename AxpbyType
 >
-struct CGSingleQueue : public ConjugateGradientSolverBase<MatrixType, VectorType>
+struct CGSingleQueue : public CGBase<MatrixType, VectorType>
 {
-    using base_t = ConjugateGradientSolverBase<MatrixType, VectorType>;
+    using base_t = CGBase<MatrixType, VectorType>;
 
     using typename base_t::dot_t;
     using typename base_t::mag_t;
@@ -135,6 +137,6 @@ struct CGSingleQueue : public ConjugateGradientSolverBase<MatrixType, VectorType
     }
 };
 
-} // namespace tests::cg
+} // namespace algorithms::cg
 
-#endif // GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
+#endif // GRAPH_DISPATCHING_ALGORITHMS_CG_SINGLEQUEUE_HPP

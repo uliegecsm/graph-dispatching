@@ -5,9 +5,10 @@
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
 #include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
+#include "algorithms/cg/SingleQueue.hpp"
+
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
-#include "tests/cg/SingleQueue.hpp"
 
 /**
  * @addtogroup unittests
@@ -27,7 +28,7 @@ DEFINE_FUNCTOR(TestsCgSpmv,  ::tests::cg::spmv)
 DEFINE_FUNCTOR(TestsCgDot,   ::tests::cg::dot)
 DEFINE_FUNCTOR(TestsCgAxpby, ::tests::cg::axpby)
 
-using solver_t = CGSingleQueue<
+using solver_t = algorithms::cg::CGSingleQueue<
     NbyNSolverTestHelper::initializer_t::matrix_t,
     NbyNSolverTestHelper::initializer_t::rhs_t,
     TestsCgSpmv,
@@ -38,8 +39,8 @@ using solver_t = CGSingleQueue<
 using namespace Kokkos::utils::callbacks;
 
 class CGSingleQueueNoTPLTest : public ::testing::Test,
-                           public NbyNSolverTest<solver_t>,
-                           public Kokkos::utils::tests::scoped::callbacks::Manager
+                               public NbyNSolverTest<solver_t>,
+                               public Kokkos::utils::tests::scoped::callbacks::Manager
 {
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
