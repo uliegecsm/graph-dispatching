@@ -1,5 +1,5 @@
-#ifndef GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
-#define GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
+#ifndef GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
+#define GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
 
 #include "Kokkos_Profiling_ScopedRegion.hpp"
 
@@ -12,7 +12,7 @@ namespace tests::cg
 {
 
 /**
- * @brief Conjugate gradient solver with regular @c Kokkos execution space instances.
+ * @brief Conjugate gradient solver with a single @c Kokkos execution space instance.
  *
  * @note @c SpmvType, @c DotType and @c AxpbyType are used only during the @c while loop.
  */
@@ -22,7 +22,7 @@ template <
     typename DotType,
     typename AxpbyType
 >
-struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
+struct CGSingleQueue : public ConjugateGradientSolverBase<MatrixType, VectorType>
 {
     using base_t = ConjugateGradientSolverBase<MatrixType, VectorType>;
 
@@ -94,7 +94,7 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
         SizeType iter = 0;
         while(res_nrm2 > tol && iter < max_iter)
         {
-            const Kokkos::Profiling::ScopedRegion region("CGRegular - iter " + std::to_string(iter));
+            const Kokkos::Profiling::ScopedRegion region("CGSingleQueue - iter " + std::to_string(iter));
 
             //! Compute @c alpha.
             SpmvType{}(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
@@ -137,4 +137,4 @@ struct CGRegular : public ConjugateGradientSolverBase<MatrixType, VectorType>
 
 } // namespace tests::cg
 
-#endif // GRAPH_DISPATCHING_TESTS_CG_REGULAR_HPP
+#endif // GRAPH_DISPATCHING_TESTS_CG_SINGLEQUEUE_HPP
