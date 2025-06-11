@@ -7,17 +7,17 @@
 
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
-#include "tests/cg/Regular.hpp"
+#include "tests/cg/SingleQueue.hpp"
 
 /**
  * @addtogroup unittests
  *
- * Conjugate gradient solver with regular @c Kokkos execution space instances but avoiding TPLs
+ * Conjugate gradient solver with a single @c Kokkos execution space instance but avoiding TPLs
  * --------------------------------------------------------------------------------------------
  *
- * Similar to @ref tests/cg/test_regular.cpp but we avoid TPLs like @c cuSPARSE.
+ * Similar to @ref tests/cg/test_single_queue.cpp but we avoid TPLs like @c cuSPARSE.
  *
- * The test can be found in @ref tests/cg/test_regular.no_tpl.cpp.
+ * The test can be found in @ref tests/cg/test_single_queue_no_tpl.cpp.
  */
 
 namespace tests::cg
@@ -27,7 +27,7 @@ DEFINE_FUNCTOR(TestsCgSpmv,  ::tests::cg::spmv)
 DEFINE_FUNCTOR(TestsCgDot,   ::tests::cg::dot)
 DEFINE_FUNCTOR(TestsCgAxpby, ::tests::cg::axpby)
 
-using solver_t = CGRegular<
+using solver_t = CGSingleQueue<
     NbyNSolverTestHelper::initializer_t::matrix_t,
     NbyNSolverTestHelper::initializer_t::rhs_t,
     TestsCgSpmv,
@@ -37,7 +37,7 @@ using solver_t = CGRegular<
 
 using namespace Kokkos::utils::callbacks;
 
-class CGRegularNoTPLTest : public ::testing::Test,
+class CGSingleQueueNoTPLTest : public ::testing::Test,
                            public NbyNSolverTest<solver_t>,
                            public Kokkos::utils::tests::scoped::callbacks::Manager
 {
@@ -47,11 +47,11 @@ public:
     using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
 };
 
-TEST_F(CGRegularNoTPLTest, 10x10)
+TEST_F(CGSingleQueueNoTPLTest, 10x10)
 {
     const NbyNSolverTestHelper::execution_space exec {};
 
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGRegular - iter 7"}};
+    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGSingleQueue - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
     Kokkos::utils::callbacks::Manager::register_listener(recorder);

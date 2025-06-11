@@ -7,17 +7,17 @@
 
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
-#include "tests/cg/Regular.hpp"
+#include "tests/cg/SingleQueue.hpp"
 
 /**
  * @addtogroup unittests
  *
- * Conjugate gradient solver with regular @c Kokkos execution space instances
+ * Conjugate gradient solver with a single @c Kokkos execution space instance
  * --------------------------------------------------------------------------
  *
  * Implement a portable conjugate gradient (CG) solver without using @c Kokkos::Graph.
  *
- * The test can be found in @ref tests/cg/test_regular.cpp.
+ * The test can be found in @ref tests/cg/test_single_queue.cpp.
  */
 
 namespace tests::cg
@@ -27,7 +27,7 @@ DEFINE_FUNCTOR(KokkosSparseSpmv, KokkosSparse::spmv)
 DEFINE_FUNCTOR(KokkosBlasDot,    KokkosBlas::dot)
 DEFINE_FUNCTOR(KokkosBlasAxpby,  KokkosBlas::axpby)
 
-using solver_t = CGRegular<
+using solver_t = CGSingleQueue<
     NbyNSolverTestHelper::initializer_t::matrix_t,
     NbyNSolverTestHelper::initializer_t::rhs_t,
     KokkosSparseSpmv,
@@ -37,7 +37,7 @@ using solver_t = CGRegular<
 
 using namespace Kokkos::utils::callbacks;
 
-class CGRegularTest : public ::testing::Test,
+class CGSingleQueueTest : public ::testing::Test,
                       public NbyNSolverTest<solver_t>,
                       public Kokkos::utils::tests::scoped::callbacks::Manager
 {
@@ -47,12 +47,12 @@ public:
     using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
 };
 
-TEST_F(CGRegularTest, 10x10)
+TEST_F(CGSingleQueueTest, 10x10)
 {
     const NbyNSolverTestHelper::execution_space exec {};
 
 #if defined(KOKKOS_ENABLE_CUDA)
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGRegular - iter 7"}};
+    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGSingleQueue - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
     Kokkos::utils::callbacks::Manager::register_listener(recorder);
