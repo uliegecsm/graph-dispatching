@@ -62,8 +62,8 @@ public:
         execs.at(0).fence("Ensure that the setup is finished before running the test.");
     }
 protected:
-    std::vector<execution_space> execs;
-    view_t                       data;
+    std::array<execution_space, 2> execs;
+    view_t                         data;
 };
 
 using ParallelReduceTestTypes = ::testing::Types<
