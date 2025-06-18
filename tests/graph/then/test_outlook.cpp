@@ -32,21 +32,21 @@ TEST(graph, then_outlook)
     using view_t = Kokkos::View<int, memory_space>;
 
     //! Get some execution context.
-    const auto execs = Kokkos::Experimental::partition_space(execution_space{}, 1, 1, 1);
+    const auto [exec_a, exec_b, exec_c] = Kokkos::Experimental::partition_space(execution_space{}, 1, 1, 1);
 
     //! Initialize the data.
-    const view_t data(Kokkos::view_alloc(execs.at(0), "data"));
+    const view_t data(Kokkos::view_alloc(exec_a, "data"));
 
     //! Define the graph. Use a simple syntax.
-    auto root = Kokkos::Experimental::graph::create_graph(execs.at(0));
+    auto root = Kokkos::Experimental::graph::create_graph(exec_a);
     auto chain = root
-                | Kokkos::Experimental::graph::then("node A",              ThenFunctor<view_t>{.data = data})
-                | Kokkos::Experimental::graph::then("node B",              ThenFunctor<view_t>{.data = data})
-                | Kokkos::Experimental::graph::then("node C", execs.at(1), ThenFunctor<view_t>{.data = data});
+                | Kokkos::Experimental::graph::then("node A",         ThenFunctor<view_t>{.data = data})
+                | Kokkos::Experimental::graph::then("node B",         ThenFunctor<view_t>{.data = data})
+                | Kokkos::Experimental::graph::then("node C", exec_b, ThenFunctor<view_t>{.data = data});
 
     //! Execute the graph and check results.
-    Kokkos::Experimental::graph::submit(execs.at(2), std::move(chain));
-    execs.at(2).fence();
+    Kokkos::Experimental::graph::submit(exec_c, std::move(chain));
+    exec_c.fence();
 
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, data);
 
