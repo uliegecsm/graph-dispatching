@@ -62,6 +62,8 @@ RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
     apt-helpers install-packages --clean --update           \
         --requirement /requirements/requirements.system.txt \
         --requirement /requirements/requirements.system.hpx.txt
+
+    python3 -m pip install -r /requirements/requirements.python.benchmarks.txt
 EOF
 
 ARG TARGETARCH
