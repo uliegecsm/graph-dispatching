@@ -19,9 +19,9 @@ inputs:
             - clang
             - rocm
 
-    kokkos_arch:
+    kokkos_archs:
         description: >
-            Kokkos architecture to enable.
+            Kokkos architectures to enable.
         required: false
         type: string
 
@@ -94,7 +94,7 @@ runs:
                   GOOGLETEST_VERSION=${{ env.GOOGLETEST_VERSION }}
                   HPX_REF=${{ env.HPX_REF }}
 
-                  KOKKOS_ARCH=${{ inputs.kokkos_arch }}
+                  KOKKOS_ARCHS=${{ inputs.kokkos_archs && join(fromJSON(inputs.kokkos_archs), ',') || '' }}
                   KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
                   KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
                   KOKKOS_SHA=${{ env.KOKKOS_SHA }}
