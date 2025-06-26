@@ -39,7 +39,7 @@ set(DOXYGEN_INCLUDE_PATH
 #---- Extract files for documentation.
 get_property(GraphDispatching_FILES_FOR_DOC GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC)
 list(LENGTH GraphDispatching_FILES_FOR_DOC GraphDispatching_FILES_FOR_DOC_LENGTH)
-if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 86)
+if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 87)
     message(FATAL_ERROR "You have ${GraphDispatching_FILES_FOR_DOC_LENGTH} files for documentation.")
 endif()
 

@@ -5,6 +5,7 @@
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
 #include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
+#include "algorithms/cg/Functors.hpp"
 #define GRAPH_DISPATCHING_ALGORITHMS_CG_CGSINGLEQUEUE_ENABLE_SCOPEDREGION_IN_LOOP
 #include "algorithms/cg/SingleQueue.hpp"
 
@@ -28,9 +29,9 @@ namespace tests::cg
 using solver_t = algorithms::cg::CGSingleQueue<
     NbyNSolverTestHelper::initializer_t::matrix_t,
     NbyNSolverTestHelper::initializer_t::rhs_t,
-    TestsCgSpmv,
-    TestsCgDot,
-    TestsCgAxpby
+    ::algorithms::cg::Spmv,
+    ::algorithms::cg::Dot,
+    ::algorithms::cg::Axpby
 >;
 
 using namespace Kokkos::utils::callbacks;
@@ -61,20 +62,20 @@ TEST_F(CGSingleQueueNoTPLTest, 10x10)
     ASSERT_THAT(
         recorder->recorded_events,
         ::testing::ElementsAre(
-            MATCHER_FOR_BEGIN_PFOR(exec, "tests::cg::spmv"),
+            MATCHER_FOR_BEGIN_PFOR(exec, "algorithms::cg::spmv"),
 
-            MATCHER_FOR_BEGIN_PRED(exec, "tests::cg::dot"),
+            MATCHER_FOR_BEGIN_PRED(exec, "algorithms::cg::dot"),
 
             MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (quadratic)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec, "tests::cg::axpby"),
-            MATCHER_FOR_BEGIN_PFOR(exec, "tests::cg::axpby"),
+            MATCHER_FOR_BEGIN_PFOR(exec, "algorithms::cg::axpby"),
+            MATCHER_FOR_BEGIN_PFOR(exec, "algorithms::cg::axpby"),
 
-            MATCHER_FOR_BEGIN_PRED(exec, "tests::cg::dot"),
+            MATCHER_FOR_BEGIN_PRED(exec, "algorithms::cg::dot"),
 
             MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (norm)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec, "tests::cg::axpby")
+            MATCHER_FOR_BEGIN_PFOR(exec, "algorithms::cg::axpby")
         )
     );
 }
