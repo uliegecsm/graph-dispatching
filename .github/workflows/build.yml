@@ -107,14 +107,12 @@ jobs:
                       compiler_family: gcc
                       base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      kokkos_arch    : VOLTA70
-                      docker_arch    : -volta70
+                      kokkos_archs   : [VOLTA70]
                     - backend        : HIP
                       compiler_family: rocm
                       base_image     : rocm/dev-ubuntu-24.04:6.4
                       platforms      : linux/amd64
-                      kokkos_arch    : AMD_GFX906
-                      docker_arch    : -amd-gfx906
+                      kokkos_archs   : [AMD_GFX906]
                     - backend        : HPX
                       compiler_family: clang
                       base_image     : ubuntu:24.04
@@ -124,20 +122,23 @@ jobs:
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      kokkos_arch    : BLACKWELL120
-                      docker_arch    : -blackwell120
+                      kokkos_archs   : [BLACKWELL120]
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      kokkos_arch    : VOLTA70
-                      docker_arch    : -volta70
+                      kokkos_archs   : [VOLTA70]
                     - backend        : Cuda
                       compiler_family: clang
                       base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
-                      kokkos_arch    : AMPERE80
-                      docker_arch    : -ampere80
+                      kokkos_archs   : [AMPERE80]
+                    - backend        : Cuda
+                      compiler_family: gcc
+                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      platforms      : linux/arm64
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
+                      kokkos_archs   : [ARMV9_GRACE, HOPPER90]
         steps:
             - uses: actions/checkout@v4
               with:
@@ -162,15 +163,23 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Compute the image tag suffix.
+              id  : compute-tag-suffix
+              run : |
+                  TAG_SUFFIX=${{ matrix.kokkos_archs && '-' || '' }}${{ join(matrix.kokkos_archs, '-')}}
+                  TAG_SUFFIX=$(echo ${TAG_SUFFIX} | tr '[:upper:]' '[:lower:]')
+                  echo "Computed image tag suffix: ${TAG_SUFFIX}."
+                  echo "TAG_SUFFIX=${TAG_SUFFIX}" >> $GITHUB_OUTPUT
+
             - uses: ./.github/actions/build-image
               if  : steps.changed-files.outputs.any_changed == 'true'
               with:
                   backend        : ${{ matrix.backend }}
                   base_image     : ${{ matrix.base_image }}
                   compiler_family: ${{ matrix.compiler_family }}
-                  kokkos_arch    : ${{ matrix.kokkos_arch }}
+                  kokkos_archs   : ${{ toJSON(matrix.kokkos_archs) }}
                   platforms      : ${{ matrix.platforms }}
-                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.docker_arch }}${{ runner.arch == 'ARM64' && '-arm64' || '' }}
+                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ steps.compute-tag-suffix.outputs.TAG_SUFFIX }}
 
     build-library-and-test:
         needs: [set-vars, build-images]
@@ -188,22 +197,22 @@ jobs:
                     - backend        : Cuda
                       compiler_family: gcc
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
-                      docker_arch    : -volta70
+                      tag_suffix     : -volta70
                     - backend        : Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120']"
-                      docker_arch    : -blackwell120
+                      tag_suffix     : -blackwell120
                     - backend        : HPX-Cuda
                       compiler_family: clang
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
-                      docker_arch    : -volta70
+                      tag_suffix     : -volta70
                     - backend        : HIP
                       compiler_family: rocm
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906']"
                       docker_run_args: --privileged
-                      docker_arch    : -amd-gfx906
+                      tag_suffix     : -amd_gfx906
         container:
-            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.docker_arch }}
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.tag_suffix }}
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
