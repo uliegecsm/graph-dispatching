@@ -166,7 +166,9 @@ jobs:
             - name: Compute the image tag suffix.
               id  : compute-tag-suffix
               run : |
-                  TAG_SUFFIX=${{ matrix.kokkos_archs && '-' || '' }}${{ join(matrix.kokkos_archs, '-')}}
+                  # We don't use multi-platform build for ARM64 because it's too slow. Instead, we use a native
+                  # runner and append '-arm64' to the image tag.
+                  TAG_SUFFIX=${{ matrix.kokkos_archs && '-' || '' }}${{ join(matrix.kokkos_archs, '-')}}${{ runner.arch == 'ARM64' && '-arm64' || '' }}
                   TAG_SUFFIX=$(echo ${TAG_SUFFIX} | tr '[:upper:]' '[:lower:]')
                   echo "Computed image tag suffix: ${TAG_SUFFIX}."
                   echo "TAG_SUFFIX=${TAG_SUFFIX}" >> $GITHUB_OUTPUT
