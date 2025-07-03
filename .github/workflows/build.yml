@@ -139,6 +139,11 @@ jobs:
                       platforms      : linux/arm64
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                       kokkos_archs   : [ARMV9_GRACE, HOPPER90]
+                    - backend        : HIP
+                      compiler_family: rocm
+                      base_image     : rocm/dev-ubuntu-24.04:6.4
+                      platforms      : linux/amd64
+                      kokkos_archs   : [ZEN4, AMD_GX942_APU]
         steps:
             - uses: actions/checkout@v4
               with:
