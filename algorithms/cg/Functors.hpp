@@ -135,7 +135,7 @@ struct Axpby
         vec_y(index) = get_value(alpha) * vec_x(index) + get_value(beta) * vec_y(index);
     }
 };
-}
+} // namespace impl
 
 /**
  * @brief Equivalent to @c KokkosBlas::axpby, graph-compatible.

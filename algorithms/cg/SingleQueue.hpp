@@ -75,7 +75,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
         /// To ensure we control fencing, we'll use a host pinned variable for intermediate @c dot results.
         const Kokkos::View<dot_t, Kokkos::SharedHostPinnedSpace> pinned("intermediate dot result");
 
-        Kokkos::Profiling::ScopedRegion loop("CGSingleQueue - loop");
+        const Kokkos::Profiling::ScopedRegion loop("CGSingleQueue - loop");
 
         //! Loop until the norm of the residual is smaller than @p tol or the maximum number of iterations is reached.
         SizeType iter = 0;
