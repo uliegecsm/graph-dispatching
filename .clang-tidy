@@ -88,7 +88,7 @@ WarningsAsErrors: '*'
 #   https://stackoverflow.com/questions/71797349/is-it-possible-to-ignore-a-header-with-clang-tidy.
 #   Therefore, we prefer listing paths in which headers are analyzed.
 HeaderFilterRegex:
-    '@CMAKE_SOURCE_DIR@\/(kokkos_ext|tests).*'
+    '@CMAKE_SOURCE_DIR@\/(algorithms|benchmarks|kokkos_ext|tests).*'
 
 FormatStyle:
     none
