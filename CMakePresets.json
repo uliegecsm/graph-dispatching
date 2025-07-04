@@ -105,7 +105,6 @@
             "name"           : "rocm-HIP",
             "inherits"       : ["default", "rocm", "ccache"],
             "cacheVariables" : {
-                "ENABLE_MULTIGPU"         : "ON",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;HIP"
             }
         }
