@@ -23,7 +23,25 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(ENABLE_DOXYGEN "Enable building Doxygen documentation" OFF)
 
 #---- Enable multi-GPU support (tests, ...).
-option(ENABLE_MULTIGPU "Enable multi-GPU support" OFF)
+if(DEFINED ENV{GRAPH_DISPATCHING_ENABLE_MULTIGPU})
+    set(GRAPH_DISPATCHING_ENABLE_MULTIGPU_DEFAULT $ENV{GRAPH_DISPATCHING_ENABLE_MULTIGPU})
+else()
+    set(GRAPH_DISPATCHING_ENABLE_MULTIGPU_DEFAULT "OFF")
+endif()
+
+option(GRAPH_DISPATCHING_ENABLE_MULTIGPU "Enable multi-GPU support" ${GRAPH_DISPATCHING_ENABLE_MULTIGPU_DEFAULT})
+
+if(GRAPH_DISPATCHING_ENABLE_MULTIGPU)
+    if(NOT DEFINED ENV{GRAPH_DISPATCHING_GPU_COUNT})
+        message(FATAL_ERROR "Multi-GPU support is enabled but the count is not given.")
+    elseif($ENV{GRAPH_DISPATCHING_GPU_COUNT} LESS 2)
+        message(FATAL_ERROR "Multi-GPU support is enabled but only $ENV{GRAPH_DISPATCHING_GPU_COUNT} GPUs are declared.")
+    else()
+        message(STATUS "Multi-GPU support is enabled (with $ENV{GRAPH_DISPATCHING_GPU_COUNT} GPUs).")
+    endif()
+else()
+    message(STATUS "Multi-GPU support is disabled.")
+endif()
 
 # HPX 1.10.0 still tries to find Boost with a module-based approach.
 # Since CMake 3.30, it's no longer available by default.

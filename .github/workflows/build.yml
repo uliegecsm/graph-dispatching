@@ -203,19 +203,19 @@ jobs:
                       compiler_family: clang
                     - backend        : Cuda
                       compiler_family: gcc
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70', 'gpu:0']"
                       tag_suffix     : -volta70
                     - backend        : Cuda
                       compiler_family: clang
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120']"
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120', 'gpu:0', 'gpu:1']"
                       tag_suffix     : -blackwell120
                     - backend        : HPX-Cuda
                       compiler_family: clang
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70']"
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70', 'gpu:0']"
                       tag_suffix     : -volta70
                     - backend        : HIP
                       compiler_family: rocm
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906']"
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906', 'gpu:0', 'gpu:1']"
                       docker_run_args: --privileged
                       tag_suffix     : -amd_gfx906
         container:
@@ -231,6 +231,12 @@ jobs:
               run : |
                   ccache --verbose --show-stats
                   ccache --verbose --show-compression
+
+            - name: Detect multi-GPU from the labels.
+              run : |
+                  python3 .github/workflows/test-environment.py \
+                      --runs-on="${{matrix.runs-on }}" \
+                      --output=$GITHUB_ENV
 
             - run : |
                   cmake -S .    --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}

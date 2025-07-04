@@ -25,7 +25,7 @@ add_one_test(NAME memory_node COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${
 add_one_test(NAME node_enable COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher} ADD_BINARY_DIR)
 add_one_test(NAME subgraph    COMPILE_DEFINITIONS ${enabled_backend} LAUNCHER ${launcher} ADD_BINARY_DIR)
 
-if(ENABLE_MULTIGPU OR ENABLE_DOXYGEN)
+if(GRAPH_DISPATCHING_ENABLE_MULTIGPU OR ENABLE_DOXYGEN)
     add_one_test(NAME multigpu COMPILE_DEFINITIONS ${enabled_backend} ADD_BINARY_DIR)
 endif()
 
