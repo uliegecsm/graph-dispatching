@@ -164,10 +164,103 @@ TEST_F(StreamContextTest, move_to_static_thread_pool)
         | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev =  6, .value = 6, .data = witness.data()})
         | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
 
-
     ::stdexec::sync_wait(std::move(chain));
 
     ASSERT_EQ(witness(), 21);
+}
+
+//! Transition from @p from to @p to, with a non-empty value channel.
+template <typename From, typename To>
+void test_transition_from_one_to_another_with_value(From&& from, To&& to)
+{
+    auto snd = ::stdexec::schedule(std::forward<From>(from))
+        | ::stdexec::then([=] () -> int {
+            if (::nvexec::is_on_gpu())
+                return 1;
+            else
+                return 0;
+        })
+        | ::stdexec::continues_on(std::forward<To>(to))
+        | ::stdexec::then([=](const int val) -> int {
+            if (::nvexec::is_on_gpu() && val == 1)
+                return val + 1;
+            else
+                return val;
+        });
+
+    const auto [result] = ::stdexec::sync_wait(std::move(snd)).value();
+
+    ASSERT_EQ(result, 2);
+}
+
+//! Transition from @p from to @p to, with an empty value channel.
+template <typename From, typename To>
+void test_transition_from_one_to_another_no_value(From&& from, To&& to)
+{
+    Kokkos::View<int, Kokkos::SharedSpace> value("shared");
+
+    auto* const ptr = value.data();
+
+    auto snd = ::stdexec::schedule(std::forward<From>(from))
+        | ::stdexec::then([=] {
+            if (::nvexec::is_on_gpu())
+                ++(*ptr);
+        })
+        | ::stdexec::continues_on(std::forward<To>(to))
+        | ::stdexec::then([=] {
+            if (::nvexec::is_on_gpu() && *ptr == 1)
+                ++(*ptr);
+        });
+
+    ::stdexec::sync_wait(std::move(snd)).value();
+
+    ASSERT_EQ(value(), 2);
+}
+
+//! @test Check that we can transition from one @c nvexec::stream_context to itself with a value channel.
+TEST_F(StreamContextTest, transition_to_itself_with_value)
+{
+    test_transition_from_one_to_another_with_value(stream_ctx.get_scheduler(), stream_ctx.get_scheduler());
+}
+
+//! @test Check that we can transition from one @c nvexec::stream_context to itself without value channel.
+TEST_F(StreamContextTest, transition_to_itself_no_value)
+{
+    test_transition_from_one_to_another_no_value(stream_ctx.get_scheduler(), stream_ctx.get_scheduler());
+}
+
+//! @test Check that we can transition from one @c nvexec::stream_context to another with value channel.
+TEST_F(StreamContextTest, transition_to_another_with_value)
+{
+    /**
+     * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
+     *       we can really exercise this test.
+     */
+    GTEST_SKIP() << "It will seg. fault.";
+
+    ::nvexec::stream_context stream_ctx_another{};
+
+    test_transition_from_one_to_another_with_value(
+        stream_ctx.get_scheduler(),
+        stream_ctx_another.get_scheduler()
+    );
+}
+
+//! @test Check that we can transition from one @c nvexec::stream_context to another without value channel.
+TEST_F(StreamContextTest, transition_to_another_no_value)
+{
+    /**
+     * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
+     *       we can really exercise this test.
+     */
+    GTEST_SKIP() << "It will seg. fault.";
+
+    ::nvexec::stream_context stream_ctx_another{};
+
+    test_transition_from_one_to_another_no_value(
+        stream_ctx.get_scheduler(),
+        stream_ctx_another.get_scheduler()
+    );
 }
 
 } // namespace tests::nvexec::adaptors
