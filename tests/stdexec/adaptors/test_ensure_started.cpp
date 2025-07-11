@@ -46,10 +46,10 @@ TEST_F(EnsureStartedTest, asynchronously_consumes)
             return std::chrono::steady_clock::now() - start;
         });
 
+    const auto before_ensure_started = std::chrono::steady_clock::now();
+
     //! Ensure that we start consuming.
     auto handle_A = ::stdexec::ensure_started(chain_A);
-
-    const auto after_ensure_started = std::chrono::steady_clock::now();
 
     //! We continue adding stuff.
     ::stdexec::sender auto chain_B = std::move(chain_A) // NOLINT(performance-move-const-arg)
@@ -67,7 +67,7 @@ TEST_F(EnsureStartedTest, asynchronously_consumes)
     const auto end = std::chrono::steady_clock::now();
 
     //! The work in the first part cannot have started before the call to @c stdexec::ensure_started.
-    ASSERT_LT((after_ensure_started - start).count(), value_A.count());
+    ASSERT_LT((before_ensure_started - start).count(), value_A.count());
 
     //! The work in the first part is finished once we've synchronized its handle.
     ASSERT_LT(value_A.count(), (after_sync_wait_A - start).count());
