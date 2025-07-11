@@ -8,6 +8,7 @@
 
 #include "kokkos-utils/concepts/ExecutionSpace.hpp"
 #include "kokkos-utils/concepts/MemorySpace.hpp"
+#include "kokkos-utils/timer/Timer.hpp"
 
 namespace tests::cg
 {
@@ -139,15 +140,17 @@ struct NbyNSolverTest
     using solver_t = SolverType;
 
     template <Kokkos::utils::concepts::ExecutionSpace Exec>
-    static auto run(const Exec& exec, const typename Exec::size_type nrows, const SolverType::mag_t tol)
+    static auto run(const Exec& exec, const typename Exec::size_type nrows, const SolverType::mag_t tol, const typename Exec::size_type max_iters = 0)
     {
         auto system = NbyNSolverTestHelper::initializer_t::create(exec, nrows);
 
         solver_t solver{{}, std::move(system.mat), std::move(system.rhs)}; // NOLINT(misc-const-correctness)
 
-        const Kokkos::Timer timer;
-        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tol, 2 * nrows);
-        const auto elapsed = timer.seconds();
+        Kokkos::utils::timer::Timer<void> timer;
+        timer.start();
+        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tol, max_iters == 0 ? 2 * nrows : max_iters);
+        timer.stop();
+        const auto elapsed = timer.template duration<Kokkos::utils::timer::seconds>();
 
         return std::tuple{elapsed, res_nrm2, num_iters, std::move(system.guess)};
     }

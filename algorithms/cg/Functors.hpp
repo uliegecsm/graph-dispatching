@@ -153,7 +153,12 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
 
     const auto size = vec_x.size();
 
-    impl::Axpby functor{ // NOLINT(misc-const-correctness)
+    impl::Axpby< // NOLINT(misc-const-correctness)
+        std::remove_cvref_t<Alpha>,
+        std::remove_cvref_t<ViewX>,
+        std::remove_cvref_t<Beta>,
+        std::remove_cvref_t<ViewY>
+    > functor{ // NOLINT(misc-const-correctness)
         .alpha = std::forward<Alpha>(alpha),
         .vec_x = std::forward<ViewX>(vec_x),
         .beta  = std::forward<Beta>(beta),
