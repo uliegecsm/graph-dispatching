@@ -1,1 +1,2 @@
+add_one_test(NAME inline_scheduler   ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME static_thread_pool ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
