@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.25)
 
 #---- Read the version file.
 file(READ version.json VERSION_JSON)
@@ -47,6 +47,10 @@ endif()
 # Since CMake 3.30, it's no longer available by default.
 # See also https://cmake.org/cmake/help/latest/policy/CMP0167.html.
 set(CMAKE_POLICY_DEFAULT_CMP0167 OLD)
+
+# Allow the 'return' command to take arguments.
+# See also https://cmake.org/cmake/help/latest/command/return.html#command:return.
+set(CMAKE_POLICY_DEFAULT_CMP0140 NEW)
 
 #---- If the compiler is Clang, we need to explicitly link to the atomic library, as
 #     stated in https://clang.llvm.org/docs/Toolchain.html#atomics-library.

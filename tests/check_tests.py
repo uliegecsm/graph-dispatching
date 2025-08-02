@@ -28,11 +28,11 @@ def expected_number_of_tests(*, preset : str) -> int:
 
     match preset:
         case 'clang-HPX' | 'clang-OpenMP' | 'gcc-OpenMP':
-            count = 44
+            count = 45
         case 'rocm-HIP':
-            count = 51
+            count = 52
         case 'clang-HPX-Cuda' | 'clang-Cuda':
-            count = 55
+            count = 56
         case 'gcc-Cuda':
             count = 31
         case _:
@@ -52,7 +52,9 @@ def main(*, preset : str) -> None:
     output = subprocess.check_output(['ctest', f'--preset={preset}', '-N']).decode()
     if (matched := re.search(pattern = r'Total Tests: ([0-9]+)', string = output)) is not None:
         matched = int(matched.group(1))
-        if (expt := expected_number_of_tests(preset = preset)) != matched:
+        expt    = expected_number_of_tests(preset = preset)
+        logging.info(f'Checking that the number of tests is {expt}.')
+        if expt != matched:
             raise RuntimeError(f'unexpected number of tests (expecting {expt} but got {matched})')
     else:
         raise RuntimeError(f'Could not find the number of tests for preset \'{preset}\'.')
