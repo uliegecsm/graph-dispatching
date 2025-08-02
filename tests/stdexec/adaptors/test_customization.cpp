@@ -345,7 +345,7 @@ TEST_F(CustomizationTest, on_no_closure)
 {
     SETUP_TRACE(2, {'R', 'L'}, {'R', 'L'})
 
-    ::stdexec::sync_wait(::stdexec::v2::on(DomainSpecificScheduler<Domain<'R'>>{}, ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1)));
+    ::stdexec::sync_wait(::stdexec::on(DomainSpecificScheduler<Domain<'R'>>{}, ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1)));
 
     CHECK_TRACE
 }
@@ -355,7 +355,7 @@ TEST_F(CustomizationTest, on_in_the_middle_otherwise_default)
 {
     SETUP_TRACE(3, DEFAULT_PAIR, {'R', 'E'}, DEFAULT_PAIR)
 
-    ::stdexec::sync_wait(::stdexec::just() | ADD_THEN(0) | ::stdexec::v2::on(DomainSpecificScheduler<Domain<'R'>>{}, ADD_THEN(1)) | ADD_THEN(2));
+    ::stdexec::sync_wait(::stdexec::just() | ADD_THEN(0) | ::stdexec::on(DomainSpecificScheduler<Domain<'R'>>{}, ADD_THEN(1)) | ADD_THEN(2));
 
     CHECK_TRACE
 }
@@ -368,7 +368,7 @@ TEST_F(CustomizationTest, on_in_the_middle_otherwise_custom_scheduler)
 
     ::stdexec::sync_wait(::stdexec::schedule(DomainSpecificScheduler<Domain<'Q'>>{})
         | ADD_THEN(0)
-        | ::stdexec::v2::on(DomainSpecificScheduler<Domain<'R'>>{}, ADD_THEN(1))
+        | ::stdexec::on(DomainSpecificScheduler<Domain<'R'>>{}, ADD_THEN(1))
         | ADD_THEN(2));
 
     CHECK_TRACE
@@ -386,7 +386,7 @@ TEST_F(CustomizationTest, on)
         | ::stdexec::continues_on(pool.get_scheduler())
         | ADD_THEN(2)
         | ADD_THEN(3)
-        | ::stdexec::v2::on(DomainSpecificScheduler<Domain<'Y'>>{}, ADD_THEN(4))
+        | ::stdexec::on(DomainSpecificScheduler<Domain<'Y'>>{}, ADD_THEN(4))
         | ADD_THEN(5)
         | ::stdexec::continues_on(DomainSpecificScheduler<Domain<'Z'>>{})
         | ADD_THEN(6)

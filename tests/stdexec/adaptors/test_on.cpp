@@ -13,10 +13,10 @@ PRAGMA_DIAGNOSTIC_POP
 /**
  * @addtogroup unittests
  *
- * Tests for @c stdexec::v2::on
- * ----------------------------
+ * Tests for @c stdexec::on
+ * ------------------------
  *
- * This group of tests check the behavior of @c stdexec::v2::on.
+ * This group of tests check the behavior of @c stdexec::on.
  *
  * The test can be found in @ref stdexec/adaptors/test_on.cpp.
  */
@@ -31,7 +31,7 @@ public:
     static constexpr size_t index_of_B = index_of<'B'>();
 };
 
-//! @test Simple test for @c stdexec::v2::on that should that the context transition is indeed temporary.
+//! @test Simple test for @c stdexec::on that should that the context transition is indeed temporary.
 TEST_F(OnTest, on)
 {
     ::stdexec::scheduler auto scheduler_A = this->pools.at(index_of_A).get_scheduler();
@@ -41,9 +41,9 @@ TEST_F(OnTest, on)
     size_t counter = 0;
 
     auto chain = ::stdexec::schedule(scheduler_A)
-        |                                THEN_STORE_ID(thrids[0], {++counter;})
-        | ::stdexec::v2::on(scheduler_B, THEN_STORE_ID(thrids[1], {++counter;}))
-        |                                THEN_STORE_ID(thrids[2], {++counter;});
+        |                            THEN_STORE_ID(thrids[0], {++counter;})
+        | ::stdexec::on(scheduler_B, THEN_STORE_ID(thrids[1], {++counter;}))
+        |                            THEN_STORE_ID(thrids[2], {++counter;});
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 

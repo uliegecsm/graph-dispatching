@@ -50,7 +50,7 @@ TEST_F(StaticThreadPoolTest, transitioning)
 
     auto work = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
         | THEN_STORE_ID(thrids[0])
-        | ::stdexec::v2::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(thrids[1]))
+        | ::stdexec::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(thrids[1]))
         | ::stdexec::continues_on(pools.at(index_of_C).get_scheduler())
         | THEN_STORE_ID(thrids[2])
         | THEN_STORE_ID(thrids[3]);
