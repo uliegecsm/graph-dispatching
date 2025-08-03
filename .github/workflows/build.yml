@@ -243,6 +243,9 @@ jobs:
                   cmake --build --preset=${{ matrix.compiler_family }}-${{ matrix.backend }} -j$(nproc)
 
             - run : |
+                  python3 tests/check_tests.py --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+
+            - run : |
                   ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
 
     build-documentation:
