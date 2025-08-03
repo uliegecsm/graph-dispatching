@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import re
 import subprocess
 
@@ -18,11 +19,30 @@ def parse_args() -> argparse.Namespace:
 
 @typeguard.typechecked
 def expected_number_of_tests(*, preset : str) -> int:
+    """
+    Takes into account:
+        - `CMake` preset
+        - multi-GPU
+    """
+    count = None
+
     match preset:
+        case 'clang-HPX' | 'clang-OpenMP' | 'gcc-OpenMP':
+            count = 44
+        case 'rocm-HIP':
+            count = 51
+        case 'clang-HPX-Cuda' | 'clang-Cuda':
+            count = 55
         case 'gcc-Cuda':
-            return 31
+            count = 31
         case _:
             raise ValueError(f'unsupported preset \'{preset}\'')
+
+    if 'GRAPH_DISPATCHING_ENABLE_MULTIGPU' in os.environ and \
+        os.environ['GRAPH_DISPATCHING_ENABLE_MULTIGPU'] == 'ON':
+        count += 1
+
+    return count
 
 @typeguard.typechecked
 def main(*, preset : str) -> None:
