@@ -1,11 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "tests/IgnoreWarnings.hpp"
-PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-#include "exec/env.hpp"
 #include "stdexec/execution.hpp"
-PRAGMA_DIAGNOSTIC_POP
 
 /**
  * @addtogroup unittests
@@ -37,18 +32,19 @@ struct CustomProperty
 constexpr CustomProperty my_custom_property {};
 
 /// @test Check that we can build an environment with a custom property and query it at compile time.
-/// @todo Make it a pure compile-time test when https://github.com/NVIDIA/stdexec/issues/1569 is addressed.
-TEST(Environment, make_env_constexpr)
+TEST(Environment, build_env_constexpr)
 {
-    const auto env = ::exec::make_env(::stdexec::prop{my_custom_property, 123});
+    constexpr auto env = ::stdexec::env{::stdexec::prop{my_custom_property, 123}};
 
-    static_assert(std::same_as<decltype(env), const ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>>);
+    using expt_env_t = ::stdexec::__env::env<::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>>;
 
-    const auto& value = my_custom_property(env);
+    static_assert(std::same_as<decltype(env), const expt_env_t>);
 
-    static_assert(std::same_as<decltype(value), const int&>);
+    constexpr auto value = my_custom_property(env);
 
-    ASSERT_EQ(value, 123);
+    static_assert(std::same_as<decltype(value), const int>);
+
+    static_assert(value == 123);
 }
 
 struct SomeRuntimeState
@@ -57,11 +53,13 @@ struct SomeRuntimeState
 };
 
 //! @test Check that we can build an environment with a custom runtime property and query it.
-TEST(Environment, make_env_runtime)
+TEST(Environment, build_env_runtime)
 {
-    const auto env = ::exec::make_env(::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}});
+    const auto env = ::stdexec::env{::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}}};
 
-    static_assert(std::same_as<decltype(env), const ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>>);
+    using expt_env_t = ::stdexec::__env::env<::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>>;
+
+    static_assert(std::same_as<decltype(env), const expt_env_t>);
 
     const auto& value = my_custom_property(env);
 
@@ -75,9 +73,9 @@ TEST(Environment, let_value_read_env)
 {
     std::ostringstream out;
 
-    auto env = ::exec::make_env(
+    auto env = ::stdexec::env{
         ::stdexec::prop{my_custom_property, SomeRuntimeState{"try catch me if you can"}}
-    );
+    };
 
     ::stdexec::sender auto chain = ::stdexec::just()
         | ::stdexec::let_value([] { return ::stdexec::read_env(my_custom_property); })
@@ -85,7 +83,7 @@ TEST(Environment, let_value_read_env)
             out << state.label;
         });
  
-    ::stdexec::sync_wait(std::move(chain) | ::exec::write_env(std::move(env))); // NOLINT(performance-move-const-arg)
+    ::stdexec::sync_wait(std::move(chain) | ::stdexec::write_env(std::move(env))); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(out.str(), "try catch me if you can");
 }
