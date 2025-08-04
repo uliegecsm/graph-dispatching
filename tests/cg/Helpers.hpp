@@ -127,9 +127,10 @@ struct FakeFEMLaplacian1D
     }
 };
 
+template <Kokkos::utils::concepts::ExecutionSpace Exec>
 struct NbyNSolverTestHelper
 {
-    using execution_space = Kokkos::DefaultExecutionSpace;
+    using execution_space = Exec;
     using memory_space    = typename execution_space::memory_space;
     using initializer_t   = FakeFEMLaplacian1D<Kokkos::complex<double>, memory_space>;
 };
@@ -142,7 +143,7 @@ struct NbyNSolverTest
     template <Kokkos::utils::concepts::ExecutionSpace Exec>
     static auto run(const Exec& exec, const typename Exec::size_type nrows, const SolverType::mag_t tol, const typename Exec::size_type max_iters = 0)
     {
-        auto system = NbyNSolverTestHelper::initializer_t::create(exec, nrows);
+        auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec, nrows);
 
         solver_t solver{{}, std::move(system.mat), std::move(system.rhs)}; // NOLINT(misc-const-correctness)
 
@@ -176,7 +177,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     for(typename std::remove_cvref_t<decltype(_exec_)>::size_type irow = 0; irow < _nrows_; ++irow) {  \
         const Kokkos::complex<double> value {double(2 * irow) / _nrows_, double(2 * irow) / _nrows_};  \
         EXPECT_LE(                                                                                     \
-            relDifference(mirror(irow), value),                                                        \
+            tests::cg::relDifference(mirror(irow), value),                                             \
             _tol_                                                                                      \
         ) << mirror(irow) << " not close to " << value;                                                \
     }

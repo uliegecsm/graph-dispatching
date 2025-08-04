@@ -24,6 +24,8 @@
  * The test can be found in @ref tests/cg/test_graph.cpp.
  */
 
+using execution_space = Kokkos::DefaultExecutionSpace;
+
 namespace tests::cg
 {
 
@@ -32,11 +34,13 @@ using namespace Kokkos::utils::callbacks;
 struct UseHostNode   { static constexpr bool value = true; };
 struct UseDeviceNode { static constexpr bool value = false; };
 
+using helper_t = ::tests::cg::NbyNSolverTestHelper<execution_space>;
+
 template <typename HostOrDeviceNode>
 class CGGraphTest : public ::testing::Test,
-                    public NbyNSolverTest<algorithms::cg::CGGraph<NbyNSolverTestHelper::initializer_t::matrix_t, NbyNSolverTestHelper::initializer_t::rhs_t, HostOrDeviceNode::value>>,
+                    public NbyNSolverTest<algorithms::cg::CGGraph<typename helper_t::initializer_t::matrix_t, typename helper_t::initializer_t::rhs_t, HostOrDeviceNode::value>>,
                     public Kokkos::utils::tests::scoped::callbacks::Manager,
-                    public Kokkos::utils::tests::scoped::ExecutionSpace<NbyNSolverTestHelper::execution_space>
+                    public Kokkos::utils::tests::scoped::ExecutionSpace<execution_space>
 {
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
