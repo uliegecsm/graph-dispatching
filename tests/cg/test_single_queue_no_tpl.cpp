@@ -23,12 +23,16 @@
  * The test can be found in @ref tests/cg/test_single_queue_no_tpl.cpp.
  */
 
+using execution_space = Kokkos::DefaultExecutionSpace;
+
 namespace tests::cg
 {
 
+using helper_t = NbyNSolverTestHelper<execution_space>;
+
 using solver_t = algorithms::cg::CGSingleQueue<
-    NbyNSolverTestHelper::initializer_t::matrix_t,
-    NbyNSolverTestHelper::initializer_t::rhs_t,
+    typename helper_t::initializer_t::matrix_t,
+    typename helper_t::initializer_t::rhs_t,
     ::algorithms::cg::Spmv,
     ::algorithms::cg::Dot,
     ::algorithms::cg::Axpby
@@ -48,7 +52,7 @@ public:
 
 TEST_F(CGSingleQueueNoTPLTest, 10x10)
 {
-    const NbyNSolverTestHelper::execution_space exec {};
+    const execution_space exec {};
 
     EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGSingleQueue - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));

@@ -18,21 +18,25 @@
  * Conjugate gradient solver with a single @c Kokkos execution space instance
  * --------------------------------------------------------------------------
  *
- * Implement a portable conjugate gradient (CG) solver without using @c Kokkos::Graph.
+ * This group of tests check the behavior of @ref algorithms::cg::CGSingleQueue.
  *
  * The test can be found in @ref tests/cg/test_single_queue.cpp.
  */
 
+using execution_space = Kokkos::DefaultExecutionSpace;
+
 namespace tests::cg
 {
+
+using helper_t = NbyNSolverTestHelper<execution_space>;
 
 DEFINE_FUNCTOR(KokkosSparseSpmv, KokkosSparse::spmv)
 DEFINE_FUNCTOR(KokkosBlasDot,    KokkosBlas::dot)
 DEFINE_FUNCTOR(KokkosBlasAxpby,  KokkosBlas::axpby)
 
 using solver_t = algorithms::cg::CGSingleQueue<
-    NbyNSolverTestHelper::initializer_t::matrix_t,
-    NbyNSolverTestHelper::initializer_t::rhs_t,
+    typename helper_t::initializer_t::matrix_t,
+    typename helper_t::initializer_t::rhs_t,
     KokkosSparseSpmv,
     KokkosBlasDot,
     KokkosBlasAxpby
@@ -52,7 +56,7 @@ public:
 
 TEST_F(CGSingleQueueTest, 10x10)
 {
-    const NbyNSolverTestHelper::execution_space exec {};
+    const execution_space exec {};
 
 #if defined(KOKKOS_ENABLE_CUDA)
     EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGSingleQueue - iter 7"}};

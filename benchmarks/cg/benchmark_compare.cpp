@@ -173,8 +173,10 @@ public:
     }
 
 protected:
-    using matrix_t  = ::tests::cg::NbyNSolverTestHelper::initializer_t::matrix_t;
-    using rhs_t     = ::tests::cg::NbyNSolverTestHelper::initializer_t::rhs_t;
+    using helper_t = ::tests::cg::NbyNSolverTestHelper<execution_space>;
+
+    using matrix_t  = typename helper_t::initializer_t::matrix_t;
+    using rhs_t     = typename helper_t::initializer_t::rhs_t;
 
     using single_queue_t    = ::tests::cg::NbyNSolverTest<::algorithms::cg::CGSingleQueue<matrix_t, rhs_t, ::algorithms::cg::Spmv, ::algorithms::cg::Dot, algorithms::cg::Axpby>>;
     using graph_t           = ::tests::cg::NbyNSolverTest<::algorithms::cg::CGGraph      <matrix_t, rhs_t, false>>;
