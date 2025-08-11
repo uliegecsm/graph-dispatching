@@ -33,6 +33,13 @@ public:
     static constexpr size_t index_of_C = index_of<'C'>();
 };
 
+//! @test Check the forward progress guarantee of the @c exec::static_thread_pool scheduler.
+TEST_F(StaticThreadPoolTest, forward_progress_guarantee)
+{
+    const auto fpg = ::stdexec::get_forward_progress_guarantee(::exec::static_thread_pool{}.get_scheduler());
+    ASSERT_EQ(fpg, ::stdexec::forward_progress_guarantee::parallel);
+}
+
 //! @test Check that @c then has an early domain.
 TEST_F(StaticThreadPoolTest, then_early_domain)
 {
