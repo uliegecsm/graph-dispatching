@@ -56,6 +56,13 @@ struct LoadCheckAddFunctor
     }
 };
 
+//! @test Check the forward progress guarantee of the @c nvexec::stream_context scheduler.
+TEST_F(StreamContextTest, forward_progress_guarantee)
+{
+    const auto fpg = ::stdexec::get_forward_progress_guarantee(stream_ctx.get_scheduler());
+    ASSERT_EQ(fpg, ::stdexec::forward_progress_guarantee::weakly_parallel);
+}
+
 /**
  * @test Simple test that checks that @c nvexec::stream_context respects workload dependencies.
  *
