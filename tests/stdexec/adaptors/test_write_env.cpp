@@ -31,12 +31,23 @@ struct CustomProperty
 
 constexpr CustomProperty my_custom_property {};
 
+//! Yet another custom property.
+struct YetAnotherCustomProperty
+{
+    template <typename Env> requires ::stdexec::tag_invocable<YetAnotherCustomProperty, Env>
+    constexpr decltype(auto) operator()(Env&& env) const {
+        return ::stdexec::tag_invoke(*this, std::forward<Env>(env));
+    }
+};
+
+constexpr YetAnotherCustomProperty my_yet_another_custom_property {};
+
 /// @test Check that we can build an environment with a custom property and query it at compile time.
 TEST(Environment, build_env_constexpr)
 {
-    constexpr auto env = ::stdexec::env{::stdexec::prop{my_custom_property, 123}};
+    constexpr auto env = ::stdexec::prop{my_custom_property, 123};
 
-    using expt_env_t = ::stdexec::__env::env<::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>>;
+    using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>;
 
     static_assert(std::same_as<decltype(env), const expt_env_t>);
 
@@ -47,6 +58,36 @@ TEST(Environment, build_env_constexpr)
     static_assert(value == 123);
 }
 
+/// @test Check that we can build an environment with many properties.
+TEST(Environment, build_env_constexpr_many_props)
+{
+    constexpr auto env = ::stdexec::env{
+        ::stdexec::prop{my_custom_property, 123},
+        ::stdexec::prop{my_yet_another_custom_property, 456}
+    };
+
+    constexpr auto value_cp   = my_custom_property(env);
+    constexpr auto value_yacp = my_yet_another_custom_property(env);
+
+    static_assert(std::same_as<decltype(value_cp),   const int>);
+    static_assert(std::same_as<decltype(value_yacp), const int>);
+
+    static_assert(value_cp   == 123);
+    static_assert(value_yacp == 456);
+}
+
+//! @test This is testing the issue https://github.com/NVIDIA/stdexec/issues/1606.
+TEST(Environment, build_env_constexpr_single_prop)
+{
+#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ < 15)
+    constexpr auto env = ::stdexec::prop{my_custom_property, 123};
+#else
+    constexpr auto env = ::stdexec::env{::stdexec::prop{my_custom_property, 123}};
+#endif
+
+    static_assert(my_custom_property(env) == 123);
+}
+
 struct SomeRuntimeState
 {
     std::string label;
@@ -55,9 +96,9 @@ struct SomeRuntimeState
 //! @test Check that we can build an environment with a custom runtime property and query it.
 TEST(Environment, build_env_runtime)
 {
-    const auto env = ::stdexec::env{::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}}};
+    const auto env = ::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}};
 
-    using expt_env_t = ::stdexec::__env::env<::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>>;
+    using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>;
 
     static_assert(std::same_as<decltype(env), const expt_env_t>);
 
@@ -73,9 +114,7 @@ TEST(Environment, let_value_read_env)
 {
     std::ostringstream out;
 
-    auto env = ::stdexec::env{
-        ::stdexec::prop{my_custom_property, SomeRuntimeState{"try catch me if you can"}}
-    };
+    auto env = ::stdexec::prop{my_custom_property, SomeRuntimeState{"try catch me if you can"}};
 
     ::stdexec::sender auto chain = ::stdexec::just()
         | ::stdexec::let_value([] { return ::stdexec::read_env(my_custom_property); })

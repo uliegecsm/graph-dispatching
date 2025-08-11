@@ -79,7 +79,7 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
     static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
 
     //! Using @c starts_on returns an empty environment, and the early domain is still the default domain.
-    static_assert(std::same_as<::stdexec::env_of_t<decltype(moved_to_another_A)>, ::stdexec::__env::__fwd<::stdexec::__env::__fwd<::stdexec::__env::prop<::stdexec::__queries::__is_scheduler_affine_t, std::integral_constant<bool, true> > > >::__t>);
+    static_assert(std::same_as<::stdexec::env_of_t<decltype(moved_to_another_A)>, ::stdexec::__env::__fwd<::stdexec::__env::__fwd<::stdexec::__env::cprop<::stdexec::__queries::__is_scheduler_affine_t, true>>>::__t>);
     static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(moved_to_another_A)>, ::stdexec::default_domain>);
 }
 
