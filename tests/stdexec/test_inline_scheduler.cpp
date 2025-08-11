@@ -23,17 +23,37 @@ TEST(inline_scheduler, forward_progress_guarantee)
       == ::stdexec::forward_progress_guarantee::weakly_parallel);
 }
 
-//! @test Check that the work is scheduled on the main thread.
+/**
+ * @test Check that the work is scheduled on the main thread.
+ *
+ * This test also checks that the inline scheduler does not execute work before
+ * calling @c stdexec::sync_wait.
+ */
 TEST(inline_scheduler, main_thread)
 {
     const auto main = std::this_thread::get_id();
 
+    const auto before_chain = std::chrono::steady_clock::now();
+
+    std::chrono::steady_clock::time_point executed;
+
     auto chain = ::stdexec::schedule(::stdexec::inline_scheduler{})
-            | ::stdexec::then([] () -> std::thread::id { return std::this_thread::get_id(); });
+            | ::stdexec::then([&] () -> std::thread::id {
+                executed = std::chrono::steady_clock::now();
+                return std::this_thread::get_id();
+            });
+
+    const auto before_submit = std::chrono::steady_clock::now();
 
     const auto [who] = ::stdexec::sync_wait(std::move(chain)).value(); // NOLINT(performance-move-const-arg)
 
+    const auto after_submit = std::chrono::steady_clock::now();
+
     ASSERT_EQ(who, main);
+
+    ASSERT_LT(before_chain,  executed);
+    ASSERT_LT(before_submit, executed);
+    ASSERT_GT(after_submit,  executed);
 }
 
 } // namespace tests::stdexec
