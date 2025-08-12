@@ -13,11 +13,11 @@
                 "CMAKE_C_COMPILER"     : "should-not-be-needed"
             },
             "warnings" : {
+                "dev"           : true,
                 "uninitialized" : true,
                 "unusedCli"     : true
             },
             "errors": {
-                "dev"        : true,
                 "deprecated" : true
             }
         },

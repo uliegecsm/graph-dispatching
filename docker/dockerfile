@@ -91,6 +91,13 @@ RUN <<EOF
     rm ${INSTALLER}
 EOF
 
+ARG CMAKE_PACKAGE_MANAGER_VERSION
+ARG CMAKE_PACKAGE_MANAGER_SHA256
+
+ADD --checksum=sha256:${CMAKE_PACKAGE_MANAGER_SHA256} \
+    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CMAKE_PACKAGE_MANAGER_VERSION}/CPM.cmake \
+    /opt/cpm-${CMAKE_PACKAGE_MANAGER_VERSION}/
+
 ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
 
 # Compile Google Test.

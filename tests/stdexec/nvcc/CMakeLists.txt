@@ -1,7 +1,8 @@
 add_executable(tests_stdexec_nvcc_failure)
 target_sources(tests_stdexec_nvcc_failure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/test_failure.cpp)
 
-target_link_libraries(tests_stdexec_nvcc_failure PRIVATE stdexec::stdexec)
+target_include_directories(tests_stdexec_nvcc_failure PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(tests_stdexec_nvcc_failure PRIVATE STDEXEC::stdexec)
 
 # If the Kokkos CXX compiler ID is NVIDIA, remove the target from the default/all targets.
 # Add a test that will try to compile the target, but will fail.
