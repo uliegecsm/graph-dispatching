@@ -62,7 +62,10 @@ function(add_one_test_common PREFIX OPTIONS ONE_VALUE_KEYWORDS MULTI_VALUE_KEYWO
         message(STATUS "Kokkos is enabled for '${${PREFIX}_EXECUTABLE_NAME}'.")
         target_link_libraries(${${PREFIX}_EXECUTABLE_NAME} PRIVATE test_common)
     endif()
-    target_link_libraries(${${PREFIX}_EXECUTABLE_NAME} PRIVATE stdexec::stdexec)
+
+    if(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS)
+        target_link_libraries(${${PREFIX}_EXECUTABLE_NAME} PRIVATE STDEXEC::stdexec)
+    endif()
 
     if(DEFINED ${PREFIX}_ADDITIONAL_LINK_LIBRARIES)
         target_link_libraries(

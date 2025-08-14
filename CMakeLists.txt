@@ -79,12 +79,48 @@ target_compile_definitions(
         KOKKOS_IMPL_PUBLIC_INCLUDE
 )
 
+#---- Compilers like nvcc cannot compile stdexec.
+if(Kokkos_CXX_COMPILER_ID STREQUAL NVIDIA AND NOT ENABLE_DOXYGEN)
+    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS OFF)
+else()
+    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS ON)
+endif()
+
 #---- Find Kokkos Kernels.
 find_package(
     KokkosKernels
     CONFIG
     REQUIRED
 )
+
+if(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS)
+    # Add 'stdexec' using the CMake Package Manager. Note that we include our 'IgnoreWarnings.cmake' right after to
+    # avoid compilation issues like in https://github.com/NVIDIA/stdexec/issues/1607.
+    include(/opt/cpm-0.42.0/CPM.cmake)
+    string(JSON STDEXEC_VERSION GET "${VERSION_JSON}" "dependencies" "nvidia" "stdexec" "value")
+    CPMAddPackage(
+        NAME stdexec
+        SOURCE_DIR "/opt/nvidia/stdexec-${STDEXEC_VERSION}"
+        OPTIONS
+            "STDEXEC_BUILD_TESTS OFF"
+            "STDEXEC_BUILD_EXAMPLES OFF"
+    )
+else()
+    # Add 'stdexec' as an include-only library, because the compiler will not be able to compiler
+    # anything that the CPM would like to compile.
+    # It will for instance miss the 'STDEXEC::system_context' target, see
+    # https://github.com/NVIDIA/stdexec/issues/1607.
+    add_library(stdexec INTERFACE)
+
+    target_include_directories(
+        stdexec
+        SYSTEM
+        INTERFACE
+            $ENV{Stdexec_ROOT}/include
+    )
+
+    add_library(STDEXEC::stdexec ALIAS stdexec)
+endif()
 
 #---- Setup compiler warnings.
 include(cmake/modules/IgnoreWarnings.cmake)
@@ -95,31 +131,11 @@ if(ENABLE_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "clang-tidy" "--config-file=${CMAKE_BINARY_DIR}/.clang-tidy")
 endif()
 
-# As 'stdexec' is an include-only library, we will not use a 'FetchContent' approach because the root 'CMakeLists.txt'
-# of 'stdexec' does a ton of things we just don't want at all.
-add_library(stdexec INTERFACE)
-
-target_include_directories(
-    stdexec
-    SYSTEM
-    INTERFACE
-        $ENV{Stdexec_ROOT}/include
-)
-
-add_library(stdexec::stdexec ALIAS stdexec)
-
 #---- Global property that helps us keep track of files that will automatically be added
 #     to our Doxygen documentation.
 define_property(GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC
     BRIEF_DOCS "Files that will be added to the Doxygen documentation."
 )
-
-#---- Compilers like nvcc cannot compile stdexec.
-if(Kokkos_CXX_COMPILER_ID STREQUAL NVIDIA AND NOT ENABLE_DOXYGEN)
-    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS OFF)
-else()
-    set(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS ON)
-endif()
 
 message(STATUS "Kokkos_CXX_COMPILER_ID is '${Kokkos_CXX_COMPILER_ID}', so GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS is set to '${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS}'.")
 
