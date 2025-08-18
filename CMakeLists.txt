@@ -96,7 +96,8 @@ find_package(
 if(GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS)
     # Add 'stdexec' using the CMake Package Manager. Note that we include our 'IgnoreWarnings.cmake' right after to
     # avoid compilation issues like in https://github.com/NVIDIA/stdexec/issues/1607.
-    include(/opt/cpm-0.42.0/CPM.cmake)
+    string(JSON CPM_VERSION GET "${VERSION_JSON}" "dependencies" "cpm" "value")
+    include(/opt/cpm-${CPM_VERSION}/CPM.cmake)
     string(JSON STDEXEC_VERSION GET "${VERSION_JSON}" "dependencies" "nvidia" "stdexec" "value")
     CPMAddPackage(
         NAME stdexec
