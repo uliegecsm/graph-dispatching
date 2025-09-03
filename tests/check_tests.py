@@ -32,9 +32,9 @@ def expected_number_of_tests(*, preset : str) -> int:
         case 'rocm-HIP':
             count = 53
         case 'clang-HPX-Cuda' | 'clang-Cuda':
-            count = 57
+            count = 58
         case 'gcc-Cuda':
-            count = 31
+            count = 32
         case _:
             raise ValueError(f'unsupported preset \'{preset}\'')
 
