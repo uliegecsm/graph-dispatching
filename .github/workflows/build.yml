@@ -224,6 +224,8 @@ jobs:
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
             - uses: actions/checkout@v5
+              with:
+                  submodules: true
 
             - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
@@ -255,6 +257,8 @@ jobs:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
         steps:
             - uses: actions/checkout@v5
+              with:
+                  submodules: true
 
             - run : |
                   cmake -S .    --preset=gcc-OpenMP -DENABLE_DOXYGEN:BOOL=ON

@@ -28,13 +28,13 @@ def expected_number_of_tests(*, preset : str) -> int:
 
     match preset:
         case 'clang-HPX' | 'clang-OpenMP' | 'gcc-OpenMP':
-            count = 46
+            count = 47
         case 'rocm-HIP':
-            count = 53
+            count = 54
         case 'clang-HPX-Cuda' | 'clang-Cuda':
-            count = 58
+            count = 59
         case 'gcc-Cuda':
-            count = 32
+            count = 33
         case _:
             raise ValueError(f'unsupported preset \'{preset}\'')
 
