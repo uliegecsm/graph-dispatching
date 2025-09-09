@@ -123,6 +123,9 @@ else()
     add_library(STDEXEC::stdexec ALIAS stdexec)
 endif()
 
+#---- Add Plog logging library.
+include(cmake/modules/BuildPlog.cmake)
+
 #---- Setup compiler warnings.
 include(cmake/modules/IgnoreWarnings.cmake)
 
