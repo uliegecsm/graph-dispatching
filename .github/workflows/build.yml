@@ -43,7 +43,7 @@ jobs:
         steps:
             # This should only sparsely checkout 'docker/dockerfile.docker', but we're hitting
             # the issue https://github.com/actions/checkout/issues/1992.
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   set-safe-directory: true
 
@@ -145,7 +145,7 @@ jobs:
                       platforms      : linux/amd64
                       kokkos_archs   : [ZEN4, AMD_GFX942_APU]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                    set-safe-directory: true
 
@@ -223,7 +223,7 @@ jobs:
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
@@ -254,7 +254,7 @@ jobs:
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - run : |
                   cmake -S .    --preset=gcc-OpenMP -DENABLE_DOXYGEN:BOOL=ON
