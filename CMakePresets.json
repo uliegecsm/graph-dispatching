@@ -87,7 +87,7 @@
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : ["default", "clang", "ccache"],
+            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
             "cacheVariables" : {
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"

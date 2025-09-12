@@ -26,7 +26,7 @@ struct Dummy
 //! @test Check that @ref tests::cuda::Stream works as expected.
 TEST(APIWrappers, stream)
 {
-    Stream stream;
+    const Stream stream;
 
     ASSERT_NE(stream.stream, nullptr);
 
@@ -51,7 +51,7 @@ TEST(APIWrappers, view_default_constructible)
 //! @test Check that @ref tests::cuda::View construct does not crash.
 TEST(APIWrappers, view_constructor)
 {
-    Stream stream;
+    const Stream stream;
 
     const View<double> data(stream, 2<<6);
 
@@ -61,7 +61,7 @@ TEST(APIWrappers, view_constructor)
 //! @test Check that @ref tests::cuda::View::get_host_copy works as expected.
 TEST(APIWrappers, view_get_host_copy)
 {
-    Stream stream;
+    const Stream stream;
 
     const View<double> data(stream, 2<<6);
 
@@ -73,11 +73,11 @@ TEST(APIWrappers, view_get_host_copy)
 //! @test Check that @ref tests::cuda::View can be copied, still we don't have double free issues.
 TEST(APIWrappers, view_double_free)
 {
-    Stream stream;
+    const Stream stream;
 
     const View<double> data(stream, 2<<6);
 
-    const auto other = data;
+    [[maybe_unused]]const auto other = data; // NOLINT(performance-unnecessary-copy-initialization)
 
     stream.fence();
 }
@@ -91,7 +91,7 @@ TEST(APIWrappers, get_driver)
 //! @test Check that @ref tests::cuda::Graph constructor does not crash.
 TEST(APIWrappers, graph_constructor)
 {
-    Graph graph;
+    const Graph graph;
 }
 
 /**
@@ -107,7 +107,7 @@ TEST(APIWrappers, graph_wrapper_preexisting)
     CHECK_CALL(PREFIXED_API(GraphCreate)(&native_graph, 0));
 
     {
-        Graph graph(native_graph);
+        const Graph graph(native_graph);
     }
 
     CHECK_CALL(PREFIXED_API(GraphDestroy)(native_graph));
@@ -116,16 +116,16 @@ TEST(APIWrappers, graph_wrapper_preexisting)
 //! @test Check that @ref tests::cuda::GraphExecutable constructor does not crash.
 TEST(APIWrappers, graph_exec_constructor)
 {
-    Graph graph;
-    GraphExecutable graph_exec(graph);
+    const Graph graph;
+    const GraphExecutable graph_exec(graph);
 }
 
 //! @test Check that @ref tests::cuda::GraphExecutable::submit does not crash.
 TEST(APIWrappers, graph_exec_submit)
 {
-    Stream stream;
-    Graph graph;
-    GraphExecutable graph_exec(graph);
+    const Stream stream;
+    const Graph graph;
+    const GraphExecutable graph_exec(graph);
     graph_exec.submit(stream);
     stream.fence();
 }

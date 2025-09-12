@@ -49,16 +49,16 @@ TEST_P(cuda, conditional_if)
 
     constexpr size_t size = 1;
 
-    Stream stream;
+    const Stream stream;
 
-    view_t data(stream, size);
+    const view_t data(stream, size);
 
-    Graph graph;
+    const Graph graph;
 
     cudaGraphConditionalHandle handle;
     CHECK_CALL(cudaGraphConditionalHandleCreate(&handle, graph.graph));
 
-    WorkThatDrivesTheConditional functor_decision{
+    const WorkThatDrivesTheConditional functor_decision{
         .decision = this->GetParam(),
         .handle   = handle
     };
@@ -68,11 +68,11 @@ TEST_P(cuda, conditional_if)
     GraphNodeConditionalIf conditional(handle);
     conditional.add(graph, {node_decision});
 
-    functor_t functor_if{.data = data};
+    const functor_t functor_if{.data = data};
     GraphNodeKernel node_if(functor_if, 1);
     node_if.add(conditional.get());
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     graph_exec.submit(stream);
 

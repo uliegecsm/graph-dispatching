@@ -85,7 +85,7 @@ TEST(GraphContext, then_many_devices)
 
     const Kokkos::Cuda exec_0 = create_exec_on_device(0), exec_1 = create_exec_on_device(1);
 
-    view_t data(Kokkos::view_alloc("data", exec_0));
+    const view_t data(Kokkos::view_alloc("data", exec_0));
 
     Kokkos::Experimental::GraphContext graph_ctx {exec_0, exec_1};
 

@@ -57,11 +57,11 @@ TEST(cuda, conditional_while)
 
     constexpr size_t size = 1;
 
-    Stream stream;
+    const Stream stream;
 
-    view_t data(stream, size);
+    const view_t data(stream, size);
 
-    Graph graph;
+    const Graph graph;
 
     cudaGraphConditionalHandle handle;
     CHECK_CALL(cudaGraphConditionalHandleCreate(&handle, graph.graph, 1, cudaGraphCondAssignDefault));
@@ -69,18 +69,18 @@ TEST(cuda, conditional_while)
     GraphNodeConditionalWhile conditional(handle);
     conditional.add(graph, {});
 
-    functor_t work_f{.data = data};
+    const functor_t work_f{.data = data};
     GraphNodeKernel work_n(work_f, 1);
     work_n.add(conditional.get(), {});
 
-    WorkThatDrivesTheConditionalWhile decision_f{
+    const WorkThatDrivesTheConditionalWhile decision_f{
         .decision = data,
         .handle   = handle
     };
     GraphNodeKernel decision_n(decision_f, 1);
     decision_n.add(conditional.get(), {work_n});
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     graph_exec.submit(stream);
 

@@ -86,7 +86,7 @@ TEST_F(StreamContextTest, workload_dependencies)
         | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 21, .value = 8, .data = witness.data()})
         | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 29, .value = 1, .data = witness.data()});
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(witness(), 30);
 }
@@ -173,23 +173,23 @@ TEST_F(StreamContextTest, move_to_static_thread_pool)
         | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev =  6, .value = 6, .data = witness.data()})
         | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(witness(), 21);
 }
 
-//! Transition from @p from to @p to, with a non-empty value channel.
-template <typename From, typename To>
-void test_transition_from_one_to_another_with_value(From&& from, To&& to)
+//! Transition from @p src to @p dst, with a non-empty value channel.
+template <typename Src, typename Dst>
+void test_transition_from_one_to_another_with_value(Src&& src, Dst&& dst)
 {
-    auto snd = ::stdexec::schedule(std::forward<From>(from))
+    auto snd = ::stdexec::schedule(std::forward<Src>(src))
         | ::stdexec::then([=] () -> int {
             if (::nvexec::is_on_gpu())
                 return 1;
             else
                 return 0;
         })
-        | ::stdexec::continues_on(std::forward<To>(to))
+        | ::stdexec::continues_on(std::forward<Dst>(dst))
         | ::stdexec::then([=](const int val) -> int {
             if (::nvexec::is_on_gpu() && val == 1)
                 return val + 1;
@@ -202,20 +202,20 @@ void test_transition_from_one_to_another_with_value(From&& from, To&& to)
     ASSERT_EQ(result, 2);
 }
 
-//! Transition from @p from to @p to, with an empty value channel.
-template <typename From, typename To>
-void test_transition_from_one_to_another_no_value(From&& from, To&& to)
+//! Transition from @p src to @p dst, with an empty value channel.
+template <typename Src, typename Dst>
+void test_transition_from_one_to_another_no_value(Src&& src, Dst&& dst)
 {
-    Kokkos::View<int, Kokkos::SharedSpace> value("shared");
+    const Kokkos::View<int, Kokkos::SharedSpace> value("shared");
 
     auto* const ptr = value.data();
 
-    auto snd = ::stdexec::schedule(std::forward<From>(from))
+    auto snd = ::stdexec::schedule(std::forward<Src>(src))
         | ::stdexec::then([=] {
             if (::nvexec::is_on_gpu())
                 ++(*ptr);
         })
-        | ::stdexec::continues_on(std::forward<To>(to))
+        | ::stdexec::continues_on(std::forward<Dst>(dst))
         | ::stdexec::then([=] {
             if (::nvexec::is_on_gpu() && *ptr == 1)
                 ++(*ptr);

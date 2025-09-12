@@ -39,7 +39,7 @@ namespace tests::cuda
         EXPECT_EQ(node_type, cudaGraphNodeType##__type__);                \
     }
 
-enum class Mode
+enum class Mode : std::uint8_t
 {
     SINGLE,  //!< Embed the external library call directly into the main application graph.
     SUBGRAPH //!< Embed the external library call as a subgraph into the main application graph.
@@ -132,7 +132,7 @@ PRAGMA_DIAGNOSTIC_POP
 
         ASSERT_EQ(buffer_value, result);
 
-        cudaMemcpy3DParms node_memcpy_params;
+        cudaMemcpy3DParms node_memcpy_params {};
         if constexpr (mode == Mode::SINGLE) {
             CHECK_CALL(PREFIXED_API(GraphMemcpyNodeGetParams)(nodes.at(2), &node_memcpy_params));
         } else {
@@ -140,7 +140,7 @@ PRAGMA_DIAGNOSTIC_POP
             Graph graph(nullptr);
             CHECK_CALL(PREFIXED_API(GraphChildGraphNodeGetGraph)(nodes.at(1), &graph.graph));
 
-            std::array<PREFIXED_API(GraphNode_t), 2> child_graph_nodes;
+            std::array<PREFIXED_API(GraphNode_t), 2> child_graph_nodes {};
             size_t num_nodes = 2;
             CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, child_graph_nodes.data(), &num_nodes)));
 
@@ -168,7 +168,7 @@ PRAGMA_DIAGNOSTIC_POP
     template <Mode mode>
     void run(const Graph& graph, const GraphNode& captured) const
     {
-        functor_t functor_end{.data = dense};
+        const functor_t functor_end{.data = dense};
         GraphNodeKernel node_end(functor_end, size);
         node_end.add(graph, {captured});
 
@@ -176,7 +176,7 @@ PRAGMA_DIAGNOSTIC_POP
 
         const auto nodes = this->check_topology<mode>(graph);
 
-        GraphExecutable graph_exec(graph);
+        const GraphExecutable graph_exec(graph);
 
         graph_exec.submit(stream);
 
@@ -224,7 +224,7 @@ auto GraphCaptureTest::check_topology<Mode::SINGLE>(const Graph& graph) const
     CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nullptr, &num_nodes)));
     EXPECT_EQ(num_nodes, 4);
 
-    std::array<PREFIXED_API(GraphNode_t), 4> nodes;
+    std::array<PREFIXED_API(GraphNode_t), 4> nodes {};
     CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
 
     EXPECT_NODE_TYPE_EQ(nodes.at(0), Kernel);
@@ -236,7 +236,7 @@ auto GraphCaptureTest::check_topology<Mode::SINGLE>(const Graph& graph) const
     CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
     EXPECT_EQ(num_edges, 3);
 
-    std::array<PREFIXED_API(GraphNode_t), 3> edges_from, edges_to;
+    std::array<PREFIXED_API(GraphNode_t), 3> edges_from {}, edges_to {};
     CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
 
     EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
@@ -253,7 +253,7 @@ auto GraphCaptureTest::check_topology<Mode::SUBGRAPH>(const Graph& graph) const
     CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nullptr, &num_nodes)));
     EXPECT_EQ(num_nodes, 3);
 
-    std::array<PREFIXED_API(GraphNode_t), 3> nodes;
+    std::array<PREFIXED_API(GraphNode_t), 3> nodes {};
     CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
 
     EXPECT_NODE_TYPE_EQ(nodes.at(0), Kernel);
@@ -264,7 +264,7 @@ auto GraphCaptureTest::check_topology<Mode::SUBGRAPH>(const Graph& graph) const
     CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
     EXPECT_EQ(num_edges, 2);
 
-    std::array<PREFIXED_API(GraphNode_t), 2> edges_from, edges_to;
+    std::array<PREFIXED_API(GraphNode_t), 2> edges_from {}, edges_to {};
     CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
 
     EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
@@ -534,9 +534,9 @@ TEST_F(GraphCaptureWithProlongedState, dot_captured_in_graph)
     double result = 0.;
 
     //! Create the graph, with a node that increments by one all elements of @ref dense.
-    Graph graph;
+    const Graph graph;
 
-    functor_t functor{.data = dense};
+    const functor_t functor{.data = dense};
     GraphNodeKernel node(functor, size);
     node.add(graph);
 
@@ -548,14 +548,14 @@ TEST_F(GraphCaptureWithProlongedState, dot_captured_in_graph)
 
     //! Check nodes.
     size_t num_nodes = 2;
-    std::array<PREFIXED_API(GraphNode_t), 2> nodes;
+    std::array<PREFIXED_API(GraphNode_t), 2> nodes {};
     CHECK_CALL(PREFIXED_API(GraphGetNodes(graph.graph, nodes.data(), &num_nodes)));
 
     EXPECT_NODE_TYPE_EQ(nodes.at(0), Kernel);
     EXPECT_NODE_TYPE_EQ(nodes.at(1), Graph);
 
     //! Create the executable graph.
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     //! Submit many times.
     for(unsigned short int irep = 0; irep < 5; ++irep)

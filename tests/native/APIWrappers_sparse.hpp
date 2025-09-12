@@ -52,7 +52,7 @@ struct SparseVectorDescriptor
 
     SparseVectorDescriptor() = default;
 
-    SparseVectorDescriptor(const View<T>& data) : owning(true)
+    explicit SparseVectorDescriptor(const View<T>& data) : owning(true)
     {
         CHECK_SPARSE_CALL(cusparseCreateSpVec(
             &this->descr,
@@ -82,7 +82,7 @@ struct DenseVectorDescriptor
 
     DenseVectorDescriptor() = default;
 
-    DenseVectorDescriptor(const ::tests::cuda::View<T>& values) : owning(true)
+    explicit DenseVectorDescriptor(const ::tests::cuda::View<T>& values) : owning(true)
     {
         CHECK_SPARSE_CALL(cusparseCreateDnVec(
             &this->descr,

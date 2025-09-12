@@ -72,6 +72,15 @@ View<T>& View<T>::operator=(View<T>&& other)
 }
 
 template <typename T>
+View<T>::View(View&& other)
+    : size(other.size),
+      buffer(other.buffer),
+      owning(other.owning)
+{
+    if(other.owning) other.owning = false;
+}
+
+template <typename T>
 std::vector<T> View<T>::get_host_copy(const Stream& stream) const requires ( ! std::same_as<T, void> )
 {
     std::vector<T> host_copy(size);
@@ -136,7 +145,7 @@ GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors
     CHECK_CALL(PREFIXED_API(GraphAddChildGraphNode)(
         &child.node,
         other.graph,
-        ancestors.size() > 0 ? ancestors_impl.data() : nullptr, ancestors.size(),
+        ancestors.empty() ? nullptr : ancestors_impl.data(), ancestors.size(),
         this->graph
     ));
 
@@ -159,7 +168,7 @@ void GraphExecutable::set_enabled(const GraphNode& node, const bool is_enabled) 
     CHECK_CALL(PREFIXED_API(GraphNodeSetEnabled)(graph_exec, node.node, is_enabled));
 }
 
-void GraphExecutable::submit(const Stream& stream)
+void GraphExecutable::submit(const Stream& stream) const
 {
     printf("> Submitting executable graph %p on stream %p.\n", graph_exec, stream.stream);
     CHECK_CALL(PREFIXED_API(GraphLaunch)(graph_exec, stream.stream));
@@ -210,7 +219,7 @@ void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNo
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddKernelNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         &params
     ));
 }
@@ -232,7 +241,7 @@ void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         &params
     ));
 }
@@ -253,7 +262,7 @@ void GraphNodeConditionalWhile::add(const Graph& graph, const std::vector<GraphN
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         &params
     ));
 }
@@ -269,10 +278,9 @@ void GraphNodeHost<Functor>::driver(void* data)
 template <typename Functor>
 template <typename T> requires std::same_as<std::remove_cvref_t<T>, Functor>
 GraphNodeHost<Functor>::GraphNodeHost(T&& functor)
+    : data{.functor = std::forward<T>(functor)}
 {
     printf("> Creating a graph host node with functor (%s).\n", __PRETTY_FUNCTION__);
-
-    data = {.functor = std::forward<T>(functor)};
 
     params          = {};
     params.fn       = driver;
@@ -286,7 +294,7 @@ void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddHostNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         &params
     ));
 }
@@ -311,7 +319,7 @@ void GraphNodeMemcpy<T>::add(const Graph& graph, const std::vector<GraphNode>& a
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddMemcpyNode1D)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         dst,
         src,
         size,
@@ -342,7 +350,7 @@ void GraphNodeMemoryAllocation<T>::add(const Graph& graph, const std::vector<Gra
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddMemAllocNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         &params
     ));
 
@@ -355,7 +363,7 @@ void GraphNodeMemoryFree::add(const Graph& graph, const std::vector<GraphNode>& 
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddMemFreeNode)(
         &node, graph.graph,
-        (ancestors_impl.size() > 0 ? ancestors_impl.data() : nullptr), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
         ptr
     ));
 }
@@ -363,7 +371,7 @@ void GraphNodeMemoryFree::add(const Graph& graph, const std::vector<GraphNode>& 
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
 __global__ void driver(const Functor functor)
 {
-    int index = threadIdx.y + blockDim.y * blockIdx.y;
+    const int index = threadIdx.y + blockDim.y * blockIdx.y;
     functor.operator()(index);
 }
 
