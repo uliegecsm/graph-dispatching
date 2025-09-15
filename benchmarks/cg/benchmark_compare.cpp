@@ -102,7 +102,7 @@ public:
     {
         sequence->reset();
 
-        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), tolerance, state.range(1) * 2);
+        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(1) * 2)});
 
         CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, static_cast<size_t>(state.range(1)))
 
@@ -118,7 +118,7 @@ public:
     {
         sequence->reset();
 
-        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), tolerance, 1);
+        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = 1});
 
         CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, 1)
 

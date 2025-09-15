@@ -90,7 +90,7 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
         std::remove_cvref_t<ViewX>,
         std::remove_cvref_t<ViewY>,
         typename execution_space::size_type
-    > functor(std::forward<ViewX>(vec_x), std::forward<ViewX>(vec_y));
+    > functor(std::forward<ViewX>(vec_x), std::forward<ViewY>(vec_y));
 
     if constexpr (Kokkos::utils::concepts::ExecutionSpace<Pred>) {
         Kokkos::parallel_reduce(
