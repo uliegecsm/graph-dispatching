@@ -23,9 +23,9 @@ void check_cublas_uses_host_pointer_mode()
     #if !defined(KOKKOSKERNELS_ENABLE_TPL_CUBLAS)
         #error "Kokkos Kernels TPL cuBLAS not enabled."
     #endif
-    KokkosBlas::Impl::CudaBlasSingleton& s = KokkosBlas::Impl::CudaBlasSingleton::singleton();
+    const KokkosBlas::Impl::CudaBlasSingleton& singleton = KokkosBlas::Impl::CudaBlasSingleton::singleton();
     cublasPointerMode_t mode;
-    KOKKOSBLAS_IMPL_CUBLAS_SAFE_CALL(cublasGetPointerMode(s.handle, &mode));
+    KOKKOSBLAS_IMPL_CUBLAS_SAFE_CALL(cublasGetPointerMode(singleton.handle, &mode));
     if(mode != CUBLAS_POINTER_MODE_HOST)
         Kokkos::abort("cuBLAS pointer mode is not host.");
 #else

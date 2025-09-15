@@ -48,12 +48,12 @@ namespace tests::cuda
 //! Wrapper for a stream.
 struct Stream
 {
-    PREFIXED_API(Stream_t) stream;
+    PREFIXED_API(Stream_t) stream = nullptr;
     bool owning = true;
 
     Stream();
 
-    Stream(const PREFIXED_API(Stream_t) stream_) : stream(stream_), owning(false) {}
+    explicit Stream(const PREFIXED_API(Stream_t) stream_) : stream(stream_), owning(false) {}
 
     ~Stream();
 
@@ -82,6 +82,8 @@ struct View
 
     //! Move-assignment operator. @note We need to set the @p other to non-owning to ensure it won't free the @ref buffer.
     View& operator=(View&& other);
+
+    View(View&& other);
 
     //! This is the simplest approach. The original view is the only one that owns and frees.
     View(const View& other) : size(other.size), buffer(other.buffer), owning(false) {}
@@ -117,7 +119,7 @@ struct Graph
 
     Graph();
 
-    Graph(const PREFIXED_API(Graph_t) graph_) : graph(graph_), owning(false) {}
+    explicit Graph(const PREFIXED_API(Graph_t) graph_) : graph(graph_), owning(false) {}
 
     //! Move constructor. @note We need to set the @p other to non-owning to ensure it won't free the @ref graph.
     Graph(Graph&& other) : graph(other.graph), owning(other.owning) { if(other.owning) other.owning = false; }
@@ -135,14 +137,14 @@ struct GraphExecutable
 {
     PREFIXED_API(GraphExec_t) graph_exec = nullptr;
 
-    GraphExecutable(const Graph& graph);
+    explicit GraphExecutable(const Graph& graph);
 
     ~GraphExecutable();
 
     //! Enable/disable @p node.
     void set_enabled(const GraphNode& node, const bool is_enabled) const;
 
-    void submit(const Stream& stream);
+    void submit(const Stream& stream) const;
 };
 
 //! Wrapper for a kernel node.
@@ -152,6 +154,7 @@ struct GraphNodeKernel : public GraphNode
     PREFIXED_API(KernelNodeParams) params;
     std::vector<void*> inputs;
 
+    //! @warning The user is responsible for keeping the @c functor alive.
     GraphNodeKernel(const Functor& functor, const size_t shape);
 
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
@@ -168,11 +171,11 @@ struct GraphNodeConditionalIf : public GraphNode
 {
     PREFIXED_API(GraphNodeParams) params = {};
 
-    GraphNodeConditionalIf(cudaGraphConditionalHandle handle);
+    explicit GraphNodeConditionalIf(cudaGraphConditionalHandle handle);
 
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 
-    Graph get() const { return params.conditional.phGraph_out[0]; }
+    auto get() const { return Graph{params.conditional.phGraph_out[0]}; }
 };
 
 /**
@@ -189,11 +192,11 @@ struct GraphNodeConditionalWhile : public GraphNode
 {
     PREFIXED_API(GraphNodeParams) params = {};
 
-    GraphNodeConditionalWhile(cudaGraphConditionalHandle handle);
+    explicit GraphNodeConditionalWhile(cudaGraphConditionalHandle handle);
 
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 
-    Graph get() const { return params.conditional.phGraph_out[0]; }
+    auto get() const { return Graph{params.conditional.phGraph_out[0]}; }
 };
 #endif
 
@@ -219,7 +222,7 @@ struct GraphNodeHost : public GraphNode
 
     //! Since @p functor will be stored in @ref data, allow move semantics.
     template <typename T> requires std::same_as<std::remove_cvref_t<T>, Functor>
-    GraphNodeHost(T&& functor);
+    explicit GraphNodeHost(T&& functor);
 
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 
@@ -266,14 +269,14 @@ struct GraphNodeMemoryFree : public GraphNode
     void* ptr = nullptr;
 
     template <typename T>
-    GraphNodeMemoryFree(T* ptr_) : ptr(ptr_) {}
+    explicit GraphNodeMemoryFree(T* ptr_) : ptr(ptr_) {}
 
     void add(const Graph& graph, const std::vector<GraphNode>& ancestors = {});
 };
 
 //! Similar to @c Kokkos driver (local memory launch).
 template <typename Functor> requires ( ! std::is_pointer_v<Functor> )
-__global__ void driver(const Functor functor);
+__global__ void driver(const Functor functor); // NOLINT(performance-unnecessary-value-param)
 
 template <typename Functor>
 auto get_driver() { return driver<Functor>; }

@@ -42,24 +42,24 @@ TEST(cuda, memcpy_node)
 
     constexpr size_t size = 2<<11;
 
-    Stream stream;
+    const Stream stream;
 
-    view_t src(stream, size);
-    view_t dst(stream, size);
+    const view_t src(stream, size);
+    const view_t dst(stream, size);
 
-    Graph graph;
+    const Graph graph;
 
     //! Initialize both views using @ref SetToIndex.
-    sti_t init_src_f{.data = src};
+    const sti_t init_src_f{.data = src};
     GraphNodeKernel init_src_n(init_src_f, size);
     init_src_n.add(graph, {});
 
-    sti_t init_dst_f{.data = dst};
+    const sti_t init_dst_f{.data = dst};
     GraphNodeKernel init_dst_n(init_dst_f, size);
     init_dst_n.add(graph, {});
 
     //! Index-wise add of elements in @ref src into @ref dst.
-    ewa_t ewa_f{.src = src, .dst = dst};
+    const ewa_t ewa_f{.src = src, .dst = dst};
     GraphNodeKernel ewa_n(ewa_f, size);
     ewa_n.add(graph, {init_src_n, init_dst_n});
 
@@ -67,7 +67,7 @@ TEST(cuda, memcpy_node)
     GraphNodeMemcpy<scalar_t> memcpy(src.buffer, dst.buffer, size, PREFIXED_API(MemcpyDeviceToDevice));
     memcpy.add(graph, {ewa_n});
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     graph_exec.submit(stream);
 

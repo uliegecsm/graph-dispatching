@@ -44,20 +44,18 @@ TEST(cuda, host_node)
 
     constexpr size_t size = 1;
 
-    Stream stream;
+    const Stream stream;
 
-    view_t data(stream, size);
+    const Graph graph;
 
-    Graph graph;
-
-    functor_d_t functor_d{.data = data};
+    const functor_d_t functor_d{.data = view_t{stream, size}};
     GraphNodeKernel node_d(functor_d, 1);
     node_d.add(graph);
 
     GraphNodeHost<functor_h_t> node_h{functor_h_t {.data = 42.}};
     node_h.add(graph, {node_d});
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     ::testing::internal::CaptureStdout();
 

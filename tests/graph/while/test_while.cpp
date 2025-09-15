@@ -1,8 +1,8 @@
 #include <concepts>
 #include <span>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
@@ -102,7 +102,7 @@ protected:
 //! @test The @c while loop is on host.
 TEST_F(WhileTest, manual)
 {
-    graph_t graph{*this->exec};
+    const graph_t graph{*this->exec};
 
     //! Add the parallel-for.
     const auto pfor = graph.root_node().then_parallel_for(
@@ -111,7 +111,7 @@ TEST_F(WhileTest, manual)
     );
     
     //! Add the reduction. The reduction target must be host and device accessible.
-    shared_bool_t value(Kokkos::view_alloc("shared bool"));
+    const shared_bool_t value(Kokkos::view_alloc("shared bool"));
 
     pfor.then_parallel_reduce(
         Kokkos::RangePolicy(*this->exec, 0, size),
@@ -150,7 +150,7 @@ TEST_F(WhileTest, node)
 
     {
         //! Create the graph from the @c while node subgraph.
-        graph_t inner{*this->exec, conditional_params.conditional.phGraph_out[0]};
+        const graph_t inner{*this->exec, conditional_params.conditional.phGraph_out[0]};
 
         //! Add the parallel-for.
         const auto pfor = inner.root_node().then_parallel_for(
@@ -168,7 +168,7 @@ TEST_F(WhileTest, node)
         );
 
         //! Add a node that will set the @c while conditional.
-        pred.then("convergence", *this->exec, Convergence<bool_t>{.value = value, .handle = conditional_handle});
+        pred.then("convergence", *this->exec, Convergence<bool_t>{.value = std::move(value), .handle = conditional_handle});
 
         //! Create the executable graph and submit once. It will converge during the first submission since the @c while is embedded.
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphInstantiate(&graph_exec, graph, nullptr, nullptr, 0));

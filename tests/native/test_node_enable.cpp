@@ -30,17 +30,17 @@ TEST_P(cuda, node_enable)
 
     constexpr size_t size = 1;
 
-    Stream stream;
+    const Stream stream;
 
-    view_t data(stream, size);
+    const view_t data(stream, size);
 
-    Graph graph;
+    const Graph graph;
 
-    functor_t functor{.data = data};
+    const functor_t functor{.data = data};
     GraphNodeKernel node(functor, 1);
     node.add(graph);
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     size_t expected = 0;
 

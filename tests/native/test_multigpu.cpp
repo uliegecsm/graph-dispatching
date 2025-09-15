@@ -21,7 +21,7 @@ namespace tests::cuda
 
 //! Simple kernel that spins until the last element of @p data is not zero.
 template <typename T>
-__global__ void my_long_kernel(const T data)
+__global__ void my_long_kernel(const T data) // NOLINT(performance-unnecessary-value-param)
 {
     size_t iter = 0;
     while(atomicMax(&data(data.size - 1), 0) == 0) {++iter;}
@@ -63,33 +63,33 @@ TEST(cuda, multigpu)
 
     //! Create stream and data on GPU 0.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
-    Stream stream_0;
+    const Stream stream_0;
     view_t data_0(stream_0, size);
 
     //! Create stream and data on GPU 1.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_1));
-    Stream stream_1;
-    view_t data_1(stream_1, size);
+    const Stream stream_1;
+    const view_t data_1(stream_1, size);
 
     //! The device on which we create the graph does not matter. Change to @c DEVICE_ID_0 to convince yourself.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
-    Graph graph;
+    const Graph graph;
 
     //! Add one node that will run on GPU 0.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
-    functor_t functor_0{.data = data_0};
+    const functor_t functor_0{.data = data_0};
     GraphNodeKernel work_0(functor_0, size);
     work_0.add(graph, {});
 
     //! Add one node that will run on GPU 1.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_1));
-    functor_t functor_1{.data = data_1};
+    const functor_t functor_1{.data = data_1};
     GraphNodeKernel work_1(functor_1, size);
     work_1.add(graph, {});
 
     //! Add one node that will run on GPU 0 when both previous nodes are done.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
-    functor_t functor_2{.data = data_0};
+    const functor_t functor_2{.data = std::move(data_0)};
     GraphNodeKernel work_2(functor_2, size);
     work_2.add(graph, {work_0, work_1});
 
@@ -108,7 +108,7 @@ TEST(cuda, multigpu)
     /// Instantiate the graph on GPU 1. Doing it on GPU 0 fails, but not sure why.
     /// It should not be impacted by the "long" job running on the stream of GPU 1.
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_1));
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
     graph_exec.submit(stream_0);
 

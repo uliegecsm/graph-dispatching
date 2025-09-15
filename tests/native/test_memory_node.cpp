@@ -34,21 +34,21 @@ TEST(cuda, memory_node)
 
     constexpr size_t size = 2<<8;
 
-    Stream stream;
+    const Stream stream;
 
-    Graph graph;
+    const Graph graph;
 
     GraphNodeMemoryAllocation<int> alloc(size, stream);
     alloc.add(graph);
 
-    functor_t functor_d{.data = view_t(size, alloc.ptr)};
+    const functor_t functor_d{.data = view_t(size, alloc.ptr)};
     GraphNodeKernel work(functor_d, size);
     work.add(graph, {alloc});
 
     GraphNodeMemoryFree free(alloc.ptr);
     free.add(graph, {work});
 
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     graph_exec.submit(stream);
     stream.fence();

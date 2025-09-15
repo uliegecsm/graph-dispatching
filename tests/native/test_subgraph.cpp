@@ -21,7 +21,7 @@ namespace tests::cuda
 {
 
 #define CREATE_KERNEL_NODE(__name__, __data__, __graph__, ...)          \
-    functor_t functor_##__name__ { .data = __data__ };                  \
+    const functor_t functor_##__name__ { .data = __data__ };            \
     GraphNodeKernel node_##__name__(functor_##__name__, __data__.size); \
     node_##__name__.add(__graph__ __VA_OPT__(,) __VA_ARGS__);
 
@@ -33,17 +33,17 @@ TEST(cuda, subgraph)
     using functor_t = MyFunctor<view_t, false>;
 
     //! Initialize data.
-    Stream stream;
+    const Stream stream;
 
-    view_t data(stream, 3);
+    const view_t data(stream, 3);
 
-    view_t data_A      (2, data.buffer    );
-    view_t data_A_elt_0(1, data.buffer    );
-    view_t data_A_elt_1(1, data.buffer + 1);
-    view_t data_B      (1, data.buffer + 2);
+    const view_t data_A      (2, data.buffer    );
+    const view_t data_A_elt_0(1, data.buffer    );
+    const view_t data_A_elt_1(1, data.buffer + 1);
+    const view_t data_B      (1, data.buffer + 2);
 
     //! Create subgraph A.
-    Graph subgraph_A;
+    const Graph subgraph_A;
 
     CREATE_KERNEL_NODE(a, data_A,       subgraph_A)
     CREATE_KERNEL_NODE(b, data_A_elt_0, subgraph_A, {node_a})
@@ -51,25 +51,25 @@ TEST(cuda, subgraph)
     CREATE_KERNEL_NODE(d, data_A,       subgraph_A, {node_b, node_c})
 
     //! Create subgraph B.
-    Graph subgraph_B;
+    const Graph subgraph_B;
 
     CREATE_KERNEL_NODE(e, data_B, subgraph_B)
     CREATE_KERNEL_NODE(f, data_B, subgraph_B, {node_e})
 
     //! Compose subgraphs together.
-    Graph graph;
+    const Graph graph;
 
     CREATE_KERNEL_NODE(g, data, graph)
 
-    GraphNode subgraph_A_embedded = subgraph_A.add(graph, {node_g});
-    GraphNode subgraph_B_embedded = subgraph_B.add(graph, {node_g});
+    const GraphNode subgraph_A_embedded = subgraph_A.add(graph, {node_g});
+    const GraphNode subgraph_B_embedded = subgraph_B.add(graph, {node_g});
 
     CREATE_KERNEL_NODE(h, data, graph, {subgraph_A_embedded, subgraph_B_embedded})
 
     graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_subgraph.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
 
     //! Execute the graph.
-    GraphExecutable graph_exec(graph);
+    const GraphExecutable graph_exec(graph);
 
     graph_exec.submit(stream);
 
