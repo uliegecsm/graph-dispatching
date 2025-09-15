@@ -38,7 +38,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
     /// We explicitly don't partition @p exec.
     /// This decision is aligned with how @c KokkosKernels would use the incoming @p exec.
     template <Kokkos::utils::concepts::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
-    std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const mag_t tol, const SizeType max_iter) const
+    std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const typename base_t::Parameters& params) const
     {
         typename base_t::template spmv_handle_t<Exec> handle {};
 
@@ -58,7 +58,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
 
         //! Placeholder for the residual L2 norm.
         mag_t res_nrm2 = Kokkos::sqrt(Kokkos::abs(res_dot_old));
-        if(res_nrm2 < tol) return {res_nrm2, 0};
+        if(res_nrm2 < params.tolerance) return {res_nrm2, 0};
 
         //! Direction of search is set to the residual.
         const VectorType dir(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "dir"), rhs.size());
@@ -79,7 +79,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
 
         //! Loop until the norm of the residual is smaller than @p tol or the maximum number of iterations is reached.
         SizeType iter = 0;
-        while(res_nrm2 > tol && iter < max_iter)
+        while(res_nrm2 > params.tolerance && iter < params.max_iters)
         {
 #if defined(GRAPH_DISPATCHING_ALGORITHMS_CG_CGSINGLEQUEUE_ENABLE_SCOPEDREGION_IN_LOOP)
             const Kokkos::Profiling::ScopedRegion region("CGSingleQueue - iter " + std::to_string(iter));
@@ -105,7 +105,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
 
             exec.fence("waiting for dot (norm)");
 
-            if((res_nrm2 = Kokkos::sqrt(Kokkos::abs(pinned()))) > tol)
+            if((res_nrm2 = Kokkos::sqrt(Kokkos::abs(pinned()))) > params.tolerance)
             {
                 /// Compute @c beta.
                 /// @note Though it should be purely real, floating point errors add up and it has a very tiny imaginary part.

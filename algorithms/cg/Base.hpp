@@ -23,6 +23,15 @@ struct CGBase
     //! @c KokkosSparse::spmv handle.
     template <typename Exec>
     using spmv_handle_t = KokkosSparse::SPMVHandle<Exec, MatrixType, VectorType, VectorType>;
+
+    struct Parameters
+    {
+        //! Tolerance on the residual for convergence.
+        mag_t tolerance;
+
+        //! Maximum iterations to perform.
+        size_t max_iters;
+    };
 };
 
 } // namespace algorithms::cg

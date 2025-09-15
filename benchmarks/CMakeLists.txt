@@ -34,7 +34,6 @@ function(add_one_benchmark)
     target_link_libraries(
         ${EXECUTABLE_NAME}
         PRIVATE
-            benchmark::benchmark
             benchmark_custom_main
     )
 
@@ -79,13 +78,17 @@ find_package(
     REQUIRED
 )
 
+# Add headers to documentation.
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Helpers.hpp)
+
 #---- Make an object library containing our custom main.
 add_library(benchmark_custom_main OBJECT)
 target_sources(benchmark_custom_main PRIVATE main.cpp)
 target_link_libraries(
     benchmark_custom_main
-    PRIVATE
+    PUBLIC
         benchmark::benchmark
+    PRIVATE
         Kokkos::kokkoscore
 )
 

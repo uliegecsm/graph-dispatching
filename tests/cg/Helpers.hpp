@@ -141,7 +141,7 @@ struct NbyNSolverTest
     using solver_t = SolverType;
 
     template <Kokkos::utils::concepts::ExecutionSpace Exec>
-    static auto run(const Exec& exec, const typename Exec::size_type nrows, const SolverType::mag_t tol, const typename Exec::size_type max_iters = 0)
+    static auto run(const Exec& exec, const typename Exec::size_type nrows, const typename SolverType::Parameters& params)
     {
         auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec, nrows);
 
@@ -149,7 +149,7 @@ struct NbyNSolverTest
 
         Kokkos::utils::timer::Timer<void> timer;
         timer.start();
-        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, tol, max_iters == 0 ? 2 * nrows : max_iters);
+        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, params);
         timer.stop();
         const auto elapsed = timer.template duration<Kokkos::utils::timer::seconds>();
 
@@ -168,7 +168,10 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
 
 //! Helper for writing tests that use @ref tests::cg::NbyNSolverTest.
 #define RUN_AND_CHECK(_exec_, _nrows_, _tol_, _expt_niters_)                                           \
-    const auto [elapsed, res_nrm2, num_iters, sol] = this->run(_exec_, _nrows_, _tol_);                \
+    const auto [elapsed, res_nrm2, num_iters, sol] = this->run(                                        \
+        _exec_, _nrows_,                                                                               \
+        {_tol_, 2 * _expt_niters_}                                                                     \
+    );                                                                                                 \
                                                                                                        \
     EXPECT_LT(res_nrm2,  _tol_);                                                                       \
     EXPECT_EQ(num_iters, _expt_niters_);                                                               \
