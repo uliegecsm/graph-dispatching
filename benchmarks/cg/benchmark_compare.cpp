@@ -10,6 +10,8 @@
 
 #include "tests/cg/Helpers.hpp"
 
+#include "benchmarks/Helpers.hpp"
+
 /**
  * @addtogroup unitbenchmarks
  *
@@ -42,7 +44,7 @@ enum class CollectionMethod : std::uint8_t
 };
 
 template <CollectionMethod CollectionMethodValue>
-class CGBenchmark : public benchmark::Fixture,
+class CGBenchmark : public benchmarks::BenchmarkBase,
                     public Kokkos::utils::tests::scoped::callbacks::Manager
 {
 protected:
@@ -60,31 +62,8 @@ public:
         this->exec = std::nullopt;
     }
 
-//! These partial overrides are only needed by 'nvcc' (as of @c Cuda 12.8.1).
-#ifdef KOKKOS_ENABLE_CUDA
-    //! Use this macro when only one @c __what__ method is overridden.
-    #define FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(__what__) \
-        void __what__(::benchmark::State& state) override { this->__what__(static_cast<const ::benchmark::State&>(state)); }
-#else
-    #define FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(...)
-#endif
-
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(SetUp)
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
-
-    //! Convert @p from to the time unit used by the benchmark.
-    template <typename Duration>
-    auto convert(const Duration& duration) const
-    {
-        switch(this->GetTimeUnit())
-        {
-            case ::benchmark::kMicrosecond: return std::chrono::duration_cast<Kokkos::utils::timer::microseconds>(duration).count();
-            case ::benchmark::kMillisecond: return std::chrono::duration_cast<Kokkos::utils::timer::milliseconds>(duration).count();
-            case ::benchmark::kSecond:      return std::chrono::duration_cast<Kokkos::utils::timer::seconds     >(duration).count();
-            default:
-                Kokkos::abort("unsupported time unit");
-        }
-    }
 
     #define CHECK_SEQUENCE_AND_NUM_ITERS(_seq_, _iters_, _exptd_)        \
         if(!_seq_->all_matched())                                        \
