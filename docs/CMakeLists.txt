@@ -19,6 +19,7 @@ set(DOXYGEN_TAGFILES ${CMAKE_CURRENT_BINARY_DIR}/kokkos-utils.tag=${KokkosUtils_
 set(HOMEPAGE_MD ${CMAKE_SOURCE_DIR}/README.md)
 
 #---- Doxygen settings.
+set(DOXYGEN_CITE_BIB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/references.bib)
 set(DOXYGEN_USE_MDFILE_AS_MAINPAGE ${HOMEPAGE_MD})
 set(DOXYGEN_TIMESTAMP YES)
 set(DOXYGEN_EXTRACT_ALL YES)
@@ -27,6 +28,7 @@ set(DOXYGEN_SOURCE_BROWSER YES)
 set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
 set(DOXYGEN_ENABLE_PREPROCESSING YES)
 set(DOXYGEN_MACRO_EXPANSION YES)
+set(DOXYGEN_REFERENCES_RELATION YES)
 
 get_target_property(GTest_gtest_INTERFACE_INCLUDE_DIRECTORIES GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(Kokkos_kokkoscore_INTERFACE_INCLUDE_DIRECTORIES Kokkos::kokkoscore INTERFACE_INCLUDE_DIRECTORIES)
@@ -39,7 +41,7 @@ set(DOXYGEN_INCLUDE_PATH
 #---- Extract files for documentation.
 get_property(GraphDispatching_FILES_FOR_DOC GLOBAL PROPERTY GraphDispatching_FILES_FOR_DOC)
 list(LENGTH GraphDispatching_FILES_FOR_DOC GraphDispatching_FILES_FOR_DOC_LENGTH)
-if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 100)
+if(NOT GraphDispatching_FILES_FOR_DOC_LENGTH EQUAL 106)
     message(FATAL_ERROR "You have ${GraphDispatching_FILES_FOR_DOC_LENGTH} files for documentation.")
 endif()
 

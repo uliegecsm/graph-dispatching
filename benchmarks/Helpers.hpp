@@ -2,6 +2,8 @@
 #define GRAPH_DISPATCHING_BENCHMARKS_HELPERS_HPP
 
 #include <concepts>
+#include <filesystem>
+#include <fstream>
 
 #include "benchmark/benchmark.h"
 
@@ -19,6 +21,9 @@ namespace benchmarks
     #define FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(...)
 #endif
 
+template <typename T>
+concept BinarySerializable = std::is_trivially_copyable_v<T>;
+
 struct BenchmarkBase : public benchmark::Fixture
 {
     //! Convert @p from to the time unit used by the benchmark.
@@ -34,7 +39,29 @@ struct BenchmarkBase : public benchmark::Fixture
                 Kokkos::abort("unsupported time unit");
         }
     }
+
+    template <BinarySerializable T>
+    static void write(const std::filesystem::path& filename, const std::span<const T> data)
+    {
+        std::filesystem::create_directories(filename.parent_path());
+
+        std::ofstream out(filename, std::ios::binary);
+
+        if(!out)
+            throw std::runtime_error("Failed to open " + filename.string());
+
+        out.write(reinterpret_cast<const char*>(data.data()), data.size_bytes());
+    }
 };
+
+#define CHECK_NUMBER_OF_ITERS(_iters_, _exptd_)                      \
+    if(_iters_ != _exptd_)                                           \
+    {                                                                \
+        std::ostringstream oss;                                      \
+        oss << state.name() << ": mismatched number of iterations: " \
+            << "expecting " <<  _exptd_ << " but got " << _iters_ ;  \
+        state.SkipWithError(oss.str());                              \
+    }
 
 } // namespace benchmarks
 

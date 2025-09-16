@@ -135,17 +135,36 @@ struct NbyNSolverTestHelper
     using initializer_t   = FakeFEMLaplacian1D<Kokkos::complex<double>, memory_space>;
 };
 
-template <typename SolverType> requires std::is_aggregate_v<SolverType>
+template <typename SolverType>
 struct NbyNSolverTest
 {
     using solver_t = SolverType;
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
-    static auto run(const Exec& exec, const typename Exec::size_type nrows, const typename SolverType::Parameters& params)
+    //! If it's an aggregate, we simply initialize the members.
+    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType> requires std::is_aggregate_v<SolverType>
+    static auto get_solver(const Exec&, MatType&& mat, RhsType&& rhs) {
+        return solver_t{{}, std::forward<MatType>(mat), std::forward<RhsType>(rhs)};
+    }
+
+    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType>
+    static auto get_solver(const Exec& exec, MatType&& mat, RhsType&& rhs) {
+        return solver_t{exec, std::forward<MatType>(mat), std::forward<RhsType>(rhs)};
+    }
+
+    struct NoOp
+    {
+        template <typename T>
+        void operator()(T&&) const {}
+    };
+
+    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename Callback = NoOp>
+    static auto run(const Exec& exec, const typename Exec::size_type nrows, const typename SolverType::Parameters& params, Callback&& callback = Callback{})
     {
         auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec, nrows);
 
-        solver_t solver{{}, std::move(system.mat), std::move(system.rhs)}; // NOLINT(misc-const-correctness)
+        auto solver = get_solver(exec, std::move(system.mat), std::move(system.rhs));
+
+        std::forward<Callback>(callback)(solver);
 
         Kokkos::utils::timer::Timer<void> timer;
         timer.start();
@@ -174,6 +193,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     );                                                                                                 \
                                                                                                        \
     EXPECT_LT(res_nrm2,  _tol_);                                                                       \
+    EXPECT_GT(res_nrm2,  0) << "We never expect an exact solution.";                                   \
     EXPECT_EQ(num_iters, _expt_niters_);                                                               \
                                                                                                        \
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace{}, sol); \
