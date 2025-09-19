@@ -1,9 +1,13 @@
 #ifndef GRAPH_DISPATCHING_ALGORITHMS_CG_FUNCTORS_HPP
 #define GRAPH_DISPATCHING_ALGORITHMS_CG_FUNCTORS_HPP
 
+#include "Kokkos_Graph.hpp"
+
 #include "KokkosSparse_spmv.hpp"
 
 #include "kokkos-utils/concepts/ExecutionSpace.hpp"
+
+#include "algorithms/cg/Helpers.hpp"
 
 namespace algorithms::cg
 {
@@ -69,7 +73,7 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
     } else {
         return pred.then_parallel_for(
             "algorithms::cg::spmv",
-            Kokkos::RangePolicy<execution_space>(0, num_rows),
+            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, num_rows),
             std::move(functor)
         );
     }
@@ -102,7 +106,7 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
     } else {
         return pred.then_parallel_reduce(
             "algorithms::cg::dot",
-            Kokkos::RangePolicy<execution_space>(0, functor.m_x.size()),
+            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, functor.m_x.size()),
             std::move(functor),
             std::forward<Result>(result)
         );
@@ -145,12 +149,6 @@ struct Axpby
 template <typename Pred, typename Alpha, typename ViewX, typename Beta, typename ViewY>
 decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta, ViewY&& vec_y)
 {
-    using execution_space = std::conditional_t<
-        Kokkos::utils::concepts::ExecutionSpace<Pred>,
-        Pred,
-        typename Pred::execution_space
-    >;
-
     const auto size = vec_x.size();
 
     impl::Axpby< // NOLINT(misc-const-correctness)
@@ -174,7 +172,7 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
     } else {
         return pred.then_parallel_for(
             "algorithms::cg::axpby",
-            Kokkos::RangePolicy<execution_space>(0, size),
+            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, size),
             std::move(functor)
         );
     }
