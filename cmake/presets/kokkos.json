@@ -26,7 +26,14 @@
             // Inherit from this preset to use the clang compiler family.
             "name"           : "clang",
             "hidden"         : true,
-            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"},
+            "environment" : {
+                // If the compiler is Clang, we need to explicitly link to the atomic library, as
+                // stated in https://clang.llvm.org/docs/Toolchain.html#atomics-library.
+                // We are not sure why this is needed, i.e. why we don't get this automatically from
+                // Kokkos or HPX.
+                "LDFLAGS" : "-latomic"
+            }
         },
         {
             // Inherit from this preset to use the ROCm compiler family.

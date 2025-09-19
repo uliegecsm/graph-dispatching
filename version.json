@@ -23,7 +23,7 @@
             "value" : "1.9.4"
         },
         "hpx" : {
-            "value" : "1.10.0"
+            "value" : "1.11.0"
         },
         "kokkos" : {
             "value"  : "4.5.99",
@@ -37,7 +37,7 @@
         },
         "kokkos-utils" : {
             "branch" : "develop",
-            "sha"    : "2c9a97ec4c7ede0b4efe7114d41080d8a9e11ca5"
+            "sha"    : "d1f4033364858311f9001867452643286b078a8d"
         },
         "nvidia" : {
             "stdexec" : {
