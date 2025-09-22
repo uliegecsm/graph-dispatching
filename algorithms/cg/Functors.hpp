@@ -35,7 +35,7 @@ struct DivideAndSwap
  *
  * @warning Not tuned to be efficient.
  */
-template <typename Pred, typename Handle, typename Alpha, typename AMatrix, typename XVector, typename Beta, typename YVector>
+template <typename Pred, typename Handle, typename Alpha, typename AMatrix, typename XVector, typename Beta, typename YVector, int DoBeta = 0, bool Conjugate = false>
 decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& alpha, AMatrix&& mat, XVector&& vec_x, Beta&& beta, YVector&& vec_y)
 {
     using execution_space = std::conditional_t<
@@ -46,6 +46,10 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
 
     if(mode[0] != 'N') Kokkos::abort("Unsupported mode.");
 
+    if constexpr (DoBeta == 0) {
+        if (beta != 0) Kokkos::abort("When DoBeta==0, beta must be 0.");
+    }
+
     const auto num_rows = mat.numRows();
 
     KokkosSparse::Impl::SPMV_Functor< // NOLINT(misc-const-correctness)
@@ -53,8 +57,8 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
         std::remove_cvref_t<AMatrix>,
         std::remove_cvref_t<XVector>,
         std::remove_cvref_t<YVector>,
-        1     /* dobeta */,
-        false /* conjugate */
+        DoBeta,
+        Conjugate
     > functor(
         std::forward<Alpha>(alpha),
         std::forward<AMatrix>(mat),
