@@ -116,7 +116,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
             if constexpr (UseHostNode) {
                 return alpha_dot.then_host("alpha", [=]      { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             } else {
-                return alpha_dot.then("alpha", KOKKOS_LAMBDA { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
+                return alpha_dot.then("alpha", exec, KOKKOS_LAMBDA { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             }
         }();
 
@@ -128,11 +128,11 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         const auto res_dot = ::algorithms::cg::dot(update_res, tmp, res, res);
 
         //! Compute @c beta.
-        const auto beta_div = [&res_dot, das = algorithms::cg::DivideAndSwap{.a = tmp, .b = res_dot_old}]() mutable {
+        const auto beta_div = [&, das = algorithms::cg::DivideAndSwap{.a = tmp, .b = res_dot_old}]() mutable {
             if constexpr (UseHostNode) {
                 return res_dot.then_host("beta", std::move(das));
             } else {
-                return res_dot.then("beta", std::move(das));
+                return res_dot.then("beta", exec, std::move(das));
             }
         }();
 

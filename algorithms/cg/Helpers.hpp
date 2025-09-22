@@ -52,6 +52,15 @@ struct Region
     static void pop() { Kokkos::Profiling::popRegion(); }
 };
 
+/**
+ * @brief Make sure the node is using the execution space of the graph.
+ *
+ * As of now, if the node performs preparatory work, it uses the execution space instance passed to its execution policy,
+ * so you better get them all on the execution space instance of the graph to ease proper synchronisation.
+ */
+#define MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(_node_, ...) \
+    Kokkos::RangePolicy(Kokkos::Impl::GraphAccess::get_graph_weak_ptr(_node_).lock()->get_execution_space(), __VA_ARGS__)
+
 } // namespace algorithms::cg
 
 #endif // GRAPH_DISPATCHING_ALGORITHMS_CG_HELPERS_HPP
