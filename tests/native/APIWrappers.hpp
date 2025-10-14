@@ -129,6 +129,12 @@ struct Graph
     //! Add this graph as a subgraph of @c other.
     [[nodiscard]] GraphNode add(const Graph& other, const std::vector<GraphNode>& ancestors = {}) const;
 
+    //! Get the number of edges in the graph.
+    size_t get_num_edges() const;
+
+    std::tuple<std::vector<PREFIXED_API(GraphNode_t)>, std::vector<PREFIXED_API(GraphNode_t)>>
+    get_edges() const;
+
     ~Graph();
 };
 

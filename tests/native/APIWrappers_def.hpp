@@ -128,6 +128,37 @@ Graph::~Graph()
     }
 }
 
+size_t Graph::get_num_edges() const
+{
+    size_t num_edges = 0;
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(
+        this->graph,
+        nullptr, nullptr,
+#if CUDART_VERSION >= 13000
+        nullptr,
+#endif
+        &num_edges)));
+    return num_edges;
+}
+
+std::tuple<std::vector<PREFIXED_API(GraphNode_t)>, std::vector<PREFIXED_API(GraphNode_t)>>
+Graph::get_edges() const
+{
+    auto num_edges = this->get_num_edges();
+
+    std::vector<PREFIXED_API(GraphNode_t)> edges_from(num_edges), edges_to(num_edges);
+
+    CHECK_CALL(PREFIXED_API(GraphGetEdges(
+        this->graph,
+        edges_from.data(), edges_to.data(),
+#if CUDART_VERSION >= 13000
+        nullptr,
+#endif
+        &num_edges)));
+
+    return {edges_from, edges_to};
+}
+
 void Graph::print(const char* path, const unsigned int flags) const
 {
     printf("> Exporting graph %p to %s with flags %u.\n", graph, path, flags);
@@ -241,7 +272,11 @@ void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
-        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()),
+#if CUDART_VERSION >= 13000
+        nullptr,
+#endif
+        ancestors_impl.size(),
         &params
     ));
 }
@@ -262,7 +297,11 @@ void GraphNodeConditionalWhile::add(const Graph& graph, const std::vector<GraphN
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
-        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()), ancestors_impl.size(),
+        (ancestors_impl.empty() ? nullptr : ancestors_impl.data()),
+#if CUDART_VERSION >= 13000
+        nullptr,
+#endif
+        ancestors_impl.size(),
         &params
     ));
 }
