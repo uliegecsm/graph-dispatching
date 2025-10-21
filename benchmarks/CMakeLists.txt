@@ -30,11 +30,19 @@ function(add_one_benchmark)
             ${SOURCE_FILE}
     )
 
+    # Add current binary directory to the compile definitions to allow benchmarks to output files.
+    target_compile_definitions(
+        ${EXECUTABLE_NAME}
+        PRIVATE
+            CMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
     # Link the executable to Google Benchmark and our custom main.
     target_link_libraries(
         ${EXECUTABLE_NAME}
         PRIVATE
             benchmark_custom_main
+            plog
     )
 
     # Additional link libraries
@@ -93,3 +101,4 @@ target_link_libraries(
 )
 
 add_subdirectory(cg)
+add_subdirectory(pcg)

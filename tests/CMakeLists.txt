@@ -75,6 +75,9 @@ function(add_one_test_common PREFIX OPTIONS ONE_VALUE_KEYWORDS MULTI_VALUE_KEYWO
         )
     endif()
 
+    # Always allow logging.
+    target_link_libraries(${${PREFIX}_EXECUTABLE_NAME} PRIVATE plog)
+
     # Allow tests to reference files in this repository directly.
     target_include_directories(
         ${${PREFIX}_EXECUTABLE_NAME}
@@ -146,5 +149,6 @@ endif()
 if(CUDA IN_LIST Kokkos_DEVICES OR ENABLE_DOXYGEN)
     add_subdirectory(nvexec)
 endif()
+add_subdirectory(pcg)
 add_subdirectory(plog)
 add_subdirectory(stdexec)

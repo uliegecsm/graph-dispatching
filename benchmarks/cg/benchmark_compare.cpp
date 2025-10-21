@@ -68,13 +68,7 @@ public:
     #define CHECK_SEQUENCE_AND_NUM_ITERS(_seq_, _iters_, _exptd_)        \
         if(!_seq_->all_matched())                                        \
             Kokkos::abort("At least one sub-region did not match.");     \
-        if(_iters_ != _exptd_)                                           \
-        {                                                                \
-            std::ostringstream oss;                                      \
-            oss << state.name() << ": mismatched number of iterations: " \
-                << _iters_ << " != " << _exptd_;                         \
-            state.SkipWithError(oss.str());                              \
-        }
+        CHECK_NUMBER_OF_ITERS(_iters_, _exptd_)
 
     template <typename T>
     void run_upto_convergence(::benchmark::State& state, std::array<double, 1>& timings) const requires (CollectionMethodValue == CollectionMethod::CONVERGENCE)
