@@ -28,7 +28,7 @@
         "kokkos" : {
             "value"  : "4.7.99",
             "branch" : "develop",
-            "sha"    : "4d5f460f77f7b537b6e7617d4fb8ab7d7eaa5839",
+            "sha"    : "99083d1b87d1403171a261a09c78f817d6f5e558",
             "url"    : "kokkos"
         },
         "kokkos-kernels" : {

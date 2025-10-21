@@ -90,7 +90,11 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
 PRAGMA_DIAGNOSTIC_POP
 
         //! Check buffer size. It's used for the result of @c cusparseSpVV (see @ref result).
+#if CUDART_VERSION >= 13000
+        ASSERT_EQ(buffer_size, 15);
+#else
         ASSERT_EQ(buffer_size, sizeof(value_t));
+#endif
         this->buffer = buffer_t(stream, buffer_size);
     }
 
@@ -232,12 +236,10 @@ auto GraphCaptureTest::check_topology<Mode::SINGLE>(const Graph& graph) const
     EXPECT_NODE_TYPE_EQ(nodes.at(2), Memcpy);
     EXPECT_NODE_TYPE_EQ(nodes.at(3), Kernel);
 
-    size_t num_edges = 0;
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
+    const size_t num_edges = graph.get_num_edges();
     EXPECT_EQ(num_edges, 3);
 
-    std::array<PREFIXED_API(GraphNode_t), 3> edges_from {}, edges_to {};
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
+    const auto [edges_from, edges_to] = graph.get_edges();
 
     EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
     EXPECT_EQ(edges_from.at(1), nodes.at(1)); EXPECT_EQ(edges_to.at(1), nodes.at(2));
@@ -260,12 +262,10 @@ auto GraphCaptureTest::check_topology<Mode::SUBGRAPH>(const Graph& graph) const
     EXPECT_NODE_TYPE_EQ(nodes.at(1), Graph );
     EXPECT_NODE_TYPE_EQ(nodes.at(2), Kernel);
 
-    size_t num_edges = 0;
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, nullptr, nullptr, &num_edges)));
+    const size_t num_edges = graph.get_num_edges();
     EXPECT_EQ(num_edges, 2);
 
-    std::array<PREFIXED_API(GraphNode_t), 2> edges_from {}, edges_to {};
-    CHECK_CALL(PREFIXED_API(GraphGetEdges(graph.graph, edges_from.data(), edges_to.data(), &num_edges)));
+    const auto [edges_from, edges_to] = graph.get_edges();
 
     EXPECT_EQ(edges_from.at(0), nodes.at(0)); EXPECT_EQ(edges_to.at(0), nodes.at(1));
     EXPECT_EQ(edges_from.at(1), nodes.at(1)); EXPECT_EQ(edges_to.at(1), nodes.at(2));
@@ -295,7 +295,13 @@ TEST_F(GraphCaptureTest, into_main_graph_directly)
 
     PREFIXED_API(StreamCaptureStatus) stream_capturing = cudaStreamCaptureStatusNone;
 
-    CHECK_CALL(cudaStreamGetCaptureInfo_v3(
+    CHECK_CALL(
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 13000
+    cudaStreamGetCaptureInfo
+#else
+    cudaStreamGetCaptureInfo_v3
+#endif
+    (
         stream.stream, &stream_capturing, nullptr,
         nullptr, &capture_dependencies_out_nodes, nullptr,
         &capture_dependencies_out_count

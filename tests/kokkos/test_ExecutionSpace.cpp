@@ -28,9 +28,20 @@ TEST(ExecutionSpace, compare_different)
 
   ASSERT_EQ(execution_space{}, defaulted);
 
-  ASSERT_NE(defaulted, instance_A);
-  ASSERT_NE(defaulted, instance_B);
-  ASSERT_NE(instance_A, instance_B);
+  //! For @c Kokkos::OpenMP, see https://github.com/kokkos/kokkos/commit/a09c6ce45655f37bedf767d68ff42b7382ba89e7.
+#if defined(KOKKOS_ENABLE_OPENMP)
+  if constexpr (std::same_as<execution_space, Kokkos::OpenMP>) {
+    ASSERT_EQ(defaulted, instance_A);
+    ASSERT_EQ(defaulted, instance_B);
+    ASSERT_EQ(instance_A, instance_B);
+  } else {
+#endif
+    ASSERT_NE(defaulted, instance_A);
+    ASSERT_NE(defaulted, instance_B);
+    ASSERT_NE(instance_A, instance_B);
+#if defined(KOKKOS_ENABLE_OPENMP)
+  }
+#endif
 }
 
 } // namespace tests::kokkos

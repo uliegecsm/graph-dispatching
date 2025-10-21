@@ -1,5 +1,5 @@
-ARG BASE_IMAGE
-ARG COMPILER_FAMILY
+ARG BASE_IMAGE=not-given
+ARG COMPILER_FAMILY=not-given
 
 # Install Python3 (with the trickery for virtual environment).
 FROM ${BASE_IMAGE} AS requirements-python
@@ -213,7 +213,15 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
         --output-file CMakePresets.json \
         --preset      ${KOKKOS_PRESET}
 
+    # For Cuda 13, we need to disable 'mdspan', see also https://github.com/kokkos/kokkos/pull/8562.
+    if [ -n "$CUDA_VERSION" ] && [ "${CUDA_VERSION%%.*}" -ge 13 ]; then
+        cmake_args="-DKokkos_ENABLE_IMPL_MDSPAN=OFF"
+    else
+        cmake_args=""
+    fi
+
     cmake -S . --preset=${KOKKOS_PRESET} \
+        ${cmake_args} \
         -DCMAKE_INSTALL_PREFIX=/opt/kokkos-${KOKKOS_SHA}/${KOKKOS_PRESET}
 
     cmake --build --preset=${KOKKOS_PRESET} -j4 --target=install
@@ -252,7 +260,7 @@ EOF
 FROM kokkos-compile AS kokkos-tools-compile
 
 ARG KOKKOS_TOOLS_BRANCH=develop
-ARG KOKKOS_TOOLS_SHA=a9453b21e09c7555096f3a96bb3fa8b34afe19f8
+ARG KOKKOS_TOOLS_SHA=33693813b125096cc72a90d495fd02a7bb7574ea
 
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_TOOLS_BRANCH} https://github.com/kokkos/kokkos-tools /kokkos-tools-sources
 

@@ -146,8 +146,14 @@ TEST_F(WhileTest, node)
     conditional_params.conditional.type    = cudaGraphCondTypeWhile;
     conditional_params.conditional.size    = 1;
     cudaGraphNode_t conditional_node = nullptr;
-    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddNode(&conditional_node, graph, nullptr, 0, &conditional_params));
 
+    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddNode(
+        &conditional_node,
+        graph, nullptr, 
+#if CUDART_VERSION >= 13000
+        nullptr,
+#endif
+        0, &conditional_params));
     {
         //! Create the graph from the @c while node subgraph.
         const graph_t inner{*this->exec, conditional_params.conditional.phGraph_out[0]};
