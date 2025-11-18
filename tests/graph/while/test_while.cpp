@@ -53,7 +53,7 @@ struct Convergence
     cudaGraphConditionalHandle handle;
 
     /// @note @c cudaGraphSetConditional is a pure @c __device__ function.
-    ///       @c clang would complain that @ref Convergence is not invokable if marking the call operator as @c __device__, see
+    ///       @c clang would complain that @ref Convergence is not invocable if marking the call operator as @c __device__, see
     ///       https://github.com/kokkos/kokkos/blob/7a516890899a0b0f80393915e27b5880eebf745e/core/src/Kokkos_GraphNode.hpp#L235-L236.
     ///       So it seems @c clang treats the attributes as part of the signature.
     ///       On the other hand, @c nvcc would complain if marking as @c KOKKOS_FUNCTION because it's a call to a @c __device__ function

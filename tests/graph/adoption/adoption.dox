@@ -67,7 +67,7 @@ There are drawbacks to this approach:
   but also probably internals).
 
 Therefore, this approach could be a good match for new libraries,
-but seems unrealistic for existing ones, especially that the rewritting needs to occurs
+but seems unrealistic for existing ones, especially that the rewriting needs to occurs
 prior to users can effectively use @c Graph with the libraries.
 
 @note In terms of impact on @c Kokkos core, this approach is very light. It only requires
@@ -130,7 +130,7 @@ This overhead is amortized by re-submitting the graph many times.
 But if your workflow runs only once, creating a @c Graph might not be an option,
 especially if the workloads are small.
 
-\subsection resusable-elementary-blocks Building blocks are usable in many contexts
+\subsection reusable-elementary-blocks Building blocks are usable in many contexts
 
 Say you are responsible for a @c BLAS library.
 

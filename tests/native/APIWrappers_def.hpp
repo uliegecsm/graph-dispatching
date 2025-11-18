@@ -211,7 +211,7 @@ std::vector<PREFIXED_API(GraphNode_t)> GraphNode::transform_to_impl(const std::v
 
     std::transform(
         ancestors.cbegin(), ancestors.cend(), ancestors_impl.begin(),
-        [](const auto& anc) -> PREFIXED_API(GraphNode_t) { return anc.node; }
+        [](const auto& ancestor) -> PREFIXED_API(GraphNode_t) { return ancestor.node; }
     );
 
     return ancestors_impl;

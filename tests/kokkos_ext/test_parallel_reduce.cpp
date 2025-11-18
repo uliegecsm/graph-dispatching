@@ -145,7 +145,7 @@ TYPED_TEST(ParallelReduceTest, graph)
 /**
  * @test Submit the graph twice, and ensure that the reducer behaves correctly.
  *
- * This test seeks to ensure that the reducer value from the first submission will be "reset" (or overriden)
+ * This test seeks to ensure that the reducer value from the first submission will be "reset" (or overridden)
  * during the second submission (they won't add up).
  */
 TEST(ParallelReduce, submit_twice)

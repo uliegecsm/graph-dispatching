@@ -11,7 +11,7 @@ find_package(
 # Add helper files to the documentation.
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Helpers.hpp)
 
-# Add subdiretories.
+# Add subdirectories.
 add_subdirectory(adaptors)
 
 add_one_test(NAME HelloWorld DISABLE_KOKKOS ADDITIONAL_LINK_LIBRARIES HPX::hpx ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})

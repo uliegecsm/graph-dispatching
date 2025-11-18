@@ -12,7 +12,7 @@
  * @note It can easily be used for @c HIP as well, see @ref PREFIXED_API.
  */
 
-//! Same behavior as @c Kokkos conterpart.
+//! Same behavior as @c Kokkos counterpart.
 #define KOKKOS_FUNCTION __host__ __device__
 
 #if defined(GRAPH_DISPATCHING_ENABLE_CUDA)

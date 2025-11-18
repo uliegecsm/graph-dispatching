@@ -1,0 +1,8 @@
+[default]
+extend-ignore-identifiers-re = [
+    "thr_.*",
+    ".*_thr",
+]
+
+[default.extend-identifiers]
+cudaMemcpy3DParms = "cudaMemcpy3DParms"
