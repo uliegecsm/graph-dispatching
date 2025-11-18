@@ -37,7 +37,7 @@ struct GenerateAt
 } // namespace Impl
 
 /// Some principle as @c std::generate, but the generator takes the index and all elements
-/// of the sequence can be initialized independantly.
+/// of the sequence can be initialized independently.
 /// See also https://github.com/kokkos/kokkos/issues/4498.
 template <typename Label, typename Exec, typename ViewType, typename Generator>
 void generate_at(Label&& label, Exec&& exec, ViewType&& data, Generator&& gen)
@@ -59,7 +59,7 @@ void generate_at(Label&& label, Exec&& exec, ViewType&& data, Generator&& gen)
     );
 }
 
-//! Fill @p data as @c std::iota would do, but assuming each element can be initialized independantly.
+//! Fill @p data as @c std::iota would do, but assuming each element can be initialized independently.
 template <typename Exec, typename ViewType, typename ValueType = typename std::remove_cvref_t<ViewType>::value_type> requires (std::remove_cvref_t<ViewType>::rank() == 1)
 void fill_sequence(Exec&& exec, ViewType&& data, ValueType&& value)
 {

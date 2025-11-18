@@ -40,7 +40,7 @@ struct ThenReceiver
                 /// because, as @c Kokkos::parallel_for spawns a possibly asynchronous
                 /// kernel, we must keep any resource alive.
                 /// @todo Using @c async_scope from https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3149r3.html#executionasync_scope
-                ///       would move the responsability of lifetime bookkeeping to the user.
+                ///       would move the responsibility of lifetime bookkeeping to the user.
                 wrapper
             );
         } catch(...) {

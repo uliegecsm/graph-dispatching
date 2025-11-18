@@ -95,7 +95,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
             const auto alpha = res_dot_old / pinned();
 
             /// Update the solution candidate and residual.
-            /// These two updates are independant, but since we have only one execution space instance, all we gain is
+            /// These two updates are independent, but since we have only one execution space instance, all we gain is
             /// the launch overhead.
             AxpbyType{}(exec,   alpha, dir,     1., sol);
             AxpbyType{}(exec, - alpha, mat_dir, 1., res);

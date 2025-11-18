@@ -148,7 +148,7 @@ struct Axpby
 /**
  * @brief Equivalent to @c KokkosBlas::axpby, graph-compatible.
  *
- * @note @c alpha and @c beta can be rank-0 views (for coefficients that vary accross multiple re-submissions).
+ * @note @c alpha and @c beta can be rank-0 views (for coefficients that vary across multiple re-submissions).
  */
 template <typename Pred, typename Alpha, typename ViewX, typename Beta, typename ViewY>
 decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta, ViewY&& vec_y)

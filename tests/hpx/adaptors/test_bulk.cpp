@@ -40,7 +40,7 @@ TEST_F(HPXTest, bulk_with_functor)
     //! Get a scheduler for that thread pool with asynchronous execution.
     const execution::thread_pool_scheduler scheduler(&pool, ::hpx::launch::async);
 
-    //! Retrive the thread ID.
+    //! Retrieve the thread ID.
     const auto [pool_thread_ID] = ::hpx::this_thread::experimental::sync_wait(
         execution::schedule(scheduler) | execution::then([]() -> size_t { return ::utils::get_thread_id(); } )).value();
 
