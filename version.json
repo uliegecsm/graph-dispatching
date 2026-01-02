@@ -26,14 +26,14 @@
             "value" : "1.11.0"
         },
         "kokkos" : {
-            "value"  : "4.7.99",
+            "value"  : "5.0.0",
             "branch" : "develop",
-            "sha"    : "99083d1b87d1403171a261a09c78f817d6f5e558",
+            "sha"    : "5.0.0",
             "url"    : "kokkos"
         },
         "kokkos-kernels" : {
-            "branch" : "develop",
-            "sha"    : "9bca19c85b88aeca97209ec7cde858447e16696c"
+            "branch" : "5.0.0",
+            "sha"    : "5.0.0"
         },
         "kokkos-utils" : {
             "branch" : "develop",

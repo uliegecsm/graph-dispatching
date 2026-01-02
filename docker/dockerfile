@@ -23,6 +23,8 @@ EOF
 
 FROM requirements-python AS requirements-compiler-rocm
 
+ENV PATH=/opt/rocm/bin:${PATH}
+
 FROM requirements-python AS requirements-compiler-gcc
 
 RUN apt-helpers install-packages --clean --update --packages g++
@@ -190,6 +192,19 @@ ARG KOKKOS_PRESET
 ARG KOKKOS_SHA
 ARG KOKKOS_URL=kokkos
 
+# Patch for https://github.com/kokkos/kokkos/pull/8787.
+COPY <<EOF /opt/kokkos-patches/kokkos-pr-8787.patch
+diff --git a/cmake/Modules/FindTPLROCM.cmake b/cmake/Modules/FindTPLROCM.cmake
+index 6b441f47a23fd071409ff933c6dd553d9a2ec3e8..2025c0242d60064a4adb00041552a0028050be4f 100644
+--- a/cmake/Modules/FindTPLROCM.cmake
++++ b/cmake/Modules/FindTPLROCM.cmake
+@@ -1,3 +1,4 @@
+ find_package(hip REQUIRED PATHS $\{ROCM_PATH} $ENV\{ROCM_PATH})
+
+ kokkos_create_imported_tpl(ROCM INTERFACE LINK_LIBRARIES hip::device)
++kokkos_export_cmake_tpl(hip REQUIRED)
+EOF
+
 RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_BRANCH} https://github.com/${KOKKOS_URL}/kokkos /kokkos-sources
 
 RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
@@ -202,6 +217,8 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
     if [ -z "${KOKKOS_SHA}" ];then
         git checkout ${KOKKOS_SHA}
     fi
+
+    patch -p1 < /opt/kokkos-patches/kokkos-pr-8787.patch
 
     python3 /cmake/presets/kokkos.py \
         --input-file  /cmake/presets/kokkos.json \
@@ -260,7 +277,7 @@ EOF
 FROM kokkos-compile AS kokkos-tools-compile
 
 ARG KOKKOS_TOOLS_BRANCH=develop
-ARG KOKKOS_TOOLS_SHA=33693813b125096cc72a90d495fd02a7bb7574ea
+ARG KOKKOS_TOOLS_SHA=6493964271d2e887432489f20559b72757db02b0
 
 RUN git clone --shallow-since=2023-08-05 --branch=${KOKKOS_TOOLS_BRANCH} https://github.com/kokkos/kokkos-tools /kokkos-tools-sources
 
