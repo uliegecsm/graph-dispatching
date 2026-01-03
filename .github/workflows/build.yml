@@ -12,6 +12,10 @@ on:
         # At 06:00 on Sunday.
         - cron:  '0 6 * * 6'
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
     REGISTRY: ghcr.io
     # Enable ccache size larger than the default (5G).
