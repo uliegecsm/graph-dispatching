@@ -16,8 +16,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c exec::parallel_scheduler.
  *
- * It's based on:
- *  * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p2079r9.html
+ * It's based on @cite P2079R10.
  *
  * The tests can be found in @ref exec/test_system_context.cpp.
  */

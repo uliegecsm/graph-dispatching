@@ -42,14 +42,35 @@ TEST_F(StaticThreadPoolTest, forward_progress_guarantee)
     ASSERT_EQ(fpg, ::stdexec::forward_progress_guarantee::parallel);
 }
 
-//! @test Check that @c then has an early domain.
-TEST_F(StaticThreadPoolTest, then_early_domain)
+/**
+ * @test Check that @c then reports its completion domain when given a starting environment.
+ *
+ * Inspired by @cite P3826R3.
+ */
+TEST_F(StaticThreadPoolTest, then_completion_domain_with_env)
 {
-    auto work = ::stdexec::schedule(pools.front().get_scheduler()) | THEN_RETURN_ID;
+    //! @c work doesn't know where it will complete until it knows where it will start.
+    auto work = ::stdexec::just() | THEN_RETURN_ID;
 
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(work)>, ::exec::_pool_::static_thread_pool_::domain>);
+    static_assert(std::same_as<
+        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(work)>,
+        stdexec::indeterminate_domain<>
+    >);
 
-    ASSERT_EQ(std::get<0>(::stdexec::sync_wait(std::move(work)).value()), threads.front()); // NOLINT(performance-move-const-arg)
+    /// By passing the thread pool scheduler environment to @c work,
+    /// it knows where it will start, and @c work then correctly reports it will complete on that thread pool's domain.
+    const auto env = ::stdexec::env(
+        ::stdexec::prop{::stdexec::get_scheduler, pools.front().get_scheduler()}
+    );
+
+    static_assert(std::same_as<
+        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(work), decltype(env)>,
+        ::exec::_pool_::_static_thread_pool::domain
+    >);
+
+    ASSERT_EQ(std::get<0>(::stdexec::sync_wait(
+        ::stdexec::starts_on(pools.front().get_scheduler(), std::move(work)) // NOLINT(performance-move-const-arg)
+    ).value()), threads.front());
 }
 
 //! @test It supports @c on and @c continues_on.
