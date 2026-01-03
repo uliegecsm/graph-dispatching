@@ -78,8 +78,9 @@ struct RegionSender
         stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>
     >;
 
-    template <typename Self, class... Env>
-    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
+    template <class... Env>
+    auto get_completion_signatures(Env&&...) -> completion_signatures<RegionSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     template <stdexec::receiver Rcvr>
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
@@ -108,8 +109,8 @@ struct Push
     }
 
     template <typename T>
-    auto operator()(T&& name) const noexcept -> stdexec::__binder_back<Push, std::string> {
-        return {{std::forward<T>(name)}, {}, {}};
+    auto operator()(T&& name) const noexcept {
+        return stdexec::__closure{*this, std::forward<T>(name)};
     }
 };
 
@@ -120,8 +121,8 @@ struct Pop
         return RegionSender<Kind::POP, Sndr>{.sndr = std::forward<Sndr>(sndr)};
     }
 
-    auto operator()() const noexcept -> stdexec::__binder_back<Pop> {
-        return {{}, {}, {}};
+    auto operator()() const noexcept {
+        return stdexec::__closure{*this};
     }
 };
 
@@ -134,11 +135,11 @@ struct ScopedRegion
     }
 
     template <typename T, stdexec::__sender_adaptor_closure Closure>
-    auto operator()(T&& name, Closure&& closure) const noexcept -> stdexec::__binder_back<ScopedRegion, std::string, Closure> {
-        return {
-            {std::forward<T>(name), std::forward<Closure>(closure)},
-            {},
-            {}
+    auto operator()(T&& name, Closure&& closure) const noexcept {
+        return stdexec::__closure{
+            *this,
+            std::forward<T>(name),
+            std::forward<Closure>(closure)
         };
     }
 };

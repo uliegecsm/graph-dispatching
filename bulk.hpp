@@ -12,6 +12,8 @@ namespace Kokkos::Experimental::details::execution_space
  * @brief Receiver for @c bulk.
  *
  * @note Only integral shape is supported for now.
+ *
+ * @note It must be nothrow moveable, see @cite P3383R3.
  */
 template <stdexec::receiver Rcvr, typename Policy, std::integral Shape, typename Functor, stdexec::scheduler Schd> requires (
     stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
@@ -26,6 +28,16 @@ struct BulkReceiver
     Shape shape;
     Functor functor;
     Schd schd;
+
+    template <typename Rcv, typename Pol, typename Shp, typename Fun, typename Sch>
+    BulkReceiver(Rcv&& rcv, Pol&& pol, Shp&& shp, Fun&& fun, Sch&& sch)
+        : rcvr(std::forward<Rcv>(rcv)),
+          policy(std::forward<Pol>(pol)),
+          shape(std::forward<Shp>(shp)),
+          functor(std::forward<Fun>(fun)),
+          schd(std::forward<Sch>(sch)) {}
+
+    BulkReceiver(BulkReceiver&&) noexcept = default;
 
     void set_value() && noexcept
     {
@@ -83,7 +95,7 @@ struct BulkSender
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .policy = std::move(policy), .shape = std::move(shape), .functor = std::move(functor), .schd = std::move(schd)}
+            recv_t{std::forward<Rcvr>(rcvr), std::move(policy), std::move(shape), std::move(functor), std::move(schd)}
         );
     }
 
