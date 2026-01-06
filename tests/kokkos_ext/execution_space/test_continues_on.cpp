@@ -2,9 +2,11 @@
 
 #include "kokkos-utils/callbacks/Helpers.hpp"
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
+#include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
 #include "tests/kokkos_ext/execution_space/Helpers.hpp"
 
+#include "tests/CallbackMatchers.hpp"
 #include "tests/stdexec/Utils.hpp"
 
 /**
@@ -29,7 +31,7 @@ namespace tests::kokkos_ext
 using namespace Kokkos::utils::callbacks;
 
 class ContinuesOnTest : public impl::ExecutionSpaceContextTest<execution_space, host_execution_space>,
-                        public Kokkos::utils::callbacks::ManagerTestFixture
+                        public Kokkos::utils::tests::scoped::callbacks::Manager
 {
 public:
     using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent>;
@@ -45,23 +47,25 @@ TEST_F(ContinuesOnTest, no_schedule_sender_continues_on)
 
     auto chain = ::stdexec::just()
         | ::stdexec::continues_on(esc.get_scheduler())
-        | ADD_THEN;
+        | ADD_THEN | ADD_THEN;
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
     ASSERT_THAT(
         recorder_listener_t::record([chain = std::move(chain)] () mutable { ::stdexec::sync_wait(std::move(chain)); }),
         ::testing::ElementsAre(
-            MATCHER_FOR_BEGIN_PFOR (exec, then),
-            MATCHER_FOR_BEGIN_FENCE(exec, sync_wait)
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))
         )
     );
 
-    ASSERT_EQ(data(), 1) << "A synchronization is missing.";
+    ASSERT_EQ(data(), 2) << "A synchronization is missing.";
 }
 
 /**
- * @test Check that @c continues_on is properly customized (with appropriate synchronization) when using it many times on the same execution space instance.
+ * @test Check that @c continues_on is properly customized (with appropriate synchronization)
+ *       when using it many times on the same execution space instance.
  *
  * There shouldn't be any fencing required in this case.
  */
@@ -106,10 +110,10 @@ TEST_F(ContinuesOnTest, continues_on_noop)
     ASSERT_THAT(
         recorder_listener_t::record([chain = std::move(chain)] () mutable { ::stdexec::sync_wait(std::move(chain)); }),
         ::testing::ElementsAre(
-            MATCHER_FOR_BEGIN_PFOR (exec, then),
-            MATCHER_FOR_BEGIN_PFOR (exec, then),
-            MATCHER_FOR_BEGIN_PFOR (exec, then),
-            MATCHER_FOR_BEGIN_FENCE(exec, sync_wait)
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))
         )
     );
 
@@ -177,12 +181,12 @@ TEST_F(ContinuesOnTest, continues_on_many)
     ASSERT_THAT(
         recorded_events,
         ::testing::ElementsAre(
-            MATCHER_FOR_BEGIN_PFOR (exec,   then),
-            MATCHER_FOR_BEGIN_FENCE(exec,   schedule_from),
-            MATCHER_FOR_BEGIN_PFOR (exec_h, then),
-            MATCHER_FOR_BEGIN_FENCE(exec_h, schedule_from),
-            MATCHER_FOR_BEGIN_PFOR (exec,   then),
-            MATCHER_FOR_BEGIN_FENCE(exec,   sync_wait)
+            MATCHER_FOR_BEGIN_PFOR (exec,   dispatch_label("then")),
+            MATCHER_FOR_BEGIN_FENCE(exec,   dispatch_label("schedule_from")),
+            MATCHER_FOR_BEGIN_PFOR (exec_h, dispatch_label("then")),
+            MATCHER_FOR_BEGIN_FENCE(exec_h, dispatch_label("schedule_from")),
+            MATCHER_FOR_BEGIN_PFOR (exec,   dispatch_label("then")),
+            MATCHER_FOR_BEGIN_FENCE(exec,   dispatch_label("sync_wait"))
         )
     );
 

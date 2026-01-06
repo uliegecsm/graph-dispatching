@@ -18,8 +18,7 @@ namespace impl
 {
 template <typename Exec, typename HostExec = Kokkos::DefaultHostExecutionSpace>
 struct ExecutionSpaceContextTest : public virtual ::testing::Test,
-                                   public Kokkos::utils::tests::scoped::ExecutionSpace<Exec>,
-                                   public Kokkos::utils::tests::scoped::ExecutionSpace<HostExec>
+                                   public Kokkos::utils::tests::scoped::ExecutionSpace<Exec>
 {
 public:
     using context_t          = Kokkos::Experimental::ExecutionSpaceContext<Exec>;
