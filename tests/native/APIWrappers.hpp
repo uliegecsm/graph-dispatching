@@ -81,9 +81,9 @@ struct View
     View(const size_t size_, T* buffer_) : size(size_), buffer(buffer_), owning(false) {}
 
     //! Move-assignment operator. @note We need to set the @p other to non-owning to ensure it won't free the @ref buffer.
-    View& operator=(View&& other);
+    View& operator=(View&& other) noexcept;
 
-    View(View&& other);
+    View(View&& other) noexcept;
 
     //! This is the simplest approach. The original view is the only one that owns and frees.
     View(const View& other) : size(other.size), buffer(other.buffer), owning(false) {}
@@ -122,7 +122,7 @@ struct Graph
     explicit Graph(const PREFIXED_API(Graph_t) graph_) : graph(graph_), owning(false) {}
 
     //! Move constructor. @note We need to set the @p other to non-owning to ensure it won't free the @ref graph.
-    Graph(Graph&& other) : graph(other.graph), owning(other.owning) { if(other.owning) other.owning = false; }
+    Graph(Graph&& other) noexcept : graph(other.graph), owning(other.owning) { if(other.owning) other.owning = false; }
 
     void print(const char* path, const unsigned int flags) const;
 
