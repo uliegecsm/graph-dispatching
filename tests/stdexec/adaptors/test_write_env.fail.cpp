@@ -1,6 +1,10 @@
 #include "gtest/gtest.h"
 
+#include "tests/IgnoreWarnings.hpp"
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 #include "stdexec/execution.hpp"
+PRAGMA_DIAGNOSTIC_POP
 
 /**
  * @addtogroup unittests
@@ -9,7 +13,7 @@
  * -----------------------
  *
  * This test will fail at compile time because it tries to add a property of the wrong type.
- * According to https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3325r2.html#should-environments-be-constrained,
+ * According to @cite P3325R5 (Section 4.2.4, "Should Environments Be Constrained?"),
  * it must fail.
  *
  * The test can be found in @ref stdexec/adaptors/test_write_env.fail.cpp.
@@ -27,7 +31,7 @@ struct get_double_property_t
     template <typename Env> requires has_query<Env, get_double_property_t>
     decltype(auto) operator()(const Env& env) const
     {
-        static_assert(std::same_as<decltype(env.query(*this)), std::string>,
+        static_assert(std::same_as<decltype(env.query(*this)), double>,
             "The 'get_double_property_t' query must return a double.");
 
         return env.query(*this);

@@ -93,29 +93,21 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
     //! Let's perform some traits checks on the chain from the @c continues_on.
     using continues_on_t = decltype(continues_on);
 
-    /// The @c continues_on will advertise the @c exec::static_thread_pool domain in its environment.
-    static_assert(::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<continues_on_t>>);
-
+    /// @c continues_on advertises the default domain, and completes on the @c exec::static_thread_pool domain.
     static_assert(std::same_as<
-        std::invoke_result_t<::stdexec::get_domain_t, ::stdexec::env_of_t<continues_on_t>>,
-        ::exec::_pool_::static_thread_pool_::domain
+        ::stdexec::__domain_of_t<::stdexec::env_of_t<continues_on_t>>,
+        ::stdexec::default_domain
+    >);
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, continues_on_t>,
+        ::exec::_pool_::_static_thread_pool::domain
     >);
 
     //! It also has a completion scheduler for the value channel.
-    static_assert(::stdexec::__has_completion_scheduler<continues_on_t, ::stdexec::set_value_t>);
-
     static_assert(std::same_as<
-        ::stdexec::__detail::__completion_scheduler_for<::stdexec::env_of_t<continues_on_t>, ::stdexec::set_value_t>,
-        exec::_pool_::static_thread_pool_::scheduler
+        ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t>,
+        exec::_pool_::_static_thread_pool::scheduler
     >);
-
-    //! Therefore, it has a **non-default early** completion domain.
-    static_assert(std::same_as<
-        ::stdexec::__detail::__completion_domain_of<continues_on_t>,
-        exec::_pool_::static_thread_pool_::domain
-    >);
-
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<continues_on_t>, exec::_pool_::static_thread_pool_::domain>);
 
     //! First then on scheduler 'b'.
     std::thread::id thr_1_on_b;
@@ -126,9 +118,15 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     static_assert(has_completion_signatures<then_1_on_b_t, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
 
-    //! We are still able to query for the domain in the environment, early domain is also the non-default one from @c exec::static_thread_pool.
-    static_assert(::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<then_1_on_b_t>>);
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<then_1_on_b_t>, exec::_pool_::static_thread_pool_::domain>);
+    //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
+    static_assert(std::same_as<
+        ::stdexec::__domain_of_t<::stdexec::env_of_t<then_1_on_b_t>>,
+        ::stdexec::default_domain
+    >);
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_1_on_b_t>,
+        ::exec::_pool_::_static_thread_pool::domain
+    >);
 
     //! The second then is still on scheduler 'b'.
     std::thread::id thr_2_on_b;
@@ -139,9 +137,15 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     static_assert(has_completion_signatures<then_2_on_b_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
 
-    //! We are still able to query for the domain in the environment, early domain is also the non-default one from @c exec::static_thread_pool.
-    static_assert(::stdexec::tag_invocable<::stdexec::get_domain_t, ::stdexec::env_of_t<then_2_on_b_t>>);
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<then_2_on_b_t>, exec::_pool_::static_thread_pool_::domain>);
+    //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
+    static_assert(std::same_as<
+        ::stdexec::__domain_of_t<::stdexec::env_of_t<then_2_on_b_t>>,
+        ::stdexec::default_domain
+    >);
+    static_assert(std::same_as<
+        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_2_on_b_t>,
+        ::exec::_pool_::_static_thread_pool::domain
+    >);
 
     ::stdexec::sync_wait(std::move(then_2_on_b)); // NOLINT(performance-move-const-arg)
 

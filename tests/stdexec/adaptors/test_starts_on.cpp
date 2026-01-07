@@ -77,12 +77,17 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
     ASSERT_THAT(result_B, ::testing::Each(result_B.at(0)));
 
     /// Let's check some traits.
-    /// The chain's early domain is the default.
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
+    /// The chain completion domain is indeterminate.
+    static_assert(std::same_as<
+        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
+        ::stdexec::indeterminate_domain<>
+    >);
 
-    //! Using @c starts_on returns an empty environment, and the early domain is still the default domain.
-    static_assert(std::same_as<::stdexec::env_of_t<decltype(moved_to_another_A)>, ::stdexec::__env::__fwd<::stdexec::__env::__fwd<::stdexec::__env::cprop<::stdexec::__queries::__is_scheduler_affine_t, true>>>::__t>);
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(moved_to_another_A)>, ::stdexec::default_domain>);
+    //! @c starts_on completes on the passed scheduler domain.
+    static_assert(std::same_as<
+        decltype(::stdexec::get_completion_domain<::stdexec::set_value_t>(::stdexec::get_env(moved_to_another_A))),
+        exec::_pool_::_static_thread_pool::domain
+    >);
 }
 
 /**
@@ -128,7 +133,10 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain)
         | ::stdexec::then([&ids]{ ids[0] = std::this_thread::get_id(); })
         | ::stdexec::then([&ids]{ ids[1] = std::this_thread::get_id(); });
 
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(chain)>, ::stdexec::default_domain>);
+    static_assert(std::same_as<
+        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
+        ::stdexec::indeterminate_domain<>
+    >);
 
     auto work = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), std::move(chain)) // NOLINT(performance-move-const-arg)
         | ::stdexec::then([&ids]{ ids[2] = std::this_thread::get_id(); });
@@ -148,14 +156,8 @@ class StartsOnTraitsTest : public utils::StaticThreadPool<'A'>, public ::testing
 {
 public:
     template <bool MayThrow>
-    static ::stdexec::sender auto get_chain()
-    {
-        auto chain = ::stdexec::just() | ::stdexec::then(ThenFunctorMayThrow<MayThrow>{});
-
-        //! The chain cannot be queried for its completion scheduler on the value channel.
-        static_assert(!::stdexec::__has_completion_scheduler<decltype(chain), ::stdexec::set_value_t>);
-
-        return chain;
+    static ::stdexec::sender auto get_chain() {
+        return ::stdexec::just() | ::stdexec::then(ThenFunctorMayThrow<MayThrow>{});
     }
 
     template <::stdexec::sender Chain>
@@ -163,8 +165,10 @@ public:
     {
         auto starts_on = ::stdexec::starts_on(pools.front().get_scheduler(), std::forward<Chain>(chain));
 
-        //! The chain cannot be queried for its completion scheduler on the value channel.
-        static_assert(!::stdexec::__has_completion_scheduler<decltype(starts_on), ::stdexec::set_value_t>);
+        //! The chain can be queried for its completion scheduler on the value channel.
+        static_assert(requires {
+            ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(starts_on));
+        });
 
         return starts_on;
     }
@@ -182,7 +186,18 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
-    static_assert(has_completion_signatures<decltype(starts_on), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
+    using starts_on_t = decltype(starts_on);
+
+    static_assert(std::same_as<std::invoke_result_t<
+        ::stdexec::get_completion_signatures_t, starts_on_t>,
+        ::stdexec::_ERROR_<::stdexec::__detail::__dependent_completions>
+    >);
+
+    static_assert(std::same_as<std::invoke_result_t<
+        ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
+        ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
+    >);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
 }
@@ -199,7 +214,18 @@ TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
-    static_assert(has_completion_signatures<decltype(starts_on), ::stdexec::set_stopped_t(),::stdexec::set_value_t()>);
+    //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
+    using starts_on_t = decltype(starts_on);
+
+    static_assert(std::same_as<std::invoke_result_t<
+        ::stdexec::get_completion_signatures_t, starts_on_t>,
+        ::stdexec::_ERROR_<::stdexec::__detail::__dependent_completions>
+    >);
+
+    static_assert(std::same_as<std::invoke_result_t<
+        ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
+        ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
+    >);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
 }

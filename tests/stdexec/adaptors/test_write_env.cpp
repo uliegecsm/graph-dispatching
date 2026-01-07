@@ -17,8 +17,9 @@ PRAGMA_DIAGNOSTIC_POP
  * This group of tests check the behavior of @c stdexec::write_env.
  *
  * See also:
- *  - (A Utility for Creating Execution Environments)[https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3325r2.html]
- *  - (@c finally, @c write_env, and @c unstoppable Sender Adaptors)[https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3284r1.html]
+ *  - @cite P3325R5
+ *  - @cite P3284R4
+ *  - https://github.com/NVIDIA/stdexec/blob/250f35737790392d666fd157e0af9be16d0c789f/test/exec/test_env.cpp
  *
  * The test can be found in @ref stdexec/adaptors/test_write_env.cpp.
  */
@@ -26,27 +27,13 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::stdexec::adaptors
 {
 
-//! Custom property.
-struct CustomProperty
-{
-    template <typename Env> requires ::stdexec::tag_invocable<CustomProperty, Env>
-    constexpr decltype(auto) operator()(Env&& env) const {
-        return ::stdexec::tag_invoke(*this, std::forward<Env>(env));
-    }
-};
-
-constexpr CustomProperty my_custom_property {};
+//! Custom property (forwarding).
+constexpr struct CustomProperty : public ::stdexec::__query<CustomProperty>, ::stdexec::forwarding_query_t {
+    using ::stdexec::__query<CustomProperty>::operator();
+} my_custom_property {};
 
 //! Yet another custom property.
-struct YetAnotherCustomProperty
-{
-    template <typename Env> requires ::stdexec::tag_invocable<YetAnotherCustomProperty, Env>
-    constexpr decltype(auto) operator()(Env&& env) const {
-        return ::stdexec::tag_invoke(*this, std::forward<Env>(env));
-    }
-};
-
-constexpr YetAnotherCustomProperty my_yet_another_custom_property {};
+constexpr struct YetAnotherCustomProperty : public ::stdexec::__query<YetAnotherCustomProperty> {} my_yet_another_custom_property {};
 
 /// @test Check that we can build an environment with a custom property and query it at compile time.
 TEST(Environment, build_env_constexpr)
@@ -115,7 +102,11 @@ TEST(Environment, build_env_runtime)
     ASSERT_EQ(value.label, "hello darkness my old friend");
 }
 
-//! @test Check that we can use @c stdexec::let_value to read from the environment (for debugging what's in there).
+/**
+ * @test Check that we can use @c stdexec::let_value to read from the environment (for debugging what's in there).
+ *
+ * Inspired by https://github.com/NVIDIA/stdexec/blob/250f35737790392d666fd157e0af9be16d0c789f/test/nvexec/let_value.cpp#L132-L149.
+ */
 TEST(Environment, let_value_read_env)
 {
     std::ostringstream out;

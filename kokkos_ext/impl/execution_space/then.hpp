@@ -8,7 +8,11 @@
 namespace Kokkos::Experimental::details::execution_space
 {
 
-//! Receiver for @c then.
+/**
+ * @brief Receiver for @c then.
+ *
+ * @note It must be nothrow moveable, see @cite P3383R3.
+ */
 template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
 struct ThenReceiver
 {
@@ -26,6 +30,14 @@ struct ThenReceiver
     Rcvr rcvr;
     ThenWrapper wrapper;
     Schd schd;
+
+    template <typename Rcv, typename Fun, typename Sch>
+    ThenReceiver(Rcv&& rcv, Fun&& fun, Sch&& sch)
+        : rcvr(std::forward<Rcv>(rcv)),
+          wrapper{std::forward<Fun>(fun)},
+          schd(std::forward<Sch>(sch)) {}
+
+    ThenReceiver(ThenReceiver&&) noexcept = default;
 
     void set_value() && noexcept
     {
@@ -81,8 +93,9 @@ struct ThenSender
         with_error_invoke_t
     >;
 
-    template <typename Self, typename... Env>
-    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
+    template <typename... Env>
+    auto get_completion_signatures(Env&&...) -> completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
@@ -92,7 +105,7 @@ struct ThenSender
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .wrapper = {std::move(functor)}, .schd = std::move(schd)}
+            recv_t{std::forward<Rcvr>(rcvr),std::move(functor), std::move(schd)}
         );
     }
 

@@ -1,6 +1,9 @@
-#include "gtest/gtest.h"
-
 #include "tests/IgnoreWarnings.hpp"
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+#include "gtest/gtest.h"
+PRAGMA_DIAGNOSTIC_POP
+
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
@@ -134,25 +137,16 @@ TEST_F(StreamContextTest, split)
 
     auto fork = stdexec::schedule(sch) | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | stdexec::split();
 
-    /// Here, we mustn't use @c stdexec::when_all alone.
-    /// Indeed, using @c stdexec::when_all alone would result in the last node being run on host.
-    /// We could use @c nvexec::transfer_when_all, but it seems that a combination of @c stdexec::when_all
-    /// and @c stdexec::continues_on works as well.
-    ///
-    /// This makes sense because, according to P2300, the sender returned by @c stdexec::when_all has no completion scheduler.
-    /// We aren't sure why though, but we think it is because @c stdexec::when_all might receive several input senders that all
-    /// use a different scheduler.
+    /// We must use @c stdexec::transfer_when_all here, see https://github.com/NVIDIA/stdexec/issues/1736.
     ///
     /// References:
     ///     - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__when_all.hpp#L453-L463
     ///     - https://github.com/pika-org/pika/blob/11dfb31d37e9395dc42416a53d39d46335f9fd70/libs/pika/execution/include/pika/execution/algorithms/transfer_when_all.hpp#L23
-    auto snd = stdexec::when_all(
+    auto snd = stdexec::transfer_when_all(sch,
         fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 1}),
         fork | stdexec::then(                      ThenFunctor{.id = 0}),
         fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 2}))
-             | stdexec::continues_on(sch)
              | stdexec::then(                      ThenFunctor{.id = 1});
-
     stdexec::sync_wait(std::move(snd));
 }
 
@@ -226,16 +220,33 @@ void test_transition_from_one_to_another_no_value(Src&& src, Dst&& dst)
     ASSERT_EQ(value(), 2);
 }
 
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+
 //! @test Check that we can transition from one @c nvexec::stream_context to itself with a value channel.
 TEST_F(StreamContextTest, transition_to_itself_with_value)
 {
+    /**
+     * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
+     *       we can really exercise this test.
+     */
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH({
     test_transition_from_one_to_another_with_value(stream_ctx.get_scheduler(), stream_ctx.get_scheduler());
+    }, ".*");
 }
 
 //! @test Check that we can transition from one @c nvexec::stream_context to itself without value channel.
 TEST_F(StreamContextTest, transition_to_itself_no_value)
 {
+    /**
+     * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
+     *       we can really exercise this test.
+     */
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH({
     test_transition_from_one_to_another_no_value(stream_ctx.get_scheduler(), stream_ctx.get_scheduler());
+    }, ".*");
 }
 
 //! @test Check that we can transition from one @c nvexec::stream_context to another with value channel.
@@ -245,14 +256,15 @@ TEST_F(StreamContextTest, transition_to_another_with_value)
      * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
      *       we can really exercise this test.
      */
-    GTEST_SKIP() << "It will seg. fault.";
-
     ::nvexec::stream_context stream_ctx_another{};
 
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH({
     test_transition_from_one_to_another_with_value(
         stream_ctx.get_scheduler(),
         stream_ctx_another.get_scheduler()
     );
+    }, ".*");
 }
 
 //! @test Check that we can transition from one @c nvexec::stream_context to another without value channel.
@@ -262,14 +274,17 @@ TEST_F(StreamContextTest, transition_to_another_no_value)
      * @todo Once https://github.com/NVIDIA/stdexec/issues/1563 is solved,
      *       we can really exercise this test.
      */
-    GTEST_SKIP() << "It will seg. fault.";
-
     ::nvexec::stream_context stream_ctx_another{};
 
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH({
     test_transition_from_one_to_another_no_value(
         stream_ctx.get_scheduler(),
         stream_ctx_another.get_scheduler()
     );
+    }, ".*");
 }
+
+PRAGMA_DIAGNOSTIC_POP
 
 } // namespace tests::nvexec::adaptors

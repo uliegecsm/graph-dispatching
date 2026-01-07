@@ -136,8 +136,9 @@ struct ThenSender
     >;
     ///@}
 
-    template <class Self, class... Env>
-    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
+    template <class... Env>
+    auto get_completion_signatures(Env&&...) -> completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     template <::stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
@@ -174,36 +175,19 @@ struct TransformThen
 template <class Domain>
 struct DomainSpecificScheduler;
 
-//! A domain that will tell you if you're early or late for the customization party of @c then.
 template <char ID>
 struct Domain
 {
-    template <::stdexec::sender_expr_for<::stdexec::then_t> Sndr>
-    auto transform_sender(Sndr&& sndr) const noexcept
-    {
-        std::cout << "> From domain " << ID << ": transform_sender (early)" << std::endl;
-
-        auto schd = ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr));
-        return sndr.apply(std::forward<Sndr>(sndr), TransformThen<ID, 'E', decltype(schd)>{.schd = std::move(schd)});
-    }
-
     template <::stdexec::sender_expr_for<::stdexec::then_t> Sndr, typename Env>
-    auto transform_sender(Sndr&& sndr, const Env& env) const noexcept
+    auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env) const noexcept
     {
-        std::cout << "> From domain " << ID << ": transform_sender (late)" << std::endl;
+        std::cout << "> domain " << ID << ": transform_sender" << std::endl;
 
-        if constexpr (::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>>) {
-            auto schd = ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr));
-            return sndr.apply(std::forward<Sndr>(sndr), TransformThen<ID, 'L', decltype(schd)>{.schd = std::move(schd)});
-        } else if constexpr (::stdexec::__starts_on<Sndr, DomainSpecificScheduler<Domain>, Env>) {
-            auto schd = ::stdexec::get_scheduler(env);
+        if constexpr (::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>, Env>) {
+            auto schd = ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr), env);
             return sndr.apply(std::forward<Sndr>(sndr), TransformThen<ID, 'L', decltype(schd)>{.schd = std::move(schd)});
         } else {
-            static_assert(
-                ::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>> ||
-                ::stdexec::__starts_on<Sndr, DomainSpecificScheduler<Domain>, Env>,
-                "No DomainSpecificScheduler<Domain> instance can be found in the sender's or receiver's "
-                "environment on which to schedule the work.");
+            static_assert(::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>, Env>);
         }
     }
 };
@@ -250,6 +234,8 @@ struct DomainSpecificScheduler
 
     auto query(::stdexec::get_domain_t) const noexcept { return Domain{}; }
 
+    auto query(::stdexec::get_completion_domain_t<::stdexec::set_value_t>) const noexcept { return Domain{}; }
+
     friend bool operator==(const DomainSpecificScheduler&, const DomainSpecificScheduler&) noexcept { return true; }
 };
 
@@ -289,12 +275,12 @@ TEST_F(CustomizationTest, no_specified_scheduler)
 ///       for a simple chain starting with a schedule sender. It uses early customization.
 TEST_F(CustomizationTest, begins_with_schedule_sender_followed_by_custom_then)
 {
-    SETUP_TRACE(2, {'A', 'E'}, {'A', 'E'})
+    SETUP_TRACE(2, {'A', 'L'}, {'A', 'L'})
 
     ::stdexec::sender auto work = ::stdexec::schedule(DomainSpecificScheduler<Domain<'A'>>{})
         | ADD_THEN(0) | ADD_THEN(1);
 
-    static_assert(std::same_as<::stdexec::__early_domain_of_t<decltype(work)>, Domain<'A'>>);
+    static_assert(std::same_as<::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(work)>, Domain<'A'>>);
 
     ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
@@ -307,7 +293,7 @@ TEST_F(CustomizationTest, begins_with_schedule_sender_followed_by_custom_then)
 ///       customization.
 TEST_F(CustomizationTest, continues_on_uses_custom_then)
 {
-    SETUP_TRACE(8, DEFAULT_PAIR, DEFAULT_PAIR, DEFAULT_PAIR, {'B', 'E'}, {'B', 'E'}, {'B', 'E'}, {'C', 'E'}, {'C', 'E'})
+    SETUP_TRACE(8, DEFAULT_PAIR, DEFAULT_PAIR, DEFAULT_PAIR, {'B', 'L'}, {'B', 'L'}, {'B', 'L'}, {'C', 'L'}, {'C', 'L'})
 
     ::stdexec::sender auto chain = ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1) | ADD_THEN(2);
 
@@ -326,7 +312,7 @@ TEST_F(CustomizationTest, continues_on_uses_custom_then)
 ///       sender is still on the default domain.
 TEST_F(CustomizationTest, starts_on)
 {
-    SETUP_TRACE(5, {'C', 'L'}, {'C', 'L'}, DEFAULT_PAIR, {'D', 'E'}, {'D', 'E'})
+    SETUP_TRACE(5, {'C', 'L'}, {'C', 'L'}, {'C', 'L'}, {'D', 'L'}, {'D', 'L'})
 
     ::stdexec::sender auto begin = ::stdexec::just() | ADD_THEN(0) | ADD_THEN(1);
 
@@ -355,7 +341,7 @@ TEST_F(CustomizationTest, on_no_closure)
 //! @test Check that the transition is back-and-forth, using the default otherwise.
 TEST_F(CustomizationTest, on_in_the_middle_otherwise_default)
 {
-    SETUP_TRACE(3, DEFAULT_PAIR, {'R', 'E'}, DEFAULT_PAIR)
+    SETUP_TRACE(3, DEFAULT_PAIR, {'R', 'L'}, DEFAULT_PAIR)
 
     ::stdexec::sync_wait(::stdexec::just() | ADD_THEN(0) | ::stdexec::on(DomainSpecificScheduler<Domain<'R'>>{}, ADD_THEN(1)) | ADD_THEN(2));
 
@@ -366,7 +352,7 @@ TEST_F(CustomizationTest, on_in_the_middle_otherwise_default)
 ///       but the chain is started by a schedule sender on @ref DomainSpecificScheduler.
 TEST_F(CustomizationTest, on_in_the_middle_otherwise_custom_scheduler)
 {
-    SETUP_TRACE(3, {'Q', 'E'}, {'R', 'E'}, {'Q', 'E'})
+    SETUP_TRACE(3, {'Q', 'L'}, {'R', 'L'}, {'Q', 'L'})
 
     ::stdexec::sync_wait(::stdexec::schedule(DomainSpecificScheduler<Domain<'Q'>>{})
         | ADD_THEN(0)
@@ -379,7 +365,7 @@ TEST_F(CustomizationTest, on_in_the_middle_otherwise_custom_scheduler)
 //! @test Test @c stdexec::on with a mix of different schedulers.
 TEST_F(CustomizationTest, on)
 {
-    SETUP_TRACE(8, {'W', 'E'}, {'W', 'E'}, DEFAULT_PAIR, DEFAULT_PAIR, {'Y', 'E'}, DEFAULT_PAIR, {'Z', 'E'}, {'Z', 'E'})
+    SETUP_TRACE(8, {'W', 'L'}, {'W', 'L'}, DEFAULT_PAIR, DEFAULT_PAIR, {'Y', 'L'}, DEFAULT_PAIR, {'Z', 'L'}, {'Z', 'L'})
 
     exec::static_thread_pool pool{1};
 
@@ -402,7 +388,7 @@ TEST_F(CustomizationTest, on)
 //! @test Check we're able to use our customization when we pass values in the value channel.
 TEST_F(CustomizationTest, then_with_values)
 {
-    SETUP_TRACE(3, {'W', 'E'}, {'W', 'E'}, {'W', 'E'})
+    SETUP_TRACE(3, {'W', 'L'}, {'W', 'L'}, {'W', 'L'})
 
     std::vector<double> values(1);
 
