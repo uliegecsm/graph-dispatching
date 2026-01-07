@@ -53,8 +53,8 @@ struct ContinuesOnSender
         with_error_invoke_t
     >;
 
-    template <class Self, class... Env>
-    static auto get_completion_signatures(Self&&, Env&&...) -> completion_signatures<Self, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    template <class... Env>
+    auto get_completion_signatures(Env&&...) -> completion_signatures<ContinuesOnSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
@@ -71,7 +71,7 @@ struct ContinuesOnSender
     Sndr sndr;
     bool fencing_required = false;
 
-    decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }//schd.env; }
+    decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

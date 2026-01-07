@@ -66,9 +66,12 @@ struct ScheduleFromSender
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
-        
+        constexpr bool has_completion_scheduler = std::invocable<
+            ::stdexec::get_completion_scheduler_t<::stdexec::set_value_t>,
+            const ::stdexec::env_of_t<Sndr>&
+        >;
 
-        if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>)
+        if constexpr (has_completion_scheduler)
         {
             auto completion_schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 

@@ -118,63 +118,68 @@ struct ExecutionSpaceScheduler
     };
 
     //! For @c continues_on.
-    struct TransformContinuesOn
-    {
-        template <class Schd, stdexec::sender Sndr> requires stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>
-        auto operator()(stdexec::continues_on_t, Schd&& schd , Sndr&& sndr) && noexcept
-        {
-            static_assert(stdexec::sender<Sndr>);
-            // static_assert(stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>);
+//     struct TransformContinuesOn
+//     {
+//         template <class Schd, stdexec::sender Sndr> requires stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>
+//         auto operator()(stdexec::continues_on_t, Schd&& schd , Sndr&& sndr) && noexcept
+//         {
+//             static_assert(stdexec::sender<Sndr>);
+//             // static_assert(stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>);
 
-            std::cout << "TransformContinuesOn<schedule_from_t>:" << std::endl
-                      << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name();
-            if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
-                std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
-            }
-            std::cout << std::endl;
+//             std::cout << "TransformContinuesOn<schedule_from_t>:" << std::endl
+//                       << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name();
+//             if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
+//                 std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
+//             }
+//             std::cout << std::endl;
 
-            if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>) {
-            auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-            std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
-            } else {
-            std::cout << "\t- comp: no completion scheduler for the sender" << std::endl;
-            }
+//             constexpr bool has_completion_scheduler = std::invocable<
+//                 ::stdexec::get_completion_scheduler_t<::stdexec::set_value_t>,
+//                 const ::stdexec::env_of_t<Sndr>&
+//             >;
 
-            return stdexec::schedule_from(
-                std::forward<Schd>(schd),
-                ContinuesOnSender{
-                    .schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr)),
-                    .sndr = std::forward<Sndr>(sndr)
-                }
-            );
-        }
+//             if constexpr (has_completion_scheduler) {
+//             auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+//             std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
+//             } else {
+//             std::cout << "\t- comp: no completion scheduler for the sender" << std::endl;
+//             }
 
-        template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
-        auto operator()(stdexec::continues_on_t, Schd&& schd , Sndr&& sndr) && noexcept
-        {
-            // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
-            static_assert(stdexec::__is_instance_of_<
-                std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
-                ExecutionSpaceScheduler
-            >);
+//             return stdexec::schedule_from(
+//                 std::forward<Schd>(schd),
+//                 ContinuesOnSender{
+//                     .schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr)),
+//                     .sndr = std::forward<Sndr>(sndr)
+//                 }
+//             );
+//         }
 
-            std::cout << "TransformContinuesOn<schedule_from_t>:" << std::endl
-                      << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
+//         template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
+//         auto operator()(stdexec::continues_on_t, Schd&& schd , Sndr&& sndr) && noexcept
+//         {
+//             // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
+//             static_assert(stdexec::__is_instance_of_<
+//                 std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
+//                 ExecutionSpaceScheduler
+//             >);
 
-            auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-            std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
+//             std::cout << "TransformContinuesOn<schedule_from_t>:" << std::endl
+//                       << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
 
-            return stdexec::schedule_from(
-                std::forward<Schd>(schd),
-                std::forward<Sndr>(sndr)
-            );
-        }
-    };
+//             auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+//             std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
 
-#if defined(KOKKOS_ENABLE_HIP)
-    template <typename Schd>
-    TransformContinuesOn(Schd&&) -> TransformContinuesOn<std::remove_cvref_t<Schd>>;
-#endif
+//             return stdexec::schedule_from(
+//                 std::forward<Schd>(schd),
+//                 std::forward<Sndr>(sndr)
+//             );
+//         }
+//     };
+
+// #if defined(KOKKOS_ENABLE_HIP)
+//     template <typename Schd>
+//     TransformContinuesOn(Schd&&) -> TransformContinuesOn<std::remove_cvref_t<Schd>>;
+// #endif
 
     struct Domain
     {
@@ -226,32 +231,41 @@ struct ExecutionSpaceScheduler
          *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-transition-details.
          *  - https://github.com/NVIDIA/stdexec/blob/e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf/include/nvexec/stream_context.cuh#L223-L230.
          */
-        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr> requires stdexec::__is_instance_of_<
+        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr, typename Env> /*requires stdexec::__is_instance_of_<
             std::remove_cvref_t<std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>>,
-            ExecutionSpaceScheduler>
-        auto transform_sender(Sndr&& sndr) const noexcept
+            ExecutionSpaceScheduler>*/
+        auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env_) const noexcept
         {
-            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-            std::cout << "transform_sender<continues_on_t>[early]:" << std::endl
-                      << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name();
-            if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
-                std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
+            std::cout << "transform_sender for continues_on" << std::endl;
+            if constexpr (::stdexec::__completes_on<Sndr, ExecutionSpaceScheduler, Env>) {
+                auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+                return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{.schd = std::move(schd)});
+            } else {
+                static_assert(::stdexec::__completes_on<Sndr, ExecutionSpaceScheduler, Env>);
             }
-            std::cout << std::endl;
-            return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
         }
+        // {
+        //     auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+        //     std::cout << "transform_sender<continues_on_t>[early]:" << std::endl
+        //               << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name();
+        //     if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
+        //         std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
+        //     }
+        //     std::cout << std::endl;
+        //     return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
+        // }
 
         // continues on another scheduler but we transition from ours
-        template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr> requires (!stdexec::__is_instance_of_<
-            std::remove_cvref_t<std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>>,
-            ExecutionSpaceScheduler>)
-        auto transform_sender(Sndr&& sndr) const noexcept
-        {
-            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-            std::cout << "transform_sender<continues_on_t>[early]:" << std::endl
-                      << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name() << std::endl;
-            return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
-        }
+        // template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr> requires (!stdexec::__is_instance_of_<
+        //     std::remove_cvref_t<std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>>,
+        //     ExecutionSpaceScheduler>)
+        // auto transform_sender(Sndr&& sndr) const noexcept
+        // {
+        //     auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+        //     std::cout << "transform_sender<continues_on_t>[early]:" << std::endl
+        //               << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name() << std::endl;
+        //     return sndr.apply(std::forward<Sndr>(sndr), TransformContinuesOn{/*.schd = std::move(schd)*/});
+        // }
 
         // //! Late customization for @c continues_on.
         // template <stdexec::sender_expr_for<stdexec::continues_on_t> Sndr, class Env>
@@ -270,70 +284,74 @@ struct ExecutionSpaceScheduler
         // }
 
         // do not forget to move it were it belongs
-        struct TransformScheduleFrom
-        {
-            template <class Schd, stdexec::sender Sndr> requires stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>
-            auto operator()(stdexec::schedule_from_t, Schd&& schd, Sndr&& sndr) && noexcept
-            {
-                static_assert(stdexec::sender<Sndr>);
-                // static_assert(stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>);
+        // struct TransformScheduleFrom
+        // {
+        //     template <class Schd, stdexec::sender Sndr> requires stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>
+        //     auto operator()(stdexec::schedule_from_t, Schd&& schd, Sndr&& sndr) && noexcept
+        //     {
+        //         static_assert(stdexec::sender<Sndr>);
+        //         // static_assert(stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>);
 
-                std::cout << "TransformScheduleFrom<schedule_from_t>:" << std::endl
-                          << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name();
-                if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
-                    std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
-                }
-                std::cout << std::endl;
-                if constexpr (::stdexec::__has_completion_scheduler<Sndr, stdexec::set_value_t>) {
-                auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-                std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name();
-                    if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(comp)>, ExecutionSpaceScheduler>) {
-                        std::cout << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")";
-                    }
-                    std::cout << std::endl;
-                } else {
-                std::cout << "\t- comp: no completion scheduler for the sender" << std::endl;
-                }
+        //         std::cout << "TransformScheduleFrom<schedule_from_t>:" << std::endl
+        //                   << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name();
+        //         if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
+        //             std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
+        //         }
+        //         std::cout << std::endl;
+        //         constexpr bool has_completion_scheduler = std::invocable<
+        //             ::stdexec::get_completion_scheduler_t<::stdexec::set_value_t>,
+        //             const ::stdexec::env_of_t<Sndr>&
+        //         >;
+        //         if constexpr (has_completion_scheduler) {
+        //         auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+        //         std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name();
+        //             if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(comp)>, ExecutionSpaceScheduler>) {
+        //                 std::cout << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")";
+        //             }
+        //             std::cout << std::endl;
+        //         } else {
+        //         std::cout << "\t- comp: no completion scheduler for the sender" << std::endl;
+        //         }
 
-                return ScheduleFromSender{
-                    .schd = std::forward<Schd>(schd),
-                    .sndr = std::forward<Sndr>(sndr)
-                };
-            }
+        //         return ScheduleFromSender{
+        //             .schd = std::forward<Schd>(schd),
+        //             .sndr = std::forward<Sndr>(sndr)
+        //         };
+        //     }
 
-            template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
-            auto operator()(stdexec::schedule_from_t, Schd&& schd, Sndr&& sndr) && noexcept
-            {
-                // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
-                static_assert(stdexec::__is_instance_of_<
-                    std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
-                    ExecutionSpaceScheduler
-                >);
+        //     template <class Schd, stdexec::sender Sndr> requires (!stdexec::__is_instance_of_<std::remove_cvref_t<Schd>, ExecutionSpaceScheduler>)
+        //     auto operator()(stdexec::schedule_from_t, Schd&& schd, Sndr&& sndr) && noexcept
+        //     {
+        //         // the scheduler is not ours but to end up on the customization does that mean the sender completes on ours ?
+        //         static_assert(stdexec::__is_instance_of_<
+        //             std::invoke_result_t<stdexec::get_completion_scheduler_t<stdexec::set_value_t>, stdexec::env_of_t<Sndr>>,
+        //             ExecutionSpaceScheduler
+        //         >);
 
-                std::cout << "TransformScheduleFrom<schedule_from_t>:" << std::endl
-                          << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
-                auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-                std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
+        //         std::cout << "TransformScheduleFrom<schedule_from_t>:" << std::endl
+        //                   << "\t- schd: " << Kokkos::Impl::TypeInfo<Schd>::name() << std::endl;
+        //         auto comp = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+        //         std::cout << "\t- comp: " << Kokkos::Impl::TypeInfo<decltype(comp)>::name() << "(" << Kokkos::Tools::Experimental::device_id(comp.env.exec) << ")" << std::endl;
 
-                return ScheduleFromSender{
-                    .schd = std::forward<Schd>(schd),
-                    .sndr = std::forward<Sndr>(sndr)
-                };
-            }
-        };
+        //         return ScheduleFromSender{
+        //             .schd = std::forward<Schd>(schd),
+        //             .sndr = std::forward<Sndr>(sndr)
+        //         };
+        //     }
+        // };
 
-        template <stdexec::sender_expr_for<stdexec::schedule_from_t> Sndr>
-        auto transform_sender(Sndr&& sndr) const noexcept
-        {
-            auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
-            std::cout << "transform_sender<schedule_from_t>[early]:" << std::endl
-                    << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name();
-            if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
-                std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
-            }
-            std::cout << std::endl;
-            return sndr.apply(std::forward<Sndr>(sndr), TransformScheduleFrom{});
-        }
+        // template <stdexec::sender_expr_for<stdexec::schedule_from_t> Sndr>
+        // auto transform_sender(Sndr&& sndr) const noexcept
+        // {
+        //     auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
+        //     std::cout << "transform_sender<schedule_from_t>[early]:" << std::endl
+        //             << "\t- schd: " << Kokkos::Impl::TypeInfo<decltype(schd)>::name();
+        //     if constexpr (stdexec::__is_instance_of_<std::remove_cvref_t<decltype(schd)>, ExecutionSpaceScheduler>) {
+        //         std::cout << "(" << Kokkos::Tools::Experimental::device_id(schd.env.exec) << ")";
+        //     }
+        //     std::cout << std::endl;
+        //     return sndr.apply(std::forward<Sndr>(sndr), TransformScheduleFrom{});
+        // }
     };
 
     auto query(stdexec::get_domain_t) const noexcept { return Domain{}; }

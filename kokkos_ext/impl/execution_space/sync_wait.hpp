@@ -9,15 +9,15 @@ namespace Kokkos::Experimental::details::execution_space
 {
     struct my_env {
   
-        stdexec::run_loop::__scheduler schd;
+        stdexec::run_loop::scheduler schd;
   
         [[nodiscard]]
-        auto query(stdexec::get_scheduler_t) const noexcept -> stdexec::run_loop::__scheduler {
+        auto query(stdexec::get_scheduler_t) const noexcept -> stdexec::run_loop::scheduler {
           return schd;
         }
   
         [[nodiscard]]
-        auto query(stdexec::get_delegation_scheduler_t) const noexcept -> stdexec::run_loop::__scheduler {
+        auto query(stdexec::get_delegation_scheduler_t) const noexcept -> stdexec::run_loop::scheduler {
           return schd;
         }
       };
