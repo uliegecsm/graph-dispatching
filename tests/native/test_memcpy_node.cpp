@@ -58,12 +58,12 @@ TEST(cuda, memcpy_node)
     GraphNodeKernel init_dst_n(init_dst_f, size);
     init_dst_n.add(graph, {});
 
-    //! Index-wise add of elements in @ref src into @ref dst.
+    //! Index-wise add of elements in @c src into @c dst.
     const ewa_t ewa_f{.src = src, .dst = dst};
     GraphNodeKernel ewa_n(ewa_f, size);
     ewa_n.add(graph, {init_src_n, init_dst_n});
 
-    //! Memory copy of @ref dst into @ref src.
+    //! Memory copy of @c dst into @c src.
     GraphNodeMemcpy<scalar_t> memcpy(src.buffer, dst.buffer, size, PREFIXED_API(MemcpyDeviceToDevice));
     memcpy.add(graph, {ewa_n});
 
@@ -71,7 +71,7 @@ TEST(cuda, memcpy_node)
 
     graph_exec.submit(stream);
 
-    //! Check the values in @ref dst and @ref src are identical (and as expected).
+    //! Check the values in @c dst and @c src are identical (and as expected).
     const auto src_h = src.get_host_copy(stream);
     const auto dst_h = dst.get_host_copy(stream);
 
