@@ -8,6 +8,12 @@ on:
         branches:
             - main
     workflow_dispatch:
+        inputs:
+            build-images:
+                description: 'Force re-build of all Docker images.'
+                required: false
+                type: bool
+                default: false
     schedule:
         # At 06:00 on Sunday.
         - cron:  '0 6 * * 6'
@@ -15,6 +21,10 @@ on:
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+    packages: read
 
 env:
     REGISTRY: ghcr.io
@@ -82,8 +92,47 @@ jobs:
                       BASE_IMAGE=ubuntu:24.04
                   labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
 
+    setup-skips:
+        runs-on: [self-hosted, linux, docker, amd64]
+        container:
+            image: alpine/git:2.49.1@sha256:26f8647ec43523c2511b99064cb45b48f4535bce956b9377a94b289fb021e819
+        outputs:
+            build-images: ${{ steps.build-images.outputs.build-images }}
+        permissions:
+            contents: read
+            pull-requests: read
+        steps:
+            - uses: actions/checkout@v6
+            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+            - id: build-images-changed-files
+              uses: tj-actions/changed-files@v47
+              with:
+                  files: |
+                      .github/**
+                      cmake/presets/**
+                      docker/**
+                      requirements/**
+                      version.json
+
+            - id: build-images
+              env:
+                  ANY_CHANGED: ${{ steps.build-images-changed-files.outputs.any_changed == 'true' }}
+                  FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['build-images'] }}
+              run: |
+                  if [ "$ANY_CHANGED" = "true" ] || [ "$FORCE" = "true" ]; then
+                      BUILD_IMAGES=true
+                  else
+                      BUILD_IMAGES=false
+                  fi
+                  echo "BUILD_IMAGES set to ${BUILD_IMAGES} because:"
+                  echo "    - any changed: ${ANY_CHANGED}"
+                  echo "    - force      : ${FORCE}"
+                  echo "build-images=${BUILD_IMAGES}" >> $GITHUB_OUTPUT
+
     build-images:
-        needs: [set-vars, build-docker]
+        needs: [set-vars, setup-skips, build-docker]
+        if: ${{ needs.setup-skips.outputs.build-images == 'true' }}
         runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
         container:
             image: ${{ needs.set-vars.outputs.CI_BUILDER }}
@@ -165,18 +214,7 @@ jobs:
 
             - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-            - id: changed-files
-              uses: tj-actions/changed-files@v47
-              with:
-                  files: |
-                      .github/**
-                      cmake/presets/**
-                      docker/**
-                      requirements/**
-                      version.json
-
             - uses: docker/login-action@v3
-              if  : steps.changed-files.outputs.any_changed == 'true'
               with:
                   registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
@@ -193,7 +231,6 @@ jobs:
                   echo "TAG_SUFFIX=${TAG_SUFFIX}" >> $GITHUB_OUTPUT
 
             - uses: ./.github/actions/build-image
-              if  : steps.changed-files.outputs.any_changed == 'true'
               with:
                   backend        : ${{ matrix.backend }}
                   base_image     : ${{ matrix.base_image }}
@@ -205,6 +242,7 @@ jobs:
     build-library-and-test:
         needs: [set-vars, build-images]
         runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
+        if: ${{ ! failure() && ! cancelled() }}
         strategy:
             fail-fast: false
             matrix:
@@ -271,6 +309,7 @@ jobs:
     build-documentation:
         needs: [set-vars, build-images]
         runs-on: [self-hosted, linux, docker, amd64]
+        if: ${{ ! failure() && ! cancelled() }}
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
         steps:
