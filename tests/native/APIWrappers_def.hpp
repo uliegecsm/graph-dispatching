@@ -62,7 +62,7 @@ View<T>::View(const Stream& stream, const size_t size_) : size(size_), owning(tr
 }
 
 template <typename T>
-View<T>& View<T>::operator=(View<T>&& other)
+View<T>& View<T>::operator=(View<T>&& other) noexcept
 {
     this->size   = other.size;
     this->buffer = other.buffer;
@@ -72,7 +72,7 @@ View<T>& View<T>::operator=(View<T>&& other)
 }
 
 template <typename T>
-View<T>::View(View&& other)
+View<T>::View(View&& other) noexcept
     : size(other.size),
       buffer(other.buffer),
       owning(other.owning)

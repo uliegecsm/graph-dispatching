@@ -62,7 +62,7 @@ struct SparseVectorDescriptor
         ));
     }
 
-    SparseVectorDescriptor& operator=(SparseVectorDescriptor&& other)
+    SparseVectorDescriptor& operator=(SparseVectorDescriptor&& other) noexcept
     {
         this->descr = other.descr;
         this->owning = other.owning;
@@ -91,7 +91,7 @@ struct DenseVectorDescriptor
         ));
     }
 
-    DenseVectorDescriptor& operator=(DenseVectorDescriptor&& other)
+    DenseVectorDescriptor& operator=(DenseVectorDescriptor&& other) noexcept
     {
         this->descr = other.descr;
         this->owning = other.owning;
