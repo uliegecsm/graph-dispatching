@@ -43,6 +43,9 @@
             "stdexec" : {
                 "value" : "24ba62526863eefdbc1752823624572b0d8149de"
             }
+        },
+        "reprospect": {
+            "value": "1.0.2"
         }
     }
 }
