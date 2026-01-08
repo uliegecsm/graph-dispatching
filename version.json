@@ -4,7 +4,7 @@
     },
     "dependencies" : {
         "clang" : {
-            "value" : "20"
+            "value" : "21"
         },
         "cmake" : {
             "value" : "3.31.6"
