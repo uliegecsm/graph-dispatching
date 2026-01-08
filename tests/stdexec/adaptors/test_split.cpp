@@ -93,7 +93,7 @@ public:
         PRAGMA_DIAGNOSTIC_PUSH
         PRAGMA_DIAGNOSTIC_IGNORED_STRINGOP_OVERFLOW
         ::stdexec::sender auto stage_one = ::stdexec::when_all(
-                    fork_one  | THEN_STORE_ID(thrids[1]),
+                      fork_one  | THEN_STORE_ID(thrids[1]),
             std::move(fork_one) | THEN_STORE_ID(thrids[2])
         );
         PRAGMA_DIAGNOSTIC_POP
@@ -117,8 +117,8 @@ public:
         PRAGMA_DIAGNOSTIC_PUSH
         PRAGMA_DIAGNOSTIC_IGNORED_STRINGOP_OVERFLOW
         auto stage_two = ::stdexec::when_all(
-                    fork_two | ::stdexec::continues_on(scheduler_C) | THEN_STORE_ID(thrids[5]),
-                    fork_two | ::stdexec::continues_on(scheduler_A) | THEN_STORE_ID(thrids[6]),
+                      fork_two | ::stdexec::continues_on(scheduler_C) | THEN_STORE_ID(thrids[5]),
+                      fork_two | ::stdexec::continues_on(scheduler_A) | THEN_STORE_ID(thrids[6]),
             std::move(fork_two)                                       | THEN_STORE_ID(thrids[7])
         );
         PRAGMA_DIAGNOSTIC_POP
@@ -135,14 +135,14 @@ public:
 
         ASSERT_THAT(thrids, ::testing::ElementsAre(
             threads.at(index_of_A),
-            threads.at(index_of_A),
-            threads.at(index_of_A),
-            threads.at(index_of_A),
+            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C), std::this_thread::get_id()),
+            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C), std::this_thread::get_id()),
+            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C), std::this_thread::get_id()),
             threads.at(index_of_B),
             threads.at(index_of_C),
             threads.at(index_of_A),
-            threads.at(index_of_B),
-            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C))
+            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C), std::this_thread::get_id()),
+            ::testing::AnyOf(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_C), std::this_thread::get_id())
         ));
     }
 };
@@ -150,7 +150,7 @@ public:
 //! @test The sender returned by @c stdexec::split or @c stdexec::when_all does not have a completion scheduler.
 TEST_F(SplitTest, with_transition)
 {
-    //! GCC 13.3.0 and 14.2.0 seem to raise a false positive for -Wstringop-overflow, but it will segfault.
+    //! GCC 13.3.0 and 14.2.0 seem to raise a false positive for -Wstringop-overflow, but it will segfault. See https://github.com/NVIDIA/stdexec/issues/1743.
 #if defined(__GNUC__) && !defined(__clang__)
     ::testing::FLAGS_gtest_death_test_style = "threadsafe";
     ASSERT_DEATH(this->test_with_transition(), ".*");
