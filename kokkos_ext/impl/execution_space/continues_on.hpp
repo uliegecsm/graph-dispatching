@@ -26,6 +26,10 @@ struct ContinuesOnReceiver
         ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
     }
 
+    void set_stopped() && noexcept {
+        ::stdexec::set_stopped(std::move(rcvr));
+    }
+
     decltype(auto) get_env() const noexcept { return schd.env; }
 };
 
