@@ -15,7 +15,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
-#include "Kokkos_Core.hpp"
+#include "tests/utils/LoadCheckAdd.hpp"
 
 /**
  * @addtogroup unittests
@@ -42,25 +42,6 @@ protected:
     ::nvexec::stream_context stream_ctx{};
 };
 
-//! Load the value at @ref data and check it is equal to @ref prev. Then, add @ref value to it.
-template <typename ValueType, bool OnDevice>
-struct LoadCheckAddFunctor
-{
-    ValueType prev;
-    ValueType value;
-    ValueType* data;
-
-    KOKKOS_FUNCTION
-    void operator()() const
-    {
-        if constexpr (OnDevice) { KOKKOS_IF_ON_HOST  (Kokkos::abort("Bulk: you should not be running on host.");) }
-        else                    { KOKKOS_IF_ON_DEVICE(Kokkos::abort("Bulk: you should not be running on device.");) }
-
-        if(*data != prev) Kokkos::abort("Unexpected value.");
-        *data += value;
-    }
-};
-
 //! @test Check the forward progress guarantee of the @c nvexec::stream_context scheduler.
 TEST_F(StreamContextTest, forward_progress_guarantee)
 {
@@ -82,12 +63,12 @@ TEST_F(StreamContextTest, workload_dependencies)
     const view_t witness(Kokkos::view_alloc("witness"));
 
     auto chain = stdexec::schedule(stream_ctx.get_scheduler())
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  6, .value = 6, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 12, .value = 9, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 21, .value = 8, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev = 29, .value = 1, .data = witness.data()});
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev =  6, .value = 6, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 12, .value = 9, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 21, .value = 8, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 29, .value = 1, .data = witness.data()});
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
@@ -161,11 +142,11 @@ TEST_F(StreamContextTest, move_to_static_thread_pool)
     exec::static_thread_pool pool {1};
 
     auto chain = stdexec::schedule(stream_ctx.get_scheduler())
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev =  0, .value = 4, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev =  4, .value = 2, .data = witness.data()})
         | stdexec::continues_on(pool.get_scheduler())
-        | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev =  6, .value = 6, .data = witness.data()})
-        | stdexec::then(LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, false>{.prev =  6, .value = 6, .data = witness.data()})
+        | stdexec::then(::tests::utils::LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
