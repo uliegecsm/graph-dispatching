@@ -37,9 +37,10 @@ TEST(stdexec, split)
     ::stdexec::scheduler auto scheduler = pool.get_scheduler();
 
     std::array<std::thread::id, 2> bulk_thr;
-    std::thread::id thr_A, thr_B;
+    std::thread::id thr_A, thr_B, thr_X;
 
     auto start = ::stdexec::schedule(scheduler)
+        | ::stdexec::then([&] { thr_X = std::this_thread::get_id(); })
         | ::stdexec::bulk(::stdexec::par, 2, [&](const auto index) -> void { bulk_thr[index] = std::this_thread::get_id(); })
         | ::stdexec::split();
 
@@ -53,8 +54,17 @@ TEST(stdexec, split)
     //! Each @c bulk work item has been processed by a different thread.
     ASSERT_NE(bulk_thr[0], bulk_thr[1]);
 
-    //! However, both asynchronous @c then have been run by the same thread.
+    //! The first @c then ran on one of the bulk threads.
+    ASSERT_THAT(thr_X, ::testing::AnyOfArray(bulk_thr));
+
+    //! However, both asynchronous forked @c then have been run by the same thread.
     ASSERT_EQ(thr_A, thr_B);
+
+    std::cout << "> then   X: " << thr_X << std::endl;
+    std::cout << "> bulk   0: " << bulk_thr[0] << std::endl;
+    std::cout << "> bulk   1: " << bulk_thr[1] << std::endl;
+    std::cout << "> then A/B: " << thr_A << std::endl;
+    std::cout << ">         : " << std::this_thread::get_id() << std::endl;
 }
 
 class SplitTest : public utils::StaticThreadPool<'A', 'B', 'C'>, public ::testing::Test

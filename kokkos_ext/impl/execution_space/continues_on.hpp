@@ -18,7 +18,9 @@ struct ContinuesOnReceiver
     Rcvr rcvr;
 
     void set_value() && noexcept {
+        std::cout << "continues_on(" << this << " will call the set_value of downstream" << std::endl; std::cout.flush();
         ::stdexec::set_value(std::move(rcvr));
+        std::cout << "continues_on(" << this << " has finished calling the set_value of downstream" << std::endl; std::cout.flush();
     }
 
     template <class Error>

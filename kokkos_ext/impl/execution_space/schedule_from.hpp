@@ -19,6 +19,7 @@ struct ScheduleFromReceiver
     bool skip;
 
     void set_value() && noexcept {
+        std::cout << "> schedule_from: setting value downstream" << std::endl;
         if (!skip) env.exec.fence(std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(env.exec)>::name()));
         ::stdexec::set_value(std::move(rcvr));
     }

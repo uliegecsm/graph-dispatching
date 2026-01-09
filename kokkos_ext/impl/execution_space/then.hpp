@@ -42,6 +42,7 @@ struct ThenReceiver
     void set_value() && noexcept
     {
         try {
+            std::cout << "> then (" << this << ") calling" << std::endl;
             Kokkos::parallel_for(
                 std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
                 Kokkos::RangePolicy(std::move(schd).env.exec, 0, 1),
