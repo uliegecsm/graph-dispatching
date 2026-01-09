@@ -76,6 +76,36 @@ struct ScheduleFromSender
     bool skip;
 };
 
+template <typename Env>
+struct transform_sender_for<stdexec::schedule_from_t, Env>
+{
+    template <::stdexec::sender Sndr>
+    auto operator()(stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept
+    {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        static_assert(stdexec::__is_instance_of<decltype(schd), ExecutionSpaceScheduler>);
+
+        const bool skip = [&](){
+            if constexpr (stdexec::__is_instance_of<std::remove_cvref_t<Env>, ExecutionSpaceSchedulerEnv>) {
+                if constexpr (std::same_as<
+                    typename std::remove_cvref_t<decltype(env_.exec)>,
+                    typename std::remove_cvref_t<decltype(schd.env.exec)>
+                >) {
+                    return schd.env.exec == env_.exec;
+                }
+            }
+            return false;
+        }();
+        return ScheduleFromSender{
+            .env = std::move(schd.env),
+            .sndr = std::forward<Sndr>(sndr),
+            .skip = skip
+        };
+    }
+
+    const Env& env_;
+};
+
 } // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_SCHEDULE_FROM_HPP
