@@ -28,11 +28,11 @@ def expected_number_of_tests(*, preset : str) -> int:
 
     match preset:
         case 'clang-HPX' | 'clang-OpenMP' | 'gcc-OpenMP':
-            count = 56
+            count = 57
         case 'rocm-HIP':
-            count = 63
+            count = 64
         case 'clang-HPX-Cuda' | 'clang-Cuda':
-            count = 68
+            count = 69
         case 'gcc-Cuda':
             count = 37
         case _:

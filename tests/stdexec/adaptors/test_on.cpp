@@ -33,7 +33,7 @@ public:
     static constexpr size_t index_of_B = index_of<'B'>();
 };
 
-//! @test Simple test for @c stdexec::on that should that the context transition is indeed temporary.
+//! @test Simple test for @c stdexec::on showing that the context transition is indeed temporary.
 TEST_F(OnTest, on)
 {
     ::stdexec::scheduler auto scheduler_A = this->pools.at(index_of_A).get_scheduler();
