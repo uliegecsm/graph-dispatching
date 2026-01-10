@@ -92,14 +92,15 @@ struct ThenSender
     >;
 
     template <typename Self, typename... Env>
-    using completion_signatures = ::stdexec::transform_completion_signatures<
+    using _completion_signatures = ::stdexec::transform_completion_signatures<
         ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
         with_error_invoke_t
     >;
 
     //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
     template <typename... Env>
-    auto get_completion_signatures(Env&&...) -> completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    [[nodiscard]] constexpr auto
+    get_completion_signatures(Env&&...) -> _completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
