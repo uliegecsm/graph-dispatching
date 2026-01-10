@@ -46,14 +46,15 @@ struct ContinuesOnSender
     >;
 
     template <typename Self, typename... Env>
-    using completion_signatures = ::stdexec::transform_completion_signatures<
+    using _completion_signatures = ::stdexec::transform_completion_signatures<
         ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
         with_error_invoke_t
     >;
 
     //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
     template <typename... Env>
-    auto get_completion_signatures(Env&&...) -> completion_signatures<ContinuesOnSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    [[nodiscard]] constexpr auto
+    get_completion_signatures(Env&&...) -> _completion_signatures<ContinuesOnSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
