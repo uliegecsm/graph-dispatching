@@ -73,6 +73,16 @@ struct ContinuesOnSender
     Sndr sndr;
 };
 
+template <typename Env>
+struct transform_sender_for<stdexec::continues_on_t, Env>
+{
+    template <stdexec::scheduler Schd, ::stdexec::sender Sndr>
+        requires stdexec::__is_instance_of<Schd, ExecutionSpaceScheduler>
+    auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
+        return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
+    }
+};
+
 } // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_CONTINUES_ON_HPP
