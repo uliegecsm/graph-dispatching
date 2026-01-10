@@ -15,6 +15,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
+#include "tests/Utils.hpp"
 #include "tests/utils/LoadCheckAdd.hpp"
 
 /**
@@ -47,6 +48,12 @@ TEST_F(StreamContextTest, forward_progress_guarantee)
 {
     const auto fpg = ::stdexec::get_forward_progress_guarantee(stream_ctx.get_scheduler());
     ASSERT_EQ(fpg, ::stdexec::forward_progress_guarantee::weakly_parallel);
+}
+
+//! @test Check traits of the sender created by the customized @c continues_on.
+TEST_F(StreamContextTest, continues_on_traits)
+{
+    static_assert(::utils::check_continues_on<decltype(stream_ctx.get_scheduler())>());
 }
 
 /**
