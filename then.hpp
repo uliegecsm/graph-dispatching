@@ -121,6 +121,24 @@ struct ThenSender
     decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }
 };
 
+template <typename Env>
+struct transform_sender_for<stdexec::then_t, Env>
+{
+    template <typename Functor, typename Sndr>
+        requires execution_space_completing_sender<Sndr, Env>
+    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept
+    {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        return ThenSender{
+            .sndr    = std::forward<Sndr>(sndr),
+            .functor = std::forward<Functor>(functor),
+            .schd    = std::move(schd)
+        };
+    }
+
+    const Env& env_;
+};
+
 } // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_THEN_HPP

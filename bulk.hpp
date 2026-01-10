@@ -110,6 +110,27 @@ struct BulkSender
     decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }
 };
 
+template <typename Env>
+struct transform_sender_for<stdexec::bulk_t, Env>
+{
+    template <typename Data, typename Sndr>
+        requires execution_space_completing_sender<Sndr, Env>
+    auto operator()(stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept
+    {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        auto [policy, shape, functor] = std::forward<Data>(data);
+        return BulkSender{
+            .sndr    = std::forward<Sndr>(sndr),
+            .policy  = std::move(policy),
+            .shape   = std::move(shape),
+            .functor = std::move(functor),
+            .schd    = std::move(schd)
+        };
+    }
+
+    const Env& env_;
+};
+
 } // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_BULK_HPP
