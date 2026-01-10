@@ -81,6 +81,8 @@ struct transform_sender_for<stdexec::continues_on_t, Env>
     auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
         return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
     }
+
+    const Env& env_;
 };
 
 } // namespace Kokkos::Experimental::details::execution_space
