@@ -41,9 +41,20 @@ struct ExecutionSpaceRef {
 
     [[nodiscard]]
     constexpr const ExecutionSpaceRef& query(const get_exec_t&) const noexcept {
-        return this;
+        return *this;
     }
 };
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(_type_, _value_)                                                        \
+    [[nodiscard]]                                                                                                      \
+    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<                                                  \
+        stdexec::prop<get_exec_t, ExecutionSpaceRef<_type_>>,                                                          \
+        stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>>                                                                  \
+    > {                                                                                                                \
+        return stdexec::__env::__join(                                                                                 \
+            stdexec::prop{get_exec, ExecutionSpaceRef{_value_}}, stdexec::__fwd_env(stdexec::get_env(rcvr)));          \
+    }
 
 } // namespace Kokkos::Experimental::details::execution_space
 

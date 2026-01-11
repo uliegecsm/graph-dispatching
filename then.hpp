@@ -57,23 +57,18 @@ struct ThenReceiver : public Receiver<Schd, Rcvr> {
                 ///       would move the responsibility of lifetime bookkeeping to the user.
                 wrapper);
         } catch (...) {
-            stdexec::set_error(std::move(this->rcvr), std::current_exception());
+            std::move(*this).propagate_completion_signal(stdexec::set_error, std::current_exception());
         }
-        stdexec::set_value(std::move(this->rcvr));
+        std::move(*this).propagate_completion_signal(stdexec::set_value);
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
+        std::move(*this).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
-        stdexec::set_stopped(std::move(this->rcvr));
-    }
-
-    [[nodiscard]]
-    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>> {
-        return stdexec::__fwd_env(stdexec::get_env(this->rcvr));
+        std::move(*this).propagate_completion_signal(::stdexec::set_stopped);
     }
 };
 

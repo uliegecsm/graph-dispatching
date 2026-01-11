@@ -30,14 +30,7 @@ struct ContinuesOnReceiver {
         stdexec::set_stopped(std::move(rcvr));
     }
 
-    [[nodiscard]]
-    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<
-        stdexec::prop<get_exec_t, ExecutionSpaceRef<typename Schd::execution_space>>,
-        stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>>
-    > {
-        return stdexec::__env::__join(
-            stdexec::prop{get_exec, ExecutionSpaceRef{schd.state->exec}}, stdexec::__fwd_env(stdexec::get_env(rcvr)));
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec)
 };
 
 //! Sender for @c continues_on.
