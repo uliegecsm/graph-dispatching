@@ -93,6 +93,27 @@ struct SyncWait
     }
 };
 
+/**
+ * @brief Customize @c sync_wait.
+ *
+ * References:
+ *  - https://github.com/NVIDIA/stdexec/blob/e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf/include/nvexec/stream_context.cuh#L247-L251
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#spec-execution.senders.consumers.sync_wait
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-dispatch
+ *
+ * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
+ */
+template <>
+struct apply_sender_for<stdexec::sync_wait_t>
+{
+    template <execution_space_completing_sender Sndr>
+    auto operator()(Sndr&& sndr) && noexcept(false)
+    {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), stdexec::env{});
+        return SyncWait{}(std::move(schd), std::forward<Sndr>(sndr));
+    }
+};
+
 } // namespace Kokkos::Experimental::details::execution_space
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_EXECUTION_SPACE_SYNC_WAIT_HPP
