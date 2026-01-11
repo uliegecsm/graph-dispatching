@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/execution_space/receiver.hpp"
 
 namespace Kokkos::Experimental::details::execution_space
 {
@@ -14,9 +15,9 @@ namespace Kokkos::Experimental::details::execution_space
  * @note It must be nothrow moveable, see @cite P3383R3.
  */
 template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
-struct ThenReceiver
+struct ThenReceiver : public Receiver<Schd, Rcvr>
 {
-    using receiver_concept = stdexec::receiver_t;
+    using base_t = Receiver<Schd, Rcvr>;
 
     //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
     struct ThenWrapper
@@ -27,15 +28,13 @@ struct ThenReceiver
         KOKKOS_FUNCTION void operator()(const T) const { functor(); }
     };
 
-    Rcvr rcvr;
     ThenWrapper wrapper;
-    Schd schd;
 
     template <typename Rcv, typename Fun, typename Sch>
     ThenReceiver(Rcv&& rcv, Fun&& fun, Sch&& sch)
-        : rcvr(std::forward<Rcv>(rcv)),
-          wrapper{std::forward<Fun>(fun)},
-          schd(std::forward<Sch>(sch)) {}
+        : base_t(std::forward<Sch>(sch), std::forward<Rcv>(rcv)),
+          wrapper{std::forward<Fun>(fun)}
+    {}
 
     ThenReceiver(ThenReceiver&&) noexcept = default;
 
@@ -43,8 +42,8 @@ struct ThenReceiver
     {
         try {
             Kokkos::parallel_for(
-                std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
-                Kokkos::RangePolicy(std::move(schd).env.exec, 0, 1),
+                std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.env.exec)>::name()),
+                Kokkos::RangePolicy(std::move(this->schd).env.exec, 0, 1),
                 /// We cannot write:
                 /// @code
                 /// ThenWrapper{.functor = std::move(functor)}
@@ -56,21 +55,21 @@ struct ThenReceiver
                 wrapper
             );
         } catch(...) {
-            stdexec::set_error(std::move(rcvr), std::current_exception());
+            stdexec::set_error(std::move(this->rcvr), std::current_exception());
         }
-        stdexec::set_value(std::move(rcvr));
+        stdexec::set_value(std::move(this->rcvr));
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
+        ::stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(rcvr));
+        ::stdexec::set_stopped(std::move(this->rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(rcvr); }
+    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(this->rcvr); }
 };
 
 /**

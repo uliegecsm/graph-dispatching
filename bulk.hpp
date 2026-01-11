@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/execution_space/receiver.hpp"
 
 namespace Kokkos::Experimental::details::execution_space
 {
@@ -19,23 +20,21 @@ template <stdexec::receiver Rcvr, typename Policy, std::integral Shape, typename
     stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
     && std::same_as<Policy, ::stdexec::__bulk::__policy_wrapper<::stdexec::parallel_policy>>
 )
-struct BulkReceiver
+struct BulkReceiver : public Receiver<Schd, Rcvr>
 {
-    using receiver_concept = stdexec::receiver_t;
+    using base_t = Receiver<Schd, Rcvr>;
 
-    Rcvr rcvr;
     Policy policy;
     Shape shape;
     Functor functor;
-    Schd schd;
 
     template <typename Rcv, typename Pol, typename Shp, typename Fun, typename Sch>
     BulkReceiver(Rcv&& rcv, Pol&& pol, Shp&& shp, Fun&& fun, Sch&& sch)
-        : rcvr(std::forward<Rcv>(rcv)),
+        : base_t{std::forward<Sch>(sch), std::forward<Rcv>(rcv)},
           policy(std::forward<Pol>(pol)),
           shape(std::forward<Shp>(shp)),
-          functor(std::forward<Fun>(fun)),
-          schd(std::forward<Sch>(sch)) {}
+          functor(std::forward<Fun>(fun))
+    {}
 
     BulkReceiver(BulkReceiver&&) noexcept = default;
 
@@ -43,22 +42,22 @@ struct BulkReceiver
     {
         try {
             Kokkos::parallel_for(
-                std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()),
-                Kokkos::RangePolicy(std::move(schd).env.exec, 0, shape),
+                std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(this->schd.env.exec)>::name()),
+                Kokkos::RangePolicy(std::move(this->schd).env.exec, 0, shape),
                 std::move(functor)
             );
         } catch(...) {
-            stdexec::set_error(std::move(rcvr), std::current_exception());
+            stdexec::set_error(std::move(this->rcvr), std::current_exception());
         }
-        stdexec::set_value(std::move(rcvr));
+        stdexec::set_value(std::move(this->rcvr));
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
+        ::stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
     }
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(rcvr); }
+    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(this->rcvr); }
 };
 
 /**
