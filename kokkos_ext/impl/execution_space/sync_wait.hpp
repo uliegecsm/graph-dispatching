@@ -34,9 +34,15 @@ struct SyncWaitReceiver {
         runloop_state->loop.finish();
     }
 
+    //! Make others aware of which execution space instance it will synchronize.
     [[nodiscard]]
-    constexpr auto get_env() const noexcept -> Kokkos::Experimental::details::impl::env {
-        return {runloop_state->loop.get_scheduler()};
+    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<
+        stdexec::prop<get_exec_t, ExecutionSpaceRef<Exec>>,
+        Kokkos::Experimental::details::impl::env
+    > {
+        return stdexec::__env::__join(
+            stdexec::prop{get_exec, ExecutionSpaceRef{state->exec}},
+            Kokkos::Experimental::details::impl::env{runloop_state->loop.get_scheduler()});
     }
 };
 
