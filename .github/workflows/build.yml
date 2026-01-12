@@ -158,7 +158,7 @@ jobs:
                       platforms      : linux/amd64
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [VOLTA70]
                     - backend        : HIP
@@ -173,37 +173,37 @@ jobs:
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [BLACKWELL120]
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:13.0.0-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [BLACKWELL120]
                     - backend        : HPX-Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [VOLTA70]
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [AMPERE80]
                     - backend        : Cuda
                       compiler_family: clang
-                      base_image     : nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [ZEN3, AMPERE86]
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:13.0.0-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [AMPERE86]
                     - backend        : Cuda
                       compiler_family: gcc
-                      base_image     : nvidia/cuda:13.0.0-devel-ubuntu24.04
+                      base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
                       platforms      : linux/arm64
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                       kokkos_archs   : [ARMV9_GRACE, HOPPER90]

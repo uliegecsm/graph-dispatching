@@ -81,7 +81,7 @@ TEST_F(WhenAllTest, on_which_thread_after)
         | ::tests::stdexec::check_scheduler<::tests::stdexec::default_scheduler_t>()
         | ::stdexec::then([&]{ thr_X = std::this_thread::get_id(); });
 
-    ::stdexec::sync_wait(std::move(chain));
+    ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(thr_A, this->threads.at(index_of<'A'>()));
     ASSERT_EQ(thr_B, this->threads.at(index_of<'B'>()));
