@@ -1,8 +1,8 @@
 {
-    "version"   : 3,
+    "version": 10,
     "configurePresets" : [
         {
-            // Configuration common to all available presets.
+            "$comment": "Configuration common to all available presets.",
             "name"           : "default",
             "hidden"         : true,
             "binaryDir"      : "${sourceDir}/build-with-${presetName}",
@@ -22,37 +22,37 @@
             }
         },
         {
-            // Inherit from this preset to use ccache.
+            "$comment": "Inherit from this preset to use ccache.",
             "name"           : "ccache",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER_LAUNCHER" : "ccache"}
         },
         {
-            // Inherit from this preset to use the gcc compiler family.
+            "$comment": "Inherit from this preset to use the gcc compiler family.",
             "name"           : "gcc",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
         },
         {
-            // Inherit from this preset to use the clang compiler family.
+            "$comment": "Inherit from this preset to use the clang compiler family.",
             "name"           : "clang",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "clang++"}
         },
         {
-            // Inherit from this preset to use clang-tidy.
+            "$comment": "Inherit from this preset to use clang-tidy.",
             "name"          : "clang-tidy",
             "hidden"        : true,
             "cacheVariables": {"ENABLE_CLANG_TIDY" : "ON"}
         },
         {
-            // Inherit from this preset to use the ROCm compiler family.
+            "$comment": "Inherit from this preset to use the ROCm compiler family.",
             "name"           : "rocm",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
-            // Inherit from this preset to use the Cuda compiler family.
+            "$comment": "Inherit from this preset to use the Cuda compiler family.",
             "name"           : "Cuda",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "$penv{Kokkos_ROOT}/bin/nvcc_wrapper"}

@@ -20,6 +20,13 @@ concept has_completion_signatures = ::stdexec::queryable<Sndr> && std::same_as<
 
 namespace impl
 {
+
+template <::stdexec::receiver Rcvr>
+struct CheckSchedulerReceiver : public ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>
+{
+    explicit CheckSchedulerReceiver(Rcvr&& rcvr) : ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>{std::move(rcvr)} {}
+};
+
 template <::stdexec::scheduler Scheduler, typename Tag, ::stdexec::sender Sndr>
 struct CheckSchedulerSender
 {
@@ -64,7 +71,7 @@ struct CheckSchedulerSender
             >, "No scheduler found.");
         }
 
-        return ::stdexec::connect(std::move(sndr), std::forward<Rcvr>(rcvr));
+        return ::stdexec::connect(std::move(sndr), CheckSchedulerReceiver<std::remove_cvref_t<Rcvr>>{std::forward<Rcvr>(rcvr)});
     }
 
     Sndr sndr;
@@ -107,6 +114,9 @@ struct value_receiver
 
     decltype(auto) get_env() const noexcept { return env_; }
 };
+
+//! Default scheduler type when none provided.
+using default_scheduler_t = ::stdexec::basic_run_loop<::stdexec::__env::env<>>::scheduler;
 
 } // namespace tests::stdexec
 

@@ -27,7 +27,6 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::stdexec
 {
 
-using default_scheduler_t = ::stdexec::basic_run_loop<::stdexec::__env::env<>>::scheduler;
 using static_thread_pool_scheduler_t = ::exec::_pool_::_static_thread_pool::scheduler;
 
 //! @test Default scheduler.
