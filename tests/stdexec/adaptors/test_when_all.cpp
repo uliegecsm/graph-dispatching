@@ -77,7 +77,7 @@ TEST_F(WhenAllTest, on_which_thread_after)
         ::exec::_pool_::_static_thread_pool::domain
     >);
 
-    auto chain = std::move(when_all)
+    auto chain = std::move(when_all) // NOLINT(performance-move-const-arg)
         | ::tests::stdexec::check_scheduler<::tests::stdexec::default_scheduler_t>()
         | ::stdexec::then([&]{ thr_X = std::this_thread::get_id(); });
 

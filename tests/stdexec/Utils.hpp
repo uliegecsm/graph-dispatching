@@ -24,7 +24,7 @@ namespace impl
 template <::stdexec::receiver Rcvr>
 struct CheckSchedulerReceiver : public ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>
 {
-    CheckSchedulerReceiver(Rcvr&& rcvr) : ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>{std::move(rcvr)} {}
+    explicit CheckSchedulerReceiver(Rcvr&& rcvr) : ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>{std::move(rcvr)} {}
 };
 
 template <::stdexec::scheduler Scheduler, typename Tag, ::stdexec::sender Sndr>
