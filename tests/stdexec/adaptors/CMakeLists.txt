@@ -6,6 +6,7 @@ add_one_test(NAME on             ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS
 add_one_test(NAME split          ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME starts_on      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME sync_wait      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+add_one_test(NAME when_all       ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME write_env      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 
 # Add one test that checks for compile failures.
