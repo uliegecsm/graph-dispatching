@@ -47,6 +47,7 @@ RUN <<EOF
         --update --packages              \
         clang-${CLANG_VERSION}           \
         clang-tidy-${CLANG_VERSION}      \
+        clang-format-${CLANG_VERSION}    \
         libomp-${CLANG_VERSION}-dev
 
     update-alternatives-helpers --prefix /usr/bin --level 10 \

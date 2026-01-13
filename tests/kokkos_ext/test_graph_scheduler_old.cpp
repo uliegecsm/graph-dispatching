@@ -14,7 +14,7 @@
  * wrapping @c Kokkos::Graph. It's mainly done with
  * @ref Kokkos::Experimental::GraphContext.
  *
- * The tests can be found in @ref kokkos_ext/test_graph_scheduler.cpp.
+ * The tests can be found in @ref kokkos_ext/test_graph_scheduler_old.cpp.
  */
 
 using execution_space = Kokkos::DefaultExecutionSpace;
