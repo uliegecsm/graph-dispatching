@@ -244,6 +244,16 @@ jobs:
                   platforms      : ${{ matrix.platforms }}
                   tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ steps.compute-tag-suffix.outputs.TAG_SUFFIX }}
 
+    clang-format:
+        needs: [set-vars, build-images]
+        runs-on: [self-hosted, linux, docker, amd64]
+        if: ${{ ! failure() && ! cancelled() }}
+        container:
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:clang-OpenMP
+        steps:
+            - uses: actions/checkout@v6
+            - run: bash clang-format.sh
+
     build-library-and-test:
         needs: [set-vars, build-images]
         runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
