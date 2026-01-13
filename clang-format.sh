@@ -4,7 +4,10 @@ set -ex
 CLANG_FORMAT_EXECUTABLE=clang-format-21
 
 PATTERNS=(
+    'kokkos_ext/impl/GraphContext_fwd.hpp'
+    'kokkos_ext/impl/GraphContext.hpp'
     'tests/kokkos_ext/execution_space/test_scheduler.cpp'
+    'tests/kokkos_ext/graph/*'
     'tests/utils/*'
 )
 
