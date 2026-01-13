@@ -9,17 +9,17 @@ namespace Kokkos::Experimental::details::execution_space
 {
 
 //! Receiver for @c schedule_from.
-template <typename Env, stdexec::receiver Rcvr>
+template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
 struct ScheduleFromReceiver
 {
     using receiver_concept = stdexec::receiver_t;
 
-    Env env;
+    Schd schd;
     Rcvr rcvr;
     bool skip;
 
     void set_value() && noexcept {
-        if (!skip) env.exec.fence(std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(env.exec)>::name()));
+        if (!skip) schd.exec.fence(std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
         ::stdexec::set_value(std::move(rcvr));
     }
 
@@ -32,11 +32,11 @@ struct ScheduleFromReceiver
         ::stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return env; }
+    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
 };
 
 //! Sender for @c schedule_from.
-template <typename Env, ::stdexec::sender Sndr>
+template <stdexec::scheduler Schd, ::stdexec::sender Sndr>
 struct ScheduleFromSender
 {
     using sender_concept = ::stdexec::sender_t;
@@ -61,17 +61,17 @@ struct ScheduleFromSender
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
-        using recv_t = ScheduleFromReceiver<Env, std::remove_cvref_t<Rcvr>>;
+        using recv_t = ScheduleFromReceiver<Schd, std::remove_cvref_t<Rcvr>>;
 
         return ::stdexec::connect(
             std::move(sndr),
-            recv_t{.env = std::move(env), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip}
+            recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip}
         );
     }
 
-    decltype(auto) get_env() const noexcept { return env; }
+    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(sndr); }
 
-    Env env;
+    Schd schd;
     Sndr sndr;
     bool skip;
 };
@@ -89,15 +89,15 @@ struct transform_sender_for<stdexec::schedule_from_t, Env>
             if constexpr (stdexec::__is_instance_of<std::remove_cvref_t<Env>, ExecutionSpaceSchedulerEnv>) {
                 if constexpr (std::same_as<
                     typename std::remove_cvref_t<decltype(env_.exec)>,
-                    typename std::remove_cvref_t<decltype(schd.env.exec)>
+                    typename std::remove_cvref_t<decltype(schd.exec)>
                 >) {
-                    return schd.env.exec == env_.exec;
+                    return schd.exec == env_.exec;
                 }
             }
             return false;
         }();
         return ScheduleFromSender{
-            .env = std::move(schd.env),
+            .schd = std::move(schd),
             .sndr = std::forward<Sndr>(sndr),
             .skip = skip
         };

@@ -45,7 +45,7 @@ struct RegionReceiver
     template <typename Tag, typename... Args>
     void complete(Tag tag, Args&&... args) && noexcept
     {
-        std::move(schd).env.exec.fence(std::format("{}: {}", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name(), kind == Kind::PUSH ? "push" : "pop"));
+        std::move(schd).exec.fence(std::format("{}: {}", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name(), kind == Kind::PUSH ? "push" : "pop"));
 
         if constexpr (kind == Kind::PUSH) {
             Kokkos::Profiling::pushRegion(name);

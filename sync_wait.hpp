@@ -37,19 +37,19 @@ struct SyncWaitReceiver
 
     void set_value() && noexcept
     {
-        schd.env.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
+        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
         loop->finish();
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
         *error = std::forward<Error>(err);
-        schd.env.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
+        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
         loop->finish();
     }
 
     void set_stopped() noexcept {
-        schd.env.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.env.exec)>::name()));
+        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
         loop->finish();
     }
 
