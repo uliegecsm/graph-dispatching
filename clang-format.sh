@@ -5,6 +5,7 @@ CLANG_FORMAT_EXECUTABLE=clang-format-21
 
 PATTERNS=(
     'tests/kokkos_ext/execution_space/test_scheduler.cpp'
+    'tests/utils/*'
 )
 
 for pattern in "${PATTERNS[@]}"; do
