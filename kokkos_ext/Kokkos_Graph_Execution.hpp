@@ -8,7 +8,7 @@
 #include "Kokkos_Graph.hpp"
 
 #include "kokkos_ext/impl/ChainHandler.hpp"
-#include "kokkos_ext/impl/GraphContext.hpp"
+#include "kokkos_ext/impl/GraphContext_old.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelFor.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_ParallelReduce.hpp"
 #include "kokkos_ext/impl/PartialAlgorithm_Then.hpp"
