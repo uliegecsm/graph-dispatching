@@ -45,58 +45,12 @@ jobs:
                   echo "CI_BUILDER=${{ env.REGISTRY }}/${{ github.repository }}/docker:builder" >> $GITHUB_OUTPUT
                   echo "CI_IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/graph-dispatching" >> $GITHUB_OUTPUT
 
-    build-docker:
-        needs: [set-vars]
-        runs-on: [self-hosted, linux, docker, amd64]
-        container:
-            image: docker:latest
-        permissions:
-            contents: read
-            packages: write
-            pull-requests: read
-        steps:
-            # This should only sparsely checkout 'docker/dockerfile.docker', but we're hitting
-            # the issue https://github.com/actions/checkout/issues/1992.
-            - uses: actions/checkout@v6
-              with:
-                  set-safe-directory: true
-
-            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-            - id: changed-files
-              uses: tj-actions/changed-files@v47
-              with:
-                  files: docker/dockerfile.builder
-
-            - uses: docker/login-action@v3
-              if  : steps.changed-files.outputs.any_changed == 'true'
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-
-            - uses: docker/setup-buildx-action@v3
-              if  : steps.changed-files.outputs.any_changed == 'true'
-
-            - uses: docker/build-push-action@v6.18.0
-              if  : steps.changed-files.outputs.any_changed == 'true'
-              with:
-                  context: .
-                  platforms: linux/amd64,linux/arm64
-                  push: ${{ github.ref == 'refs/heads/main' }}
-                  file: docker/dockerfile.builder
-                  tags: ${{ needs.set-vars.outputs.CI_BUILDER }}
-                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_BUILDER }}
-                  cache-to: type=inline
-                  build-args: |
-                      BASE_IMAGE=ubuntu:24.04
-                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
-
     setup-skips:
         runs-on: [self-hosted, linux, docker, amd64]
         container:
             image: alpine/git:2.49.1@sha256:26f8647ec43523c2511b99064cb45b48f4535bce956b9377a94b289fb021e819
         outputs:
+            build-docker: ${{ steps.build-docker.outputs.build-docker }}
             build-images: ${{ steps.build-images.outputs.build-images }}
         permissions:
             contents: read
@@ -104,6 +58,27 @@ jobs:
         steps:
             - uses: actions/checkout@v6
             - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+            - id: build-docker-changed-files
+              uses: tj-actions/changed-files@v47
+              with:
+                  files: |
+                      docker/dockerfile.builder
+
+            - id: build-docker
+              env:
+                  ANY_CHANGED: ${{ steps.build-docker-changed-files.outputs.any_changed == 'true' }}
+                  FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['build-images'] }}
+              run: |
+                  if [ "$ANY_CHANGED" = "true" ] || [ "$FORCE" = "true" ]; then
+                      BUILD_DOCKER=true
+                  else
+                      BUILD_DOCKER=false
+                  fi
+                  echo "BUILD_DOCKER set to ${BUILD_DOCKER} because:"
+                  echo "    - any changed: ${ANY_CHANGED}"
+                  echo "    - force      : ${FORCE}"
+                  echo "build-docker=${BUILD_DOCKER}" >> $GITHUB_OUTPUT
 
             - id: build-images-changed-files
               uses: tj-actions/changed-files@v47
@@ -129,6 +104,46 @@ jobs:
                   echo "    - any changed: ${ANY_CHANGED}"
                   echo "    - force      : ${FORCE}"
                   echo "build-images=${BUILD_IMAGES}" >> $GITHUB_OUTPUT
+
+    build-docker:
+        needs: [set-vars, setup-skips]
+        if: ${{ needs.setup-skips.outputs.build-docker == 'true' }}
+        runs-on: [self-hosted, linux, docker, amd64]
+        container:
+            image: docker:latest
+        permissions:
+            contents: read
+            packages: write
+            pull-requests: read
+        steps:
+            # This should only sparsely checkout 'docker/dockerfile.docker', but we're hitting
+            # the issue https://github.com/actions/checkout/issues/1992.
+            - uses: actions/checkout@v6
+              with:
+                  set-safe-directory: true
+
+            - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+            - uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: docker/setup-buildx-action@v3
+
+            - uses: docker/build-push-action@v6.18.0
+              with:
+                  context: .
+                  platforms: linux/amd64,linux/arm64
+                  push: ${{ github.ref == 'refs/heads/main' }}
+                  file: docker/dockerfile.builder
+                  tags: ${{ needs.set-vars.outputs.CI_BUILDER }}
+                  cache-from: type=registry,ref=${{ needs.set-vars.outputs.CI_BUILDER }}
+                  cache-to: type=inline
+                  build-args: |
+                      BASE_IMAGE=ubuntu:24.04
+                  labels: "org.opencontainers.image.source=${{ github.repositoryUrl }}"
 
     build-images:
         needs: [set-vars, setup-skips, build-docker]
