@@ -26,7 +26,7 @@ struct env
 } // namespace impl
 
 //! Receiver for @c sync_wait.
-template <stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+template <stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
 struct SyncWaitReceiver
 {
     using receiver_concept = stdexec::receiver_t;

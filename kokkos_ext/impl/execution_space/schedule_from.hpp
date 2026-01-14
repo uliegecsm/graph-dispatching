@@ -32,7 +32,7 @@ struct ScheduleFromReceiver
         ::stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
+    decltype(auto) get_env() const noexcept { return SchedulerEnv{schd.exec}; }
 };
 
 //! Sender for @c schedule_from.
@@ -83,10 +83,10 @@ struct transform_sender_for<stdexec::schedule_from_t, Env>
     auto operator()(stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept
     {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
-        static_assert(stdexec::__is_instance_of<decltype(schd), ExecutionSpaceScheduler>);
+        static_assert(stdexec::__is_instance_of<decltype(schd), Scheduler>);
 
         const bool skip = [&](){
-            if constexpr (stdexec::__is_instance_of<std::remove_cvref_t<Env>, ExecutionSpaceSchedulerEnv>) {
+            if constexpr (stdexec::__is_instance_of<std::remove_cvref_t<Env>, SchedulerEnv>) {
                 if constexpr (std::same_as<
                     typename std::remove_cvref_t<decltype(env_.exec)>,
                     typename std::remove_cvref_t<decltype(schd.exec)>

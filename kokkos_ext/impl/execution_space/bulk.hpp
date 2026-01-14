@@ -17,7 +17,7 @@ namespace Kokkos::Experimental::details::execution_space
  * @note It must be nothrow moveable, see @cite P3383R3.
  */
 template <stdexec::receiver Rcvr, typename Policy, std::integral Shape, typename Functor, stdexec::scheduler Schd> requires (
-    stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+    stdexec::__is_instance_of_<Schd, Scheduler>
     && std::same_as<Policy, ::stdexec::__bulk::__policy_wrapper<::stdexec::parallel_policy>>
 )
 struct BulkReceiver : public Receiver<Schd, Rcvr>

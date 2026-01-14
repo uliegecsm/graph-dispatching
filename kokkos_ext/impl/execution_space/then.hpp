@@ -14,7 +14,7 @@ namespace Kokkos::Experimental::details::execution_space
  *
  * @note It must be nothrow moveable, see @cite P3383R3.
  */
-template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
 struct ThenReceiver : public Receiver<Schd, Rcvr>
 {
     using base_t = Receiver<Schd, Rcvr>;
