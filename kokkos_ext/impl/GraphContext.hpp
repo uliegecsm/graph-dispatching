@@ -69,7 +69,8 @@ struct GraphScheduler {
             return {std::forward<Rcvr>(rcvr)};
         }
 
-        auto& get_env() const noexcept {
+        [[nodiscard]]
+        constexpr auto get_env() const noexcept -> const GraphSchedulerEnv<Exec>& {
             return env;
         }
 

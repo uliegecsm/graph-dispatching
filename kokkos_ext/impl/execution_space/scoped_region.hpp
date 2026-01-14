@@ -65,7 +65,9 @@ struct RegionReceiver
         std::move(*this).complete(stdexec::set_error, std::forward<Error>(err));
     }
 
-    decltype(auto) get_env() const noexcept { return stdexec::get_env(rcvr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
+        return stdexec::get_env(rcvr);
+    }
 };
 
 template <Kind kind, stdexec::sender Sndr>
@@ -99,7 +101,9 @@ struct RegionSender
     Sndr sndr;
     std::string name {};
 
-    decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
+        return stdexec::get_env(sndr);
+    }
 };
 
 struct Push

@@ -69,7 +69,9 @@ struct ScheduleFromSender
         );
     }
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(sndr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
+        return ::stdexec::get_env(sndr);
+    }
 
     Schd schd;
     Sndr sndr;

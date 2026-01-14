@@ -61,7 +61,7 @@ struct BulkReceiver : public Receiver<Schd, Rcvr> {
         ::stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
     }
 
-    decltype(auto) get_env() const noexcept {
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
         return ::stdexec::get_env(this->rcvr);
     }
 };
@@ -109,7 +109,7 @@ struct BulkSender {
     Functor functor;
     Schd schd;
 
-    decltype(auto) get_env() const noexcept {
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
         return stdexec::get_env(sndr);
     }
 };
