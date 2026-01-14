@@ -3,6 +3,12 @@ set -ex
 
 CLANG_FORMAT_EXECUTABLE=clang-format-21
 
+if [ "$#" -eq 0 ]; then
+  CLANG_FORMAT_ARGS=(--dry-run --Werror)
+else
+  CLANG_FORMAT_ARGS=("$@")
+fi
+
 PATTERNS=(
     'kokkos_ext/impl/execution_space/sync_wait.hpp'
     'kokkos_ext/impl/GraphContext_fwd.hpp'
@@ -19,4 +25,4 @@ for pattern in "${PATTERNS[@]}"; do
     fi
 done
 
-git ls-files "${PATTERNS[@]}" | xargs ${CLANG_FORMAT_EXECUTABLE} --dry-run --Werror
+git ls-files "${PATTERNS[@]}" | xargs ${CLANG_FORMAT_EXECUTABLE} "${CLANG_FORMAT_ARGS[@]}"
