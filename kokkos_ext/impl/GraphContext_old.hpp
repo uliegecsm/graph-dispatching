@@ -15,7 +15,7 @@ namespace graph::details
  *
  * @warning It is a puppet and does not verify the @c std::execution::scheduler concept.
  */
-template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphScheduler
 {
     ChainHandler<Exec> chain;
@@ -33,7 +33,7 @@ struct Pool
 } // namespace graph::details
 
 //! Graph context using a @c Kokkos::Graph under the hood.
-template <typename Exec> requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphContext
 {
     graph::details::Pool<Exec> pool;
