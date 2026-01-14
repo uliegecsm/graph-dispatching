@@ -5,12 +5,9 @@
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 
-namespace Kokkos::Experimental::details::execution_space
-{
-namespace impl
-{
-struct env
-{
+namespace Kokkos::Experimental::details::execution_space {
+namespace impl {
+struct env {
     ::stdexec::run_loop::scheduler schd;
 
     [[nodiscard]]
@@ -26,17 +23,15 @@ struct env
 } // namespace impl
 
 //! Receiver for @c sync_wait.
-template <stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
-struct SyncWaitReceiver
-{
+template <stdexec::__is_instance_of<Scheduler> Schd>
+struct SyncWaitReceiver {
     using receiver_concept = stdexec::receiver_t;
 
     Schd schd;
-    std::shared_ptr<std::exception_ptr> error;
-    std::shared_ptr<stdexec::run_loop> loop;
+    std::exception_ptr* error;
+    stdexec::run_loop* loop;
 
-    void set_value() && noexcept
-    {
+    void set_value() && noexcept {
         schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
         loop->finish();
     }
@@ -59,8 +54,7 @@ struct SyncWaitReceiver
     }
 };
 
-struct SyncWait
-{
+struct SyncWait {
     /**
      * According to https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#spec-execution.senders.consumers.sync_wait,
      * it has to return an engaged optional (on the value channel).
@@ -68,26 +62,24 @@ struct SyncWait
      * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
      */
     template <stdexec::scheduler Schd, stdexec::sender Sndr>
-    auto operator()(Schd&& schd, Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>>
-    {
-        auto error = std::make_shared<std::exception_ptr>();
-
-        auto loop = std::make_shared<stdexec::run_loop>();
+    auto operator()(Schd&& schd, Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>> {
+        std::exception_ptr error;
+        stdexec::run_loop loop;
 
         auto op_state = stdexec::connect(
             std::forward<Sndr>(sndr),
             SyncWaitReceiver{
                 .schd = std::forward<Schd>(schd),
-                .error = error,
-                .loop = loop,
-            }
-        );
+                .error = &error,
+                .loop = &loop,
+            });
 
         stdexec::start(op_state);
 
-        loop->run();
+        loop.run();
 
-        if (*error) std::rethrow_exception(std::move(*error));
+        if (error)
+            std::rethrow_exception(std::move(error));
 
         return std::tuple{};
     }
@@ -104,11 +96,9 @@ struct SyncWait
  * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
  */
 template <>
-struct apply_sender_for<stdexec::sync_wait_t>
-{
+struct apply_sender_for<stdexec::sync_wait_t> {
     template <execution_space_completing_sender Sndr>
-    auto operator()(Sndr&& sndr) && noexcept(false)
-    {
+    auto operator()(Sndr&& sndr) && noexcept(false) {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), stdexec::env{});
         return SyncWait{}(std::move(schd), std::forward<Sndr>(sndr));
     }
