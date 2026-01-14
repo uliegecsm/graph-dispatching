@@ -82,7 +82,9 @@ struct ThenReceiver
 
     /// This is a game changer for @c starts_on. Without this @c get_env, the @c starts_on is not "propagated"
     /// all the way up to the "beginning" of the chain during the "connect" phase.
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(rcvr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
+        return ::stdexec::get_env(rcvr);
+    }
 };
 
 namespace details
@@ -153,7 +155,9 @@ struct ThenSender
     Functor functor;
     Schd schd;
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(sndr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
+        return ::stdexec::get_env(sndr);
+    }
 };
 
 //! Part of our customization, used by @ref Domain.

@@ -76,7 +76,9 @@ struct CheckSchedulerSender
 
     Sndr sndr;
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(sndr); }
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
+        return ::stdexec::get_env(sndr);
+    }
 };
 
 template <::stdexec::scheduler Scheduler, typename Tag>
@@ -112,7 +114,7 @@ struct value_receiver
     void set_error(std::exception_ptr) noexcept {} // NOLINT(performance-unnecessary-value-param)
     void set_stopped() noexcept {}
 
-    decltype(auto) get_env() const noexcept { return env_; }
+    auto get_env() const noexcept -> const Env& { return env_; }
 };
 
 //! Default scheduler type when none provided.
