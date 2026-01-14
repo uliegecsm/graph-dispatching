@@ -5,8 +5,7 @@
 
 namespace Kokkos::Experimental::details::graph {
 
-template <typename Exec>
-requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphScheduler;
 
 } // namespace Kokkos::Experimental::details::graph

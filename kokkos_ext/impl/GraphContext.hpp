@@ -22,8 +22,7 @@ namespace details::graph {
 struct Domain : public stdexec::default_domain { };
 
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
-template <typename Exec>
-requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphSchedulerEnv {
     [[nodiscard]]
     constexpr auto
@@ -42,8 +41,7 @@ struct GraphSchedulerEnv {
 };
 
 //! Scheduler for a @c Kokkos::Experimental::Graph.
-template <typename Exec>
-requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphScheduler {
     //! As per https://eel.is/c++draft/exec.sched#1.
     using scheduler_concept = stdexec::scheduler_t;
@@ -104,8 +102,7 @@ GraphScheduler(Exec&&) -> GraphScheduler<std::remove_cvref_t<Exec>>;
 } // namespace details::graph
 
 //! Graph context using a @c Kokkos::Experimental::Graph under the hood.
-template <typename Exec>
-requires Kokkos::is_execution_space_v<Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct GraphContext {
     Kokkos::Experimental::Graph<Exec> graph;
 
