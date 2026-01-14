@@ -1,0 +1,178 @@
+#ifndef GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_THEN_HPP
+#define GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_THEN_HPP
+
+#include "stdexec/execution.hpp"
+
+#include "kokkos_ext/impl/GraphContext_fwd.hpp"
+
+namespace Kokkos::Experimental::details::graph {
+
+template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor>
+struct ThenReceiver;
+
+//! If @c opstate is queryable for node, use it. Otherwise, return the root node of @c graph.
+template <typename OpstateType, Kokkos::ExecutionSpace Exec>
+auto get_predecessor(const OpstateType& opstate, const Kokkos::Experimental::Graph<Exec>& graph) {
+    if constexpr (requires { opstate.get_node(); }) {
+        return *opstate.get_node();
+    } else {
+        return graph.root_node();
+    }
+}
+
+//! Build a @c then node after the node returned by @ref get_predecessor.
+template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Functor>
+auto build_then_node(State<Exec>& state, const OpstateType& opstate, Functor&& functor) {
+    return get_predecessor(opstate, state.get_graph())
+        .then(
+            std::format("{}: then", Kokkos::Impl::TypeInfo<Exec>::name()), state.exec, std::forward<Functor>(functor));
+}
+
+template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr, typename Functor>
+struct ThenOpState {
+    using rcvr_t = ThenReceiver<Schd, Sndr, InnerRcvr, Functor>;
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, rcvr_t>;
+
+    //! In the long term, the user could be able to opt for type erased nodes.
+    using node_t = decltype(build_then_node(
+        *std::declval<Schd&>().state_ptr,
+        std::declval<const inner_opstate_t&>(),
+        std::declval<Functor>()));
+
+    Schd schd;
+    InnerRcvr inner_rcvr;
+    inner_opstate_t inner_opstate;
+    Functor functor;
+    std::optional<node_t> node = std::nullopt;
+    std::exception_ptr error = nullptr;
+
+    template <stdexec::scheduler Scheduler, stdexec::sender Sender, stdexec::receiver Rcvr, typename Func>
+    ThenOpState(Scheduler&& scheduler, Sender&& sndr, Rcvr&& rcvr, Func&& func)
+        : schd(std::forward<Scheduler>(scheduler))
+        , inner_rcvr(std::forward<Rcvr>(rcvr))
+        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
+        , functor(std::forward<Func>(func)) {
+        this->create_node();
+    }
+
+    //! Create the node only if the predecessor has one.
+    void create_node() {
+        const auto proceed = [&]() {
+            if constexpr (requires { inner_opstate.error; })
+                return inner_opstate.error == nullptr;
+            return true;
+        }();
+        if (proceed) {
+            try {
+                this->node.emplace(build_then_node(*schd.state_ptr, inner_opstate, std::move(functor)));
+            } catch (...) {
+                this->error = std::current_exception();
+            }
+        }
+    }
+
+    decltype(auto) get_node() const {
+        return node;
+    }
+
+    void start() & noexcept {
+        if (error)
+            stdexec::set_error(std::move(inner_rcvr), error);
+        stdexec::start(inner_opstate);
+    }
+
+    template <typename Tag, typename... Args>
+    void propagate_completion_signal(Tag, Args&&... args) && noexcept {
+        Tag()(std::move(inner_rcvr), std::forward<Args>(args)...);
+    }
+
+    auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
+        return ::stdexec::get_env(inner_rcvr);
+    }
+};
+
+/**
+ * @brief Receiver for @c then.
+ *
+ * @note It must be nothrow moveable, see @cite P3383R3.
+ */
+template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor>
+struct ThenReceiver {
+    using receiver_concept = stdexec::receiver_t;
+
+    using opstate_t = ThenOpState<Schd, Sndr, Rcvr, Functor>;
+
+    opstate_t* opstate;
+
+    void set_value() && noexcept {
+        std::move(*opstate).propagate_completion_signal(stdexec::set_value);
+    }
+
+    template <typename Error>
+    void set_error(Error&& err) && noexcept {
+        std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
+    }
+
+    void set_stopped() && noexcept {
+        std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
+    }
+
+    auto get_env() const noexcept -> stdexec::env_of_t<Rcvr> {
+        return opstate->get_env();
+    }
+};
+
+//! Sender for @c then.
+template <stdexec::sender Sndr, typename Functor, typename Schd>
+struct ThenSender {
+    using sender_concept = stdexec::sender_t;
+
+    //! @c Kokkos may throw while launching the kernel.
+    using with_error_invoke_t =
+        ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>;
+
+    template <typename Self, typename... Env>
+    using _completion_signatures = ::stdexec::transform_completion_signatures<
+        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
+        with_error_invoke_t
+    >;
+
+    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
+    template <typename... Env>
+    [[nodiscard]]
+    constexpr auto get_completion_signatures(Env&&...) -> _completion_signatures<ThenSender, Env...> {
+        return {};
+    }
+
+    //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
+    template <::stdexec::receiver Rcvr>
+    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return ThenOpState<Schd, Sndr, std::remove_cvref_t<Rcvr>, Functor>(
+            std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr), std::move(functor));
+    }
+
+    Sndr sndr;
+    Functor functor;
+    Schd schd;
+
+    auto get_env() const noexcept -> stdexec::env_of_t<Sndr> {
+        return stdexec::get_env(sndr);
+    }
+};
+
+template <typename Env>
+struct transform_sender_for<stdexec::then_t, Env> {
+    template <typename Functor, typename Sndr>
+    requires graph_completing_sender<Sndr, Env>
+    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        return ThenSender{
+            .sndr = std::forward<Sndr>(sndr), .functor = std::forward<Functor>(functor), .schd = std::move(schd)};
+    }
+
+    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+};
+
+} // namespace Kokkos::Experimental::details::graph
+
+#endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_THEN_HPP
