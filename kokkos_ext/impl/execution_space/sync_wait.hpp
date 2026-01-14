@@ -4,23 +4,9 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/sync_wait.hpp"
 
 namespace Kokkos::Experimental::details::execution_space {
-namespace impl {
-struct env {
-    ::stdexec::run_loop::scheduler schd;
-
-    [[nodiscard]]
-    auto query(::stdexec::get_scheduler_t) const noexcept -> ::stdexec::run_loop::scheduler {
-        return schd;
-    }
-
-    [[nodiscard]]
-    auto query(::stdexec::get_delegation_scheduler_t) const noexcept -> ::stdexec::run_loop::scheduler {
-        return schd;
-    }
-};
-} // namespace impl
 
 //! Receiver for @c sync_wait.
 template <stdexec::__is_instance_of<Scheduler> Schd>
@@ -49,7 +35,7 @@ struct SyncWaitReceiver {
     }
 
     [[nodiscard]]
-    auto get_env() const noexcept -> impl::env {
+    auto get_env() const noexcept -> Kokkos::Experimental::details::impl::env {
         return {loop->get_scheduler()};
     }
 };
