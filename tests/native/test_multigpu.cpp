@@ -28,8 +28,8 @@ __global__ void my_long_kernel(const T data) // NOLINT(performance-unnecessary-v
     data(data.size - 1) = iter;
 }
 
-#define DEVICE_ID_0 0
-#define DEVICE_ID_1 1
+constexpr int DEVICE_ID_0 = 0;
+constexpr int DEVICE_ID_1 = 1;
 
 /**
  * @test Check how a multi-GPU @c Cuda graph can be used.
@@ -91,7 +91,7 @@ TEST(cuda, multigpu)
     CHECK_CALL(PREFIXED_API(SetDevice)(DEVICE_ID_0));
     const functor_t functor_2{.data = std::move(data_0)};
     GraphNodeKernel work_2(functor_2, size);
-    work_2.add(graph, {work_0, work_1});
+    work_2.add(graph, {work_0, work_1}); // NOLINT(cppcoreguidelines-slicing)
 
     //! The graph is ready, dump it for later debug.
     graph.print((std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / "test_multigpu.dot").c_str(), PREFIXED_API(GraphDebugDotFlagsVerbose));
