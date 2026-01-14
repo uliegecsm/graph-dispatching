@@ -42,7 +42,7 @@ template <::stdexec::sender Sender>
     /// Add 42 to the preceding sender's output's first element and return the vector.
     /// @note Please note that the lambda has to take by @c && because we're nicely moving things around.
     ::stdexec::sender auto add_42 = ::stdexec::then(std::move(handshake),
-        [](std::vector<int>&& arg) -> std::vector<int> {
+        [](std::vector<int> arg) -> std::vector<int> {
             arg[0] += 42;
             return arg;
         });
@@ -57,7 +57,7 @@ template <::stdexec::sender Sender>
     /// Retrieve the first element from the input.
     /// @note Again, things are nicely moved around.
     return ::stdexec::then(std::move(bulky),
-        [](std::vector<int>&& arg) -> int { return arg[0]; });
+        [](std::vector<int> arg) -> int { return arg[0]; });
 }
 
 //! @test Simple @c stdexec test that just aims at showing what can be done.

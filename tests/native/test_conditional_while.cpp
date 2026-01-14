@@ -78,7 +78,7 @@ TEST(cuda, conditional_while)
         .handle   = handle
     };
     GraphNodeKernel decision_n(decision_f, 1);
-    decision_n.add(conditional.get(), {work_n});
+    decision_n.add(conditional.get(), {work_n}); // NOLINT(cppcoreguidelines-slicing)
 
     const GraphExecutable graph_exec(graph);
 

@@ -49,7 +49,7 @@ template <typename Exec, typename Functor>
 struct PartialAlgorithm<Kokkos::ThenTag, std::string, Exec, Functor>
 {
     std::string label;
-    Exec exec;
+    Exec exec; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     Functor functor;
 
     template <typename Sender> requires is_graph_sender<std::remove_reference_t<Sender>>

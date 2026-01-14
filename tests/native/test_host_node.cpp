@@ -53,7 +53,7 @@ TEST(cuda, host_node)
     node_d.add(graph);
 
     GraphNodeHost<functor_h_t> node_h{functor_h_t {.data = 42.}};
-    node_h.add(graph, {node_d});
+    node_h.add(graph, {node_d}); // NOLINT(cppcoreguidelines-slicing)
 
     const GraphExecutable graph_exec(graph);
 

@@ -65,6 +65,7 @@ public:
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(SetUp)
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
     #define CHECK_SEQUENCE_AND_NUM_ITERS(_seq_, _iters_, _exptd_)        \
         if(!_seq_->all_matched())                                        \
             Kokkos::abort("At least one sub-region did not match.");     \

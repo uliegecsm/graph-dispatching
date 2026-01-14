@@ -548,7 +548,7 @@ TEST_F(GraphCaptureWithProlongedState, dot_captured_in_graph)
 
     //! Add @ref sparse::dot to the graph.
     [[maybe_unused]] const auto tmp = dot(
-        StatefulGraphNode{.node = node, .stream = Stream(stream.stream), .graph = Graph(graph.graph)},
+        StatefulGraphNode{.node = node, .stream = Stream(stream.stream), .graph = Graph(graph.graph)}, // NOLINT(cppcoreguidelines-slicing)
         dense, sparse, result
     );
 

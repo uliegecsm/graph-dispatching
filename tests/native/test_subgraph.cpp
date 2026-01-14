@@ -46,23 +46,23 @@ TEST(cuda, subgraph)
     const Graph subgraph_A;
 
     CREATE_KERNEL_NODE(a, data_A,       subgraph_A)
-    CREATE_KERNEL_NODE(b, data_A_elt_0, subgraph_A, {node_a})
-    CREATE_KERNEL_NODE(c, data_A_elt_1, subgraph_A, {node_a})
-    CREATE_KERNEL_NODE(d, data_A,       subgraph_A, {node_b, node_c})
+    CREATE_KERNEL_NODE(b, data_A_elt_0, subgraph_A, {node_a}) // NOLINT(cppcoreguidelines-slicing)
+    CREATE_KERNEL_NODE(c, data_A_elt_1, subgraph_A, {node_a}) // NOLINT(cppcoreguidelines-slicing)
+    CREATE_KERNEL_NODE(d, data_A,       subgraph_A, {node_b, node_c}) // NOLINT(cppcoreguidelines-slicing)
 
     //! Create subgraph B.
     const Graph subgraph_B;
 
     CREATE_KERNEL_NODE(e, data_B, subgraph_B)
-    CREATE_KERNEL_NODE(f, data_B, subgraph_B, {node_e})
+    CREATE_KERNEL_NODE(f, data_B, subgraph_B, {node_e}) // NOLINT(cppcoreguidelines-slicing)
 
     //! Compose subgraphs together.
     const Graph graph;
 
     CREATE_KERNEL_NODE(g, data, graph)
 
-    const GraphNode subgraph_A_embedded = subgraph_A.add(graph, {node_g});
-    const GraphNode subgraph_B_embedded = subgraph_B.add(graph, {node_g});
+    const GraphNode subgraph_A_embedded = subgraph_A.add(graph, {node_g}); // NOLINT(cppcoreguidelines-slicing)
+    const GraphNode subgraph_B_embedded = subgraph_B.add(graph, {node_g}); // NOLINT(cppcoreguidelines-slicing)
 
     CREATE_KERNEL_NODE(h, data, graph, {subgraph_A_embedded, subgraph_B_embedded})
 

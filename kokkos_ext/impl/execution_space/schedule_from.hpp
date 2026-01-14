@@ -103,7 +103,7 @@ struct transform_sender_for<stdexec::schedule_from_t, Env>
         };
     }
 
-    const Env& env_;
+    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

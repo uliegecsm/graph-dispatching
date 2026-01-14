@@ -61,11 +61,11 @@ TEST(cuda, memcpy_node)
     //! Index-wise add of elements in @c src into @c dst.
     const ewa_t ewa_f{.src = src, .dst = dst};
     GraphNodeKernel ewa_n(ewa_f, size);
-    ewa_n.add(graph, {init_src_n, init_dst_n});
+    ewa_n.add(graph, {init_src_n, init_dst_n}); // NOLINT(cppcoreguidelines-slicing)
 
     //! Memory copy of @c dst into @c src.
     GraphNodeMemcpy<scalar_t> memcpy(src.buffer, dst.buffer, size, PREFIXED_API(MemcpyDeviceToDevice));
-    memcpy.add(graph, {ewa_n});
+    memcpy.add(graph, {ewa_n}); // NOLINT(cppcoreguidelines-slicing)
 
     const GraphExecutable graph_exec(graph);
 

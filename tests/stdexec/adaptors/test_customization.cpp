@@ -239,7 +239,7 @@ struct DomainSpecificScheduler
     friend bool operator==(const DomainSpecificScheduler&, const DomainSpecificScheduler&) noexcept { return true; }
 };
 
-//! Helper to add a @c then.
+//! Helper to add a @c then. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ADD_THEN(__nth__)                                                       \
     ::stdexec::then([&trace]() noexcept {                                       \
         std::cout << "Then(" << thread_customization << ", " << __nth__ << "):" \
@@ -249,7 +249,7 @@ struct DomainSpecificScheduler
         trace[__nth__] = {thread_id, thread_customization};                     \
     })
 
-//! Helper to setup the trace and the expected trace.
+//! Helper to setup the trace and the expected trace. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SETUP_TRACE(__size__, ...)                                \
     using trace_t = std::array<std::tuple<char, char>, __size__>; \
     constexpr trace_t expected{{__VA_ARGS__}};                    \
@@ -396,6 +396,7 @@ TEST_F(CustomizationTest, then_with_values)
 
     const double* ptr = values.data();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
     #define ADD_THEN_WITH_DATA(__id__, __value__)              \
         ::stdexec::then([&trace](auto&& data) {                \
             if(data.at(0) != __value__)                        \

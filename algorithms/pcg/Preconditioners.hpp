@@ -59,7 +59,7 @@ decltype(auto) then_deep_copy(const Pred& pred, DstType&& dst, SrcType&& src)
 
     return pred.then_parallel_for(
         "deep copy",
-        MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, size),
+        ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, size),
         deep_copy_t{.dst = std::forward<DstType>(dst), .src = std::forward<SrcType>(src)}
     );
 }
@@ -162,7 +162,7 @@ struct DiagonalPreconditioner
     > requires (std::remove_cvref_t<DstType>::rank() == 1 && std::remove_cvref_t<SrcType>::rank() == 1 && IsGraphNode<std::remove_cvref_t<Pred>>)
     decltype(auto) apply(const Pred& pred, DstType&& dst, SrcType&& src) const {
         return pred.then_parallel_for(
-            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, values.size()),
+            ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, values.size()),
             Apply<std::remove_cvref_t<DstType>, std::remove_cvref_t<SrcType>>{.dst = std::forward<DstType>(dst), .src = std::forward<SrcType>(src), .values = values}
         );
     }
@@ -283,13 +283,13 @@ struct JacobiPreconditioner
         /// In the first pass, we should set @p dst to 0. But as it is equivalent to diagonal
         /// scaling, we can specialize the kernel for the first pass and save one deep copy operation.
         graph_node_ref_t next = pred.then_parallel_for(
-            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, mat.numRows()),
+            ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, mat.numRows()),
             ApplyFirstPass<DstType, SrcType>{.dst = dst, .src = src, .mat = mat}
         );
         for(sweep_t isweep = 1; isweep < num_sweeps; ++isweep)
         {
             auto next_in_loop = next.then_parallel_for(
-                MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, mat.numRows()),
+                ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, mat.numRows()),
                 Apply<DstType, SrcType>{.dst = dst, .src = src, .mat = mat, .tmp = tmp}
             );
             next = then_deep_copy(next_in_loop, dst, tmp);
