@@ -10,7 +10,9 @@ else
 fi
 
 PATTERNS=(
+    'kokkos_ext/impl/execution_space/bulk.hpp'
     'kokkos_ext/impl/execution_space/sync_wait.hpp'
+    'kokkos_ext/impl/execution_space/then.hpp'
     'kokkos_ext/impl/GraphContext_fwd.hpp'
     'kokkos_ext/impl/GraphContext.hpp'
     'kokkos_ext/impl/sync_wait.hpp'
