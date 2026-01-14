@@ -70,7 +70,7 @@ struct ThenReceiver : public Receiver<Schd, Rcvr> {
         ::stdexec::set_stopped(std::move(this->rcvr));
     }
 
-    decltype(auto) get_env() const noexcept {
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
         return ::stdexec::get_env(this->rcvr);
     }
 };
@@ -116,7 +116,7 @@ struct ThenSender {
     Functor functor;
     Schd schd;
 
-    decltype(auto) get_env() const noexcept {
+    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
         return stdexec::get_env(sndr);
     }
 };
