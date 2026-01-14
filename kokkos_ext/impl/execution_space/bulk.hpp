@@ -36,7 +36,11 @@ struct BulkReceiver : public Receiver<Schd, Rcvr>
           functor(std::forward<Fun>(fun))
     {}
 
+    BulkReceiver(const BulkReceiver&) = delete;
+    BulkReceiver& operator=(const BulkReceiver&) = delete;
     BulkReceiver(BulkReceiver&&) noexcept = default;
+    BulkReceiver& operator=(BulkReceiver&&) noexcept = default;
+    ~BulkReceiver() = default;
 
     void set_value() && noexcept
     {
@@ -127,7 +131,7 @@ struct transform_sender_for<stdexec::bulk_t, Env>
         };
     }
 
-    const Env& env_;
+    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

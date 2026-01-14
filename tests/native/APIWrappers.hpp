@@ -40,13 +40,13 @@
         }                                                       \
     }
 
-//! Check the return code of an API call.
+//! Check the return code of an API call. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CHECK_CALL(call) CHECK_CALL_IMPL(call, PREFIXED_API(Success), PREFIXED_API(GetErrorString))
 
 namespace tests::cuda
 {
 //! Wrapper for a stream.
-struct Stream
+struct Stream // NOLINT(cppcoreguidelines-special-member-functions)
 {
     PREFIXED_API(Stream_t) stream = nullptr;
     bool owning = true;
@@ -67,7 +67,7 @@ struct Stream
 
 //! Wrapper for a view over data.
 template <typename T>
-struct View
+struct View // NOLINT(cppcoreguidelines-special-member-functions)
 {
     size_t size = 0;
     T* buffer = nullptr;
@@ -112,7 +112,7 @@ struct GraphNode
 };
 
 //! Wrapper for a graph.
-struct Graph
+struct Graph // NOLINT(cppcoreguidelines-special-member-functions)
 {
     PREFIXED_API(Graph_t) graph = nullptr;
     bool owning = true;
@@ -139,7 +139,7 @@ struct Graph
 };
 
 //! Wrapper for an executable graph.
-struct GraphExecutable
+struct GraphExecutable // NOLINT(cppcoreguidelines-special-member-functions)
 {
     PREFIXED_API(GraphExec_t) graph_exec = nullptr;
 

@@ -77,7 +77,7 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
     } else {
         return pred.then_parallel_for(
             "algorithms::cg::spmv",
-            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, num_rows),
+            make_range_policy_with_graph_exec(pred, 0, num_rows),
             std::move(functor)
         );
     }
@@ -110,7 +110,7 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
     } else {
         return pred.then_parallel_reduce(
             "algorithms::cg::dot",
-            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, functor.m_x.size()),
+            make_range_policy_with_graph_exec(pred, 0, functor.m_x.size()),
             std::move(functor),
             std::forward<Result>(result)
         );
@@ -176,13 +176,13 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
     } else {
         return pred.then_parallel_for(
             "algorithms::cg::axpby",
-            MAKE_RANGE_POLICY_WITH_GRAPH_EXEC(pred, 0, size),
+            make_range_policy_with_graph_exec(pred, 0, size),
             std::move(functor)
         );
     }
 }
 
-//! Helper to defined a new type whose call operator wraps another callable.
+//! Helper to defined a new type whose call operator wraps another callable. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DEFINE_FUNCTOR(_for_, _with_)                     \
     struct _for_                                          \
     {                                                     \

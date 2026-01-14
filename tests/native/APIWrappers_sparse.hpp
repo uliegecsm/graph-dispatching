@@ -5,7 +5,7 @@
 
 #include "tests/native/APIWrappers.hpp"
 
-//! Check the return code of a sparse API call (*e.g.* @c cuSPARSE).
+//! Check the return code of a sparse API call (*e.g.* @c cuSPARSE). // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CHECK_SPARSE_CALL(call) CHECK_CALL_IMPL(call, CUSPARSE_STATUS_SUCCESS, cusparseGetErrorString)
 
 namespace tests::cuda::sparse
@@ -19,7 +19,7 @@ namespace tests::cuda::sparse
  *          On entry to cusparseCreate(): CUDA context cannot be initialized
  *          @endcode
  */
-struct Handle
+struct Handle // NOLINT(cppcoreguidelines-special-member-functions)
 {
     cusparseHandle_t handle = nullptr;
 
@@ -45,7 +45,7 @@ struct DataType<double> { static constexpr auto type = CUDA_R_64F; };
 
 //! Wrapper for @c cusparseSpVecDescr_t.
 template <typename T>
-struct SparseVectorDescriptor
+struct SparseVectorDescriptor // NOLINT(cppcoreguidelines-special-member-functions)
 {
     cusparseSpVecDescr_t descr = nullptr;
     bool owning = false;
@@ -75,7 +75,7 @@ struct SparseVectorDescriptor
 
 //! Wrapper for @c cusparseDnVecDescr_t.
 template <typename T>
-struct DenseVectorDescriptor
+struct DenseVectorDescriptor // NOLINT(cppcoreguidelines-special-member-functions)
 {
     cusparseDnVecDescr_t descr = nullptr;
     bool owning = false;

@@ -18,6 +18,7 @@
         )                                      \
     );
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_IT_WENT_FINE(data)                                   \
     ASSERT_EQ(data(index_A), diamond::Values::value_A);             \
     ASSERT_EQ(data(index_B), add_B ? diamond::Values::value_B : 0); \

@@ -118,6 +118,7 @@ protected:
         this->report(state, timings);                                  \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PCGBENCHMARK_REGISTER_F(_which_) BENCHMARK_REGISTER_F(PCGBenchmark, _which_)
 
 void CustomArguments(benchmark::internal::Benchmark* benchmark) {

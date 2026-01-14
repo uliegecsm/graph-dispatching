@@ -66,7 +66,7 @@ TEST_P(cuda, conditional_if)
     node_decision.add(graph);
 
     GraphNodeConditionalIf conditional(handle);
-    conditional.add(graph, {node_decision});
+    conditional.add(graph, {node_decision}); // NOLINT(cppcoreguidelines-slicing)
 
     const functor_t functor_if{.data = data};
     GraphNodeKernel node_if(functor_if, 1);

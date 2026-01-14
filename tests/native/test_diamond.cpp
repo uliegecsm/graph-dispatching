@@ -40,15 +40,15 @@ TEST(cuda, diamond_graph)
 
     const functor_t functor_B{.data = data};
     GraphNodeKernel node_B(functor_B, 1);
-    node_B.add(graph, {node_A});
+    node_B.add(graph, {node_A}); // NOLINT(cppcoreguidelines-slicing)
 
     const functor_t functor_C{.data = data};
     GraphNodeKernel node_C(functor_C, 1);
-    node_C.add(graph, {node_A});
+    node_C.add(graph, {node_A}); // NOLINT(cppcoreguidelines-slicing)
 
     const functor_t functor_D{.data = data};
     GraphNodeKernel node_D(functor_D, 1);
-    node_D.add(graph, {node_B, node_C});
+    node_D.add(graph, {node_B, node_C}); // NOLINT(cppcoreguidelines-slicing)
 
     const GraphExecutable graph_exec(graph);
 

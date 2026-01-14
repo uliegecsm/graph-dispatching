@@ -55,6 +55,7 @@ FetchValuesAndContribute(ViewType, const size_t (&)[NumIndices],
     constexpr std::integral_constant<size_t, 7> index_C1; \
     constexpr std::integral_constant<size_t, 8> index_C2;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_IT_WENT_FINE(data)                                                              \
     ASSERT_EQ(data(index_A1()), value_A1);                                                     \
     ASSERT_EQ(data(index_A2()), value_A2);                                                     \

@@ -43,10 +43,10 @@ TEST(cuda, memory_node)
 
     const functor_t functor_d{.data = view_t(size, alloc.ptr)};
     GraphNodeKernel work(functor_d, size);
-    work.add(graph, {alloc});
+    work.add(graph, {alloc}); // NOLINT(cppcoreguidelines-slicing)
 
     GraphNodeMemoryFree free(alloc.ptr);
-    free.add(graph, {work});
+    free.add(graph, {work}); // NOLINT(cppcoreguidelines-slicing)
 
     const GraphExecutable graph_exec(graph);
 

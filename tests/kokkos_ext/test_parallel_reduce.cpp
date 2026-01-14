@@ -30,6 +30,7 @@ decltype(auto) my_function(Sender&& sender, const ViewType& data, ReducerType&& 
 {
     using policy_t = Kokkos::RangePolicy<typename std::remove_reference_t<Sender>::execution_space>;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
     #define MY_FUNCTION_CORE(...)                                                           \
         return std::forward<Sender>(sender) | Kokkos::Experimental::graph::parallel_reduce( \
             __VA_ARGS__ __VA_OPT__(,)                                                       \
@@ -73,7 +74,7 @@ using ParallelReduceTestTypes = ::testing::Types<
 
 TYPED_TEST_SUITE(ParallelReduceTest, ParallelReduceTestTypes);
 
-//! Call @ref tests::kokkos_ext::my_function with a given reducer in @p __mem__ targeting @p __target__, scheduled on @p __on__.
+//! Call @ref tests::kokkos_ext::my_function with a given reducer in @p __mem__ targeting @p __target__, scheduled on @p __on__. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CALL_FUNCTION(__on__, __mem__, __target__)                      \
     using sum_t = Kokkos::Sum<typename TestFixture::result_t, __mem__>; \
     decltype(auto) tail = my_function<TypeParam::value>(                \
@@ -133,6 +134,7 @@ TYPED_TEST(ParallelReduceTest, graph)
     ASSERT_EQ(reduced_sum, TestFixture::size * (TestFixture::size - 1) / 2);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CHECK_RESULT_AFTER_SUBMIT(__on__, __plus__)     \
     {                                                   \
         value_t tmp = 0;                                \

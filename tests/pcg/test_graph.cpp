@@ -72,6 +72,7 @@ class PCGGraphTest : public PCGGraphTestBase<Preconditioner>,
                      public cg::NbyNSolverTest<typename PCGGraphTestBase<Preconditioner>::solver_t>
 {
 protected:
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define GET_EXPECTED_NUM_ITERS(_prec_, values)                                                               \
     static std::unordered_map<size_t, size_t> get_expected_num_iters() requires                              \
         std::same_as<Preconditioner, ::algorithms::pcg::_prec_<typename PCGGraphTestNoPrecBase::matrix_t>> { \

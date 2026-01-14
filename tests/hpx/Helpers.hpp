@@ -26,6 +26,11 @@ struct HPX
         ::hpx::start(nullptr, 0, nullptr, init_args);
     }
 
+    HPX(const HPX&) = default;
+    HPX& operator=(const HPX&) = default;
+    HPX(HPX&&) = default;
+    HPX& operator=(HPX&&) = default;
+
     void init_resource_partitioner_handler(::hpx::resource::partitioner& hrp)
     {
         hrp.create_thread_pool(

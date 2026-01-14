@@ -14,7 +14,7 @@ namespace benchmarks
 
 //! These partial overrides are only needed by 'nvcc' (as of @c Cuda 12.8.1).
 #ifdef KOKKOS_ENABLE_CUDA
-    //! Use this macro when only one @c __what__ method is overridden.
+    //! Use this macro when only one @c __what__ method is overridden. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
     #define FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(__what__) \
         void __what__(::benchmark::State& state) override { this->__what__(static_cast<const ::benchmark::State&>(state)); }
 #else
@@ -54,6 +54,7 @@ struct BenchmarkBase : public benchmark::Fixture
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CHECK_NUMBER_OF_ITERS(_iters_, _exptd_)                      \
     if(_iters_ != _exptd_)                                           \
     {                                                                \

@@ -185,7 +185,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     return abs(val1 - val2) / (epsilon + (abs(val1) <= abs(val2) ? abs(val1) : abs(val2)));
 }
 
-//! Helper for writing tests that use @ref tests::cg::NbyNSolverTest.
+//! Helper for writing tests that use @ref tests::cg::NbyNSolverTest. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define RUN_AND_CHECK(_exec_, _nrows_, _tol_, _expt_niters_)                                           \
     const auto [elapsed, res_nrm2, num_iters, sol] = this->run(                                        \
         _exec_, _nrows_,                                                                               \
