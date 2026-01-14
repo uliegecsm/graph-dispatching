@@ -6,35 +6,34 @@
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 #include "kokkos_ext/impl/execution_space/receiver.hpp"
 
-namespace Kokkos::Experimental::details::execution_space
-{
+namespace Kokkos::Experimental::details::execution_space {
 
 /**
  * @brief Receiver for @c then.
  *
  * @note It must be nothrow moveable, see @cite P3383R3.
  */
-template <stdexec::receiver Rcvr, typename Functor, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
-struct ThenReceiver : public Receiver<Schd, Rcvr>
-{
+template <stdexec::receiver Rcvr, typename Functor, stdexec::__is_instance_of<Scheduler> Schd>
+struct ThenReceiver : public Receiver<Schd, Rcvr> {
     using base_t = Receiver<Schd, Rcvr>;
 
     //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
-    struct ThenWrapper
-    {
+    struct ThenWrapper {
         Functor functor;
 
         template <std::integral T>
-        KOKKOS_FUNCTION void operator()(const T) const { functor(); }
+        KOKKOS_FUNCTION void operator()(const T) const {
+            functor();
+        }
     };
 
     ThenWrapper wrapper;
 
     template <typename Rcv, typename Fun, typename Sch>
     ThenReceiver(Rcv&& rcv, Fun&& fun, Sch&& sch)
-        : base_t(std::forward<Sch>(sch), std::forward<Rcv>(rcv)),
-          wrapper{std::forward<Fun>(fun)}
-    {}
+        : base_t(std::forward<Sch>(sch), std::forward<Rcv>(rcv))
+        , wrapper{std::forward<Fun>(fun)} {
+    }
 
     ThenReceiver(const ThenReceiver&) = delete;
     ThenReceiver& operator=(const ThenReceiver&) = delete;
@@ -42,8 +41,7 @@ struct ThenReceiver : public Receiver<Schd, Rcvr>
     ThenReceiver& operator=(ThenReceiver&&) noexcept = default;
     ~ThenReceiver() = default;
 
-    void set_value() && noexcept
-    {
+    void set_value() && noexcept {
         try {
             Kokkos::parallel_for(
                 std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
@@ -56,9 +54,8 @@ struct ThenReceiver : public Receiver<Schd, Rcvr>
                 /// kernel, we must keep any resource alive.
                 /// @todo Using @c async_scope from https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3149r3.html#executionasync_scope
                 ///       would move the responsibility of lifetime bookkeeping to the user.
-                wrapper
-            );
-        } catch(...) {
+                wrapper);
+        } catch (...) {
             stdexec::set_error(std::move(this->rcvr), std::current_exception());
         }
         stdexec::set_value(std::move(this->rcvr));
@@ -73,7 +70,9 @@ struct ThenReceiver : public Receiver<Schd, Rcvr>
         ::stdexec::set_stopped(std::move(this->rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return ::stdexec::get_env(this->rcvr); }
+    decltype(auto) get_env() const noexcept {
+        return ::stdexec::get_env(this->rcvr);
+    }
 };
 
 /**
@@ -84,15 +83,12 @@ struct ThenReceiver : public Receiver<Schd, Rcvr>
  *          2. @c Kokkos itself throws before launching the functor (for some reason).
  */
 template <stdexec::sender Sndr, typename Functor, typename Schd>
-struct ThenSender
-{
+struct ThenSender {
     using sender_concept = stdexec::sender_t;
 
     //! @c Kokkos may throw while launching the kernel.
-    using with_error_invoke_t = ::stdexec::completion_signatures<
-        ::stdexec::set_value_t(),
-        ::stdexec::set_error_t(std::exception_ptr)
-    >;
+    using with_error_invoke_t =
+        ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>;
 
     template <typename Self, typename... Env>
     using _completion_signatures = ::stdexec::transform_completion_signatures<
@@ -102,41 +98,37 @@ struct ThenSender
 
     //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
     template <typename... Env>
-    [[nodiscard]] constexpr auto
-    get_completion_signatures(Env&&...) -> _completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    [[nodiscard]]
+    constexpr auto get_completion_signatures(Env&&...) -> _completion_signatures<ThenSender, Env...> {
+        return {};
+    } // NOLINT(cppcoreguidelines-missing-std-forward)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-    {
+    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         using recv_t = ThenReceiver<std::remove_cvref_t<Rcvr>, Functor, Schd>;
 
         return ::stdexec::connect(
-            std::move(sndr),
-            recv_t{std::forward<Rcvr>(rcvr),std::move(functor), std::move(schd)}
-        );
+            std::move(sndr), recv_t{std::forward<Rcvr>(rcvr), std::move(functor), std::move(schd)});
     }
 
     Sndr sndr;
     Functor functor;
     Schd schd;
 
-    decltype(auto) get_env() const noexcept { return stdexec::get_env(sndr); }
+    decltype(auto) get_env() const noexcept {
+        return stdexec::get_env(sndr);
+    }
 };
 
 template <typename Env>
-struct transform_sender_for<stdexec::then_t, Env>
-{
+struct transform_sender_for<stdexec::then_t, Env> {
     template <typename Functor, typename Sndr>
-        requires execution_space_completing_sender<Sndr, Env>
-    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept
-    {
+    requires execution_space_completing_sender<Sndr, Env>
+    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
         return ThenSender{
-            .sndr    = std::forward<Sndr>(sndr),
-            .functor = std::forward<Functor>(functor),
-            .schd    = std::move(schd)
-        };
+            .sndr = std::forward<Sndr>(sndr), .functor = std::forward<Functor>(functor), .schd = std::move(schd)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
