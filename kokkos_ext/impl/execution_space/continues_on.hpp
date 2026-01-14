@@ -30,7 +30,7 @@ struct ContinuesOnReceiver
         ::stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
+    decltype(auto) get_env() const noexcept { return SchedulerEnv{schd.exec}; }
 };
 
 //! Sender for @c continues_on.
@@ -67,7 +67,7 @@ struct ContinuesOnSender
         );
     }
 
-    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
+    decltype(auto) get_env() const noexcept { return SchedulerEnv{schd.exec}; }
 
     Schd schd;
     Sndr sndr;
@@ -77,7 +77,7 @@ template <typename Env>
 struct transform_sender_for<stdexec::continues_on_t, Env>
 {
     template <stdexec::scheduler Schd, ::stdexec::sender Sndr>
-        requires stdexec::__is_instance_of<Schd, ExecutionSpaceScheduler>
+        requires stdexec::__is_instance_of<Schd, Scheduler>
     auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
         return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
     }
