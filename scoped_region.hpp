@@ -33,7 +33,7 @@ enum class Kind : std::uint8_t
     POP
 };
 
-template <Kind kind, stdexec::receiver Rcvr, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, ExecutionSpaceScheduler>
+template <Kind kind, stdexec::receiver Rcvr, stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
 struct RegionReceiver
 {
     using receiver_concept = stdexec::receiver_t;
