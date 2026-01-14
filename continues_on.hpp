@@ -82,7 +82,7 @@ struct transform_sender_for<stdexec::continues_on_t, Env>
         return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
     }
 
-    const Env& env_;
+    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

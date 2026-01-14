@@ -36,7 +36,11 @@ struct ThenReceiver : public Receiver<Schd, Rcvr>
           wrapper{std::forward<Fun>(fun)}
     {}
 
+    ThenReceiver(const ThenReceiver&) = delete;
+    ThenReceiver& operator=(const ThenReceiver&) = delete;
     ThenReceiver(ThenReceiver&&) noexcept = default;
+    ThenReceiver& operator=(ThenReceiver&&) noexcept = default;
+    ~ThenReceiver() = default;
 
     void set_value() && noexcept
     {
@@ -135,7 +139,7 @@ struct transform_sender_for<stdexec::then_t, Env>
         };
     }
 
-    const Env& env_;
+    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space
