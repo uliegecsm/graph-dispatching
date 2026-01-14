@@ -46,8 +46,8 @@ struct BulkReceiver : public Receiver<Schd, Rcvr>
     {
         try {
             Kokkos::parallel_for(
-                std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(this->schd.env.exec)>::name()),
-                Kokkos::RangePolicy(std::move(this->schd).env.exec, 0, shape),
+                std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
+                Kokkos::RangePolicy(std::move(this->schd).exec, 0, shape),
                 std::move(functor)
             );
         } catch(...) {

@@ -30,7 +30,7 @@ struct ContinuesOnReceiver
         ::stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return schd.env; }
+    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
 };
 
 //! Sender for @c continues_on.
@@ -67,7 +67,7 @@ struct ContinuesOnSender
         );
     }
 
-    decltype(auto) get_env() const noexcept { return schd.env; }
+    decltype(auto) get_env() const noexcept { return ExecutionSpaceSchedulerEnv{schd.exec}; }
 
     Schd schd;
     Sndr sndr;
