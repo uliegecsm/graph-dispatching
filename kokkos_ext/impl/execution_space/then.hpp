@@ -64,15 +64,16 @@ struct ThenReceiver : public Receiver<Schd, Rcvr> {
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
+        stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(this->rcvr));
+        stdexec::set_stopped(std::move(this->rcvr));
     }
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
-        return ::stdexec::get_env(this->rcvr);
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>> {
+        return stdexec::__fwd_env(stdexec::get_env(this->rcvr));
     }
 };
 
@@ -89,38 +90,37 @@ struct ThenSender {
 
     //! @c Kokkos may throw while launching the kernel.
     using with_error_invoke_t =
-        ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>;
+        stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>;
 
     template <typename Self, typename... Env>
-    using _completion_signatures = ::stdexec::transform_completion_signatures<
-        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
+    using _completion_signatures = stdexec::transform_completion_signatures<
+        stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
         with_error_invoke_t
     >;
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ThenSender)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
-    template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+    template <stdexec::receiver Rcvr>
+    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         using recv_t = ThenReceiver<std::remove_cvref_t<Rcvr>, Functor, Schd>;
 
-        return ::stdexec::connect(
-            std::move(sndr), recv_t{std::forward<Rcvr>(rcvr), std::move(functor), std::move(schd)});
+        return stdexec::connect(std::move(sndr), recv_t{std::forward<Rcvr>(rcvr), std::move(functor), std::move(schd)});
     }
 
     Sndr sndr;
     Functor functor;
     Schd schd;
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
-        return stdexec::get_env(sndr);
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Sndr>> {
+        return stdexec::__fwd_env(stdexec::get_env(sndr));
     }
 };
 
 template <typename Env>
 struct transform_sender_for<stdexec::then_t, Env> {
-    template <typename Functor, typename Sndr>
-    requires execution_space_completing_sender<Sndr, Env>
+    template <typename Functor, execution_space_completing_sender<Env> Sndr>
     auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
         return ThenSender{

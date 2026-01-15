@@ -5,77 +5,76 @@
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 
-namespace Kokkos::Experimental::details::execution_space
-{
+namespace Kokkos::Experimental::details::execution_space {
 
 //! Receiver for @c continues_on.
 template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
-struct ContinuesOnReceiver
-{
+struct ContinuesOnReceiver {
     using receiver_concept = stdexec::receiver_t;
 
     Schd schd;
     Rcvr rcvr;
 
     void set_value() && noexcept {
-        ::stdexec::set_value(std::move(rcvr));
+        stdexec::set_value(std::move(rcvr));
     }
 
     template <class Error>
     void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
+        stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(rcvr));
+        stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept { return SchedulerEnv{schd.exec}; }
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<
+        stdexec::prop<get_exec_t, decltype(schd.exec)>,
+        stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>>
+    > {
+        return stdexec::__env::__join(stdexec::prop{get_exec, schd.exec}, stdexec::__fwd_env(stdexec::get_env(rcvr)));
+    }
 };
 
 //! Sender for @c continues_on.
-template <::stdexec::scheduler Schd, ::stdexec::sender Sndr>
-struct ContinuesOnSender
-{
-    using sender_concept = ::stdexec::sender_t;
+template <stdexec::scheduler Schd, stdexec::sender Sndr>
+struct ContinuesOnSender {
+    using sender_concept = stdexec::sender_t;
+
+    Schd schd;
+    Sndr sndr;
 
     //! The transition may throw or forwards the error channel.
-    using with_error_invoke_t = ::stdexec::completion_signatures<
-        ::stdexec::set_value_t(),
-        ::stdexec::set_error_t(std::exception_ptr)
-    >;
+    using with_error_invoke_t =
+        stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>;
 
     template <typename Self, typename... Env>
-    using _completion_signatures = ::stdexec::transform_completion_signatures<
-        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
+    using _completion_signatures = stdexec::transform_completion_signatures<
+        stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
         with_error_invoke_t
     >;
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ContinuesOnSender)
 
-    template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-    {
+    template <stdexec::receiver Rcvr>
+    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         using recv_t = ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>;
 
-        return ::stdexec::connect(
-            std::move(sndr),
-            recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)}
-        );
+        return stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
     }
 
-    decltype(auto) get_env() const noexcept { return SchedulerEnv{schd.exec}; }
-
-    Schd schd;
-    Sndr sndr;
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Sndr>> {
+        return stdexec::__fwd_env(stdexec::get_env(sndr));
+    }
 };
 
 template <typename Env>
-struct transform_sender_for<stdexec::continues_on_t, Env>
-{
-    template <stdexec::scheduler Schd, ::stdexec::sender Sndr>
-        requires stdexec::__is_instance_of<Schd, Scheduler>
+struct transform_sender_for<stdexec::continues_on_t, Env> {
+    template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr>
     auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
         return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
     }
