@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 
 namespace Kokkos::Experimental::details::execution_space
 {
@@ -26,30 +27,30 @@ struct env
 } // namespace impl
 
 //! Receiver for @c sync_wait.
-template <stdexec::scheduler Schd> requires stdexec::__is_instance_of_<Schd, Scheduler>
+template <Kokkos::ExecutionSpace Exec>
 struct SyncWaitReceiver
 {
     using receiver_concept = stdexec::receiver_t;
 
-    Schd schd;
+    Exec exec;
     std::shared_ptr<std::exception_ptr> error;
     std::shared_ptr<stdexec::run_loop> loop;
 
     void set_value() && noexcept
     {
-        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
+        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(exec)>::name()));
         loop->finish();
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
         *error = std::forward<Error>(err);
-        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
+        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(exec)>::name()));
         loop->finish();
     }
 
     void set_stopped() noexcept {
-        schd.exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
+        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(exec)>::name()));
         loop->finish();
     }
 
@@ -67,25 +68,25 @@ struct SyncWait
      *
      * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
      */
-    template <stdexec::scheduler Schd, stdexec::sender Sndr>
-    auto operator()(Schd&& schd, Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>>
+    template <stdexec::sender Sndr, typename Env>
+    auto operator()(Sndr&& sndr, [[maybe_unused]] Env&& env) const noexcept(false) -> std::optional<std::tuple<>>
     {
         auto error = std::make_shared<std::exception_ptr>();
 
         auto loop = std::make_shared<stdexec::run_loop>();
 
+        auto exec = get_exec(stdexec::get_env(sndr));
+
         auto op_state = stdexec::connect(
             std::forward<Sndr>(sndr),
             SyncWaitReceiver{
-                .schd = std::forward<Schd>(schd),
+                .exec = exec,
                 .error = error,
                 .loop = loop,
             }
         );
 
         stdexec::start(op_state);
-
-        loop->run();
 
         if (*error) std::rethrow_exception(std::move(*error));
 
@@ -109,8 +110,7 @@ struct apply_sender_for<stdexec::sync_wait_t>
     template <execution_space_completing_sender Sndr>
     auto operator()(Sndr&& sndr) && noexcept(false)
     {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), stdexec::env{});
-        return SyncWait{}(std::move(schd), std::forward<Sndr>(sndr));
+        return SyncWait{}(std::forward<Sndr>(sndr), stdexec::env{});
     }
 };
 

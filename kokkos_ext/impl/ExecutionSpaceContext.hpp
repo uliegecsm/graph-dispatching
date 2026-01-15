@@ -20,6 +20,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos_ext/impl/execution_space/bulk.hpp"
 #include "kokkos_ext/impl/execution_space/continues_on.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 #include "kokkos_ext/impl/execution_space/schedule_from.hpp"
 #include "kokkos_ext/impl/execution_space/sync_wait.hpp"
 #include "kokkos_ext/impl/execution_space/then.hpp"
@@ -61,13 +62,17 @@ struct Domain : public stdexec::default_domain
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
 template <Kokkos::ExecutionSpace Exec>
 struct SchedulerEnv
-{
+{    
     [[nodiscard]] constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec> {
         return {exec};
     }
 
     [[nodiscard]] constexpr auto query(stdexec::get_completion_domain_t<stdexec::set_value_t>) const noexcept -> Domain {
         return {};
+    }
+
+    [[nodiscard]] constexpr auto query(get_exec_t) const noexcept -> const Exec& {
+        return exec;
     }
 
     Exec exec;
