@@ -5,8 +5,29 @@
 
 namespace Kokkos::Experimental::details::graph {
 
+template <class Tag>
+struct apply_sender_for;
+
+template <class Tag, class Env>
+struct transform_sender_for;
+
 template <Kokkos::ExecutionSpace Exec>
-struct GraphScheduler;
+struct State;
+
+template <Kokkos::ExecutionSpace Exec>
+struct Scheduler;
+
+//! Concept for a sender whose completion scheduler is @ref Kokkos::Experimental::details::graph::Scheduler.
+template <class Sndr, class Env = ::stdexec::env<>>
+concept graph_completing_sender = ::stdexec::sender<Sndr>
+                               && ::stdexec::__is_instance_of<
+                                      std::invoke_result_t<
+                                          ::stdexec::get_completion_scheduler_t<::stdexec::set_value_t>,
+                                          ::stdexec::env_of_t<Sndr>,
+                                          Env
+                                      >,
+                                      Scheduler
+                               >;
 
 } // namespace Kokkos::Experimental::details::graph
 
