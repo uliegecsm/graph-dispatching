@@ -114,7 +114,7 @@ function(add_one_test)
         else()
             set(TEST_COMMAND)
         endif()
-        list(APPEND TEST_COMMAND $<TARGET_FILE:${aot_args_EXECUTABLE_NAME}>)
+        list(APPEND TEST_COMMAND $<TARGET_FILE:${aot_args_EXECUTABLE_NAME}> --gtest_fail_if_no_test_linked)
         add_test(NAME ${aot_args_EXECUTABLE_NAME} COMMAND ${TEST_COMMAND})
 
         # Ensure that GTest will shuffle the tests.

@@ -39,14 +39,6 @@ class ThenTest
     static constexpr bool on_device = ::tests::utils::on_device<execution_space>();
 };
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
-#    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)
-#else
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)                                                                \
-        MATCHER_FOR_BEGIN_FENCE(_exec_, "Kokkos::DefaultGraph::submit: fencing before launching graph nodes"),
-#endif
-
 /**
  * @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with @c then
  *       within a chain started with @c stdexec::schedule.
