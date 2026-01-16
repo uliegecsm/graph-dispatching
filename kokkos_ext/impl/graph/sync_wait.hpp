@@ -14,8 +14,7 @@ struct SyncWaitReceiver {
     using receiver_concept = stdexec::receiver_t;
 
     Schd schd;
-    std::exception_ptr* error;
-    stdexec::run_loop* loop;
+    Kokkos::Experimental::details::impl::State* state;
 
     void set_value() && noexcept {
         if (schd.state_ptr->graph) {
@@ -24,22 +23,22 @@ struct SyncWaitReceiver {
             schd.state_ptr->exec
                 .fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.state_ptr->exec)>::name()));
         }
-        loop->finish();
+        state->loop.finish();
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        *error = std::forward<Error>(err);
-        loop->finish();
+        state->error = std::forward<Error>(err);
+        state->loop.finish();
     }
 
     void set_stopped() noexcept {
-        loop->finish();
+        state->loop.finish();
     }
 
     [[nodiscard]]
     auto get_env() const noexcept -> Kokkos::Experimental::details::impl::env {
-        return {loop->get_scheduler()};
+        return {state->loop.get_scheduler()};
     }
 };
 
@@ -52,23 +51,17 @@ struct SyncWait {
      */
     template <stdexec::scheduler Schd, stdexec::sender Sndr>
     auto operator()(Schd&& schd, Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>> {
-        std::exception_ptr error;
-        stdexec::run_loop loop;
+        Kokkos::Experimental::details::impl::State state;
 
         auto op_state = stdexec::connect(
-            std::forward<Sndr>(sndr),
-            SyncWaitReceiver{
-                .schd = std::forward<Schd>(schd),
-                .error = &error,
-                .loop = &loop,
-            });
+            std::forward<Sndr>(sndr), SyncWaitReceiver{.schd = std::forward<Schd>(schd), .state = &state});
 
         stdexec::start(op_state);
 
-        loop.run();
+        state.loop.run();
 
-        if (error)
-            std::rethrow_exception(std::move(error));
+        if (state.error)
+            std::rethrow_exception(std::move(state.error));
 
         return std::tuple{};
     }
