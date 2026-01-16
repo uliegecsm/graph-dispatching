@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/completion_signatures.hpp"
 #include "kokkos_ext/impl/execution_space/receiver.hpp"
 
 namespace Kokkos::Experimental::details::execution_space {
@@ -96,12 +97,7 @@ struct ThenSender {
         with_error_invoke_t
     >;
 
-    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
-    template <typename... Env>
-    [[nodiscard]]
-    constexpr auto get_completion_signatures(Env&&...) -> _completion_signatures<ThenSender, Env...> {
-        return {};
-    } // NOLINT(cppcoreguidelines-missing-std-forward)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ThenSender)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
