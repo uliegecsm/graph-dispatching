@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
+#include "kokkos_ext/impl/completion_signatures.hpp"
 
 namespace Kokkos::Experimental::details::graph {
 
@@ -48,12 +49,7 @@ struct ContinuesOnSender {
         with_error_invoke_t
     >;
 
-    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
-    template <typename... Env>
-    [[nodiscard]]
-    constexpr auto get_completion_signatures(Env&&...) -> _completion_signatures<ContinuesOnSender, Env...> {
-        return {};
-    } // NOLINT(cppcoreguidelines-missing-std-forward)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ContinuesOnSender)
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {

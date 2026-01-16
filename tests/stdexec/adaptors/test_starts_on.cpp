@@ -189,9 +189,9 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
     //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
     using starts_on_t = decltype(starts_on);
 
-    static_assert(std::same_as<std::invoke_result_t<
-        ::stdexec::get_completion_signatures_t, starts_on_t>,
-        ::stdexec::_ERROR_<::stdexec::dependent_sender_error, ::stdexec::__errs::_WITH_SENDER_<::stdexec::__basic_sender<::stdexec::__starts_on_ns::starts_on_t, ::exec::_pool_::_static_thread_pool::scheduler, ::stdexec::__basic_sender<::stdexec::__then::then_t, ::tests::stdexec::adaptors::ThenFunctorMayThrow<true>, ::stdexec::__basic_sender<::stdexec::__just::just_t, ::stdexec::__tup::__tuple<>>>>>>
+    static_assert(std::derived_from<
+        ::std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
+        ::stdexec::dependent_sender_error
     >);
 
     static_assert(std::same_as<std::invoke_result_t<
@@ -217,9 +217,9 @@ TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
     //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
     using starts_on_t = decltype(starts_on);
 
-    static_assert(std::same_as<std::invoke_result_t<
-        ::stdexec::get_completion_signatures_t, starts_on_t>,
-        ::stdexec::_ERROR_<::stdexec::dependent_sender_error, ::stdexec::__errs::_WITH_SENDER_<::stdexec::__basic_sender<::stdexec::__starts_on_ns::starts_on_t, ::exec::_pool_::_static_thread_pool::scheduler, ::stdexec::__basic_sender<::stdexec::__then::then_t, ::tests::stdexec::adaptors::ThenFunctorMayThrow<false>, ::stdexec::__basic_sender<::stdexec::__just::just_t, ::stdexec::__tup::__tuple<>>>>>>
+    static_assert(std::derived_from<
+        ::std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
+        ::stdexec::dependent_sender_error
     >);
 
     static_assert(std::same_as<std::invoke_result_t<

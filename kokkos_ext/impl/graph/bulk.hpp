@@ -5,6 +5,7 @@
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
 #include "kokkos_ext/impl/bulk.hpp"
+#include "kokkos_ext/impl/completion_signatures.hpp"
 #include "kokkos_ext/impl/graph/Helpers.hpp"
 
 namespace Kokkos::Experimental::details::graph {
@@ -151,12 +152,7 @@ struct BulkSender {
         with_error_invoke_t
     >;
 
-    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
-    template <typename... Env>
-    [[nodiscard]]
-    constexpr auto get_completion_signatures(Env&&...) -> _completion_signatures<BulkSender, Env...> {
-        return {};
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(BulkSender)
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
