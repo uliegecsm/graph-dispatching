@@ -31,8 +31,7 @@ class ThenTest
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
     using recorder_listener_t =
-        RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent>;
-    using variant_t = std::variant<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent>;
+        RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent>;
 
     using value_t = typename view_s_t::value_type;
 
@@ -74,8 +73,10 @@ TEST_F(ThenTest, then_schedule) {
         recorder_listener_t::record([chain = std::move(chain)]() mutable { // NOLINT(performance-move-const-arg)
             ::stdexec::sync_wait(std::move(chain));                        // NOLINT(performance-move-const-arg)
         }),
-        ::testing::ElementsAre(KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
-                                   MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
+        ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+            KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
+                MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
 
     ASSERT_EQ(data(), 6);
 }
@@ -148,8 +149,10 @@ TEST_F(ThenTest, then_starts_on) {
     ASSERT_THAT(
         recorder_listener_t::record(
             [starts_on = std::move(starts_on)]() mutable { ::stdexec::sync_wait(std::move(starts_on)); }),
-        ::testing::ElementsAre(KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
-                                   MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
+        ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+            KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
+                MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
 
     ASSERT_EQ(data(), 1);
 }

@@ -85,6 +85,7 @@ struct BulkOpState {
     void start() & noexcept {
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
+        schd.state_ptr->submit();
         stdexec::start(inner_opstate);
     }
 
