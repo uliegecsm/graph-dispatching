@@ -13,6 +13,10 @@ PRAGMA_DIAGNOSTIC_POP
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+#    include "plog/Log.h"
+#endif
+
 #include "kokkos_ext/impl/graph/bulk.hpp"
 #include "kokkos_ext/impl/graph/sync_wait.hpp"
 #include "kokkos_ext/impl/graph/then.hpp"
@@ -70,8 +74,31 @@ struct State {
         return *graph;
     }
 
+    void submit() {
+        if (graph.has_value()) {
+            if (!is_submitted) {
+                if (!is_instantiated) {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+                    PLOG_DEBUG << "Instantiating the graph at " << std::addressof(*graph);
+#endif
+                    graph->instantiate();
+                    is_instantiated = true;
+                }
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+                PLOG_DEBUG << "Submitting the graph at " << std::addressof(*graph) << " on "
+                           << Kokkos::Tools::Experimental::device_id(exec);
+#endif
+                Kokkos::Profiling::markEvent(std::format("{}: graph submit", Kokkos::Impl::TypeInfo<Exec>::name()));
+                graph->submit(exec);
+                is_submitted = true;
+            }
+        }
+    }
+
     Exec exec;
     std::optional<graph_t> graph = std::nullopt;
+    bool is_instantiated = false;
+    bool is_submitted = false;
 };
 
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).

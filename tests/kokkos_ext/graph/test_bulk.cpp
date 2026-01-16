@@ -28,7 +28,7 @@ class BulkTest
     : public impl::GraphContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent>;
+    using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
 };
 
 //! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with @c bulk.
@@ -60,8 +60,10 @@ TEST_F(BulkTest, bulk) {
 
     ASSERT_THAT(
         recorder_listener_t::record([chain = std::move(chain)]() mutable { ::stdexec::sync_wait(std::move(chain)); }),
-        ::testing::ElementsAre(KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
-                                   MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
+        ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+            KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
+                MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
 
     ASSERT_EQ(data(), 2 * size / 2 * (size - 1) + 1);
 }

@@ -22,6 +22,7 @@ PATTERNS=(
     'tests/kokkos_ext/graph/*.cpp'
     'tests/kokkos_ext/graph/*.hpp'
     'tests/utils/*'
+    'tests/CallbackMatchers.hpp'
     'tests/Functors.hpp'
 )
 
