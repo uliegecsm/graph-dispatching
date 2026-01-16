@@ -8,6 +8,12 @@
 
 namespace Kokkos::Experimental::details::execution_space {
 
+//! See https://github.com/NVIDIA/stdexec/blob/16076a81efa4477513e6ede9c2741fd034ecef99/include/stdexec/__detail/__bulk.hpp#L100.
+template <typename Data>
+concept parallel_policy = requires(const Data& data) {
+    { data.__pol_ } -> std::same_as<const ::stdexec::__bulk::__policy_wrapper<::stdexec::parallel_policy>&>;
+};
+
 /**
  * @brief Receiver for @c bulk.
  *
@@ -17,25 +23,19 @@ namespace Kokkos::Experimental::details::execution_space {
  */
 template <
     stdexec::receiver Rcvr,
-    typename Policy,
-    std::integral Shape,
-    typename Functor,
+    stdexec::__is_instance_of<stdexec::__bulk::__data> Data,
     stdexec::__is_instance_of<Scheduler> Schd
 >
-requires(std::same_as<Policy, ::stdexec::__bulk::__policy_wrapper<::stdexec::parallel_policy>>)
+requires parallel_policy<Data>
 struct BulkReceiver : public Receiver<Schd, Rcvr> {
     using base_t = Receiver<Schd, Rcvr>;
 
-    Policy policy;
-    Shape shape;
-    Functor functor;
+    Data data;
 
-    template <typename Rcv, typename Pol, typename Shp, typename Fun, typename Sch>
-    BulkReceiver(Rcv&& rcv, Pol&& pol, Shp&& shp, Fun&& fun, Sch&& sch)
+    template <typename Rcv, typename Sch>
+    BulkReceiver(Rcv&& rcv, Data&& data_, Sch&& sch)
         : base_t{std::forward<Sch>(sch), std::forward<Rcv>(rcv)}
-        , policy(std::forward<Pol>(pol))
-        , shape(std::forward<Shp>(shp))
-        , functor(std::forward<Fun>(fun)) {
+        , data(std::move(data_)) {
     }
 
     BulkReceiver(const BulkReceiver&) = delete;
@@ -46,9 +46,10 @@ struct BulkReceiver : public Receiver<Schd, Rcvr> {
 
     void set_value() && noexcept {
         try {
+            auto [policy, shape, functor] = std::move(data);
             Kokkos::parallel_for(
                 std::format("{}: bulk", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
-                Kokkos::RangePolicy(std::move(this->schd).exec, 0, shape),
+                Kokkos::RangePolicy(std::move(this->schd).exec, 0, std::move(shape)),
                 std::move(functor));
         } catch (...) {
             stdexec::set_error(std::move(this->rcvr), std::current_exception());
@@ -73,7 +74,7 @@ struct BulkReceiver : public Receiver<Schd, Rcvr> {
  *          1. The functor itself has a call operator that may throw.
  *          2. @c Kokkos itself throws before launching the functor (for some reason).
  */
-template <stdexec::sender Sndr, typename Policy, typename Shape, typename Functor, stdexec::scheduler Schd>
+template <stdexec::sender Sndr, stdexec::__is_instance_of<::stdexec::__bulk::__data> Data, stdexec::scheduler Schd>
 struct BulkSender {
     using sender_concept = stdexec::sender_t;
 
@@ -96,17 +97,13 @@ struct BulkSender {
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = BulkReceiver<std::remove_cvref_t<Rcvr>, Policy, Shape, Functor, Schd>;
+        using recv_t = BulkReceiver<std::remove_cvref_t<Rcvr>, Data, Schd>;
 
-        return ::stdexec::connect(
-            std::move(sndr),
-            recv_t{std::forward<Rcvr>(rcvr), std::move(policy), std::move(shape), std::move(functor), std::move(schd)});
+        return ::stdexec::connect(std::move(sndr), recv_t{std::forward<Rcvr>(rcvr), std::move(data), std::move(schd)});
     }
 
     Sndr sndr;
-    Policy policy;
-    Shape shape;
-    Functor functor;
+    Data data;
     Schd schd;
 
     auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
@@ -120,13 +117,7 @@ struct transform_sender_for<stdexec::bulk_t, Env> {
     requires execution_space_completing_sender<Sndr, Env>
     auto operator()(stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
-        auto [policy, shape, functor] = std::forward<Data>(data);
-        return BulkSender{
-            .sndr = std::forward<Sndr>(sndr),
-            .policy = std::move(policy),
-            .shape = std::move(shape),
-            .functor = std::move(functor),
-            .schd = std::move(schd)};
+        return BulkSender{.sndr = std::forward<Sndr>(sndr), .data = std::forward<Data>(data), .schd = std::move(schd)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
