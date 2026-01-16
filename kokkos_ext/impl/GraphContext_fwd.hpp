@@ -15,6 +15,9 @@ template <Kokkos::ExecutionSpace Exec>
 struct State;
 
 template <Kokkos::ExecutionSpace Exec>
+struct SchedulerEnv;
+
+template <Kokkos::ExecutionSpace Exec>
 struct Scheduler;
 
 //! Concept for a sender whose completion scheduler is @ref Kokkos::Experimental::details::graph::Scheduler.

@@ -85,7 +85,6 @@ struct BulkOpState {
     void start() & noexcept {
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
-        schd.state_ptr->submit();
         stdexec::start(inner_opstate);
     }
 
@@ -119,6 +118,7 @@ struct BulkReceiver {
     opstate_t* opstate;
 
     void set_value() && noexcept {
+        opstate->schd.state_ptr->submit();
         std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }
 
