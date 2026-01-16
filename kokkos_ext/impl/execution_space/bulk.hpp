@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/bulk.hpp"
 #include "kokkos_ext/impl/execution_space/receiver.hpp"
 
 namespace Kokkos::Experimental::details::execution_space {
@@ -26,7 +27,7 @@ template <
     stdexec::__is_instance_of<stdexec::__bulk::__data> Data,
     stdexec::__is_instance_of<Scheduler> Schd
 >
-requires parallel_policy<Data>
+requires Kokkos::Experimental::details::impl::parallel_policy<Data>
 struct BulkReceiver : public Receiver<Schd, Rcvr> {
     using base_t = Receiver<Schd, Rcvr>;
 

@@ -13,6 +13,7 @@ PRAGMA_DIAGNOSTIC_POP
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "kokkos_ext/impl/graph/bulk.hpp"
 #include "kokkos_ext/impl/graph/sync_wait.hpp"
 #include "kokkos_ext/impl/graph/then.hpp"
 

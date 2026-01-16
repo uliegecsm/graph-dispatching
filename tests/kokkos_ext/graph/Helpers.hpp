@@ -38,6 +38,14 @@ struct GraphContextTest
 #endif
 };
 
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)                                                                \
+        MATCHER_FOR_BEGIN_FENCE(_exec_, "Kokkos::DefaultGraph::submit: fencing before launching graph nodes"),
+#endif
+
 } // namespace tests::kokkos_ext::impl
 
 #endif // GRAPH_DISPATCHING_TESTS_KOKKOS_EXT_GRAPH_HELPERS_HPP
