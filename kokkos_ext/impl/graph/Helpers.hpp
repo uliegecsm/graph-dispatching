@@ -15,6 +15,16 @@ auto get_predecessor(const OpstateType& opstate, const Kokkos::Experimental::Gra
     }
 }
 
+//! Determine if the node needs to be added.
+template <Kokkos::ExecutionSpace ExecutionSpace, typename OpstateType>
+bool proceed(const State<ExecutionSpace>& state, const OpstateType& opstate) {
+    if (state.is_instantiated)
+        return false;
+    if constexpr (requires { opstate.error; })
+        return opstate.error == nullptr;
+    return true;
+}
+
 } // namespace Kokkos::Experimental::details::graph
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_HELPERS_HPP

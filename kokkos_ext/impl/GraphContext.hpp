@@ -83,6 +83,8 @@ struct State {
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
                     PLOG_DEBUG << "Instantiating the graph at " << std::addressof(*graph);
 #endif
+                    Kokkos::Profiling::markEvent(
+                        std::format("{}: graph instantiate", Kokkos::Impl::TypeInfo<Exec>::name()));
                     graph->instantiate();
                     is_instantiated = true;
                 }
@@ -94,6 +96,15 @@ struct State {
                 graph->submit(exec);
                 is_submitted = true;
             }
+        }
+    }
+
+    //! If the graph is submitted, wait for it to complete.
+    template <typename T>
+    void wait(T&& msg) {
+        if (is_submitted) {
+            exec.fence(std::forward<T>(msg));
+            is_submitted = false;
         }
     }
 

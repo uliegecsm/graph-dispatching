@@ -74,6 +74,7 @@ TEST_F(ThenTest, then_schedule) {
             ::stdexec::sync_wait(std::move(chain));                        // NOLINT(performance-move-const-arg)
         }),
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
@@ -138,6 +139,7 @@ TEST_F(ThenTest, then_starts_on) {
         recorder_listener_t::record(
             [starts_on = std::move(starts_on)]() mutable { ::stdexec::sync_wait(std::move(starts_on)); }),
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));

@@ -63,6 +63,7 @@ TEST_F(BulkTest, bulk) {
     ASSERT_THAT(
         recorder_listener_t::record([chain = std::move(chain)]() mutable { ::stdexec::sync_wait(std::move(chain)); }),
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
