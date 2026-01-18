@@ -107,7 +107,7 @@ jobs:
 
     build-docker:
         needs: [set-vars, setup-skips]
-        if: ${{ needs.setup-skips.outputs.build-docker == 'true' }}
+        if: ${{ ! failure() && ! cancelled() && needs.setup-skips.outputs.build-docker == 'true' }}
         runs-on: [self-hosted, linux, docker, amd64]
         container:
             image: docker:latest
@@ -147,7 +147,7 @@ jobs:
 
     build-images:
         needs: [set-vars, setup-skips, build-docker]
-        if: ${{ needs.setup-skips.outputs.build-images == 'true' }}
+        if: ${{ ! failure() && ! cancelled() && needs.setup-skips.outputs.build-images == 'true' }}
         runs-on: ${{ fromJSON(matrix.runs-on || '["self-hosted", "linux", "docker", "amd64"]') }}
         container:
             image: ${{ needs.set-vars.outputs.CI_BUILDER }}

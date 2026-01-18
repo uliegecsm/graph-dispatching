@@ -13,6 +13,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "impl/Kokkos_Profiling.hpp"
 
+#include "kokkos_ext/impl/completion_signatures.hpp"
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 
 /**
@@ -80,10 +81,7 @@ struct RegionSender
         stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>
     >;
 
-    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
-    template <class... Env>
-    [[nodiscard]] constexpr auto
-    get_completion_signatures(Env&&...) -> _completion_signatures<RegionSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(RegionSender)
 
     template <stdexec::receiver Rcvr>
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)

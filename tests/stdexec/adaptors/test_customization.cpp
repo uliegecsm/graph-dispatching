@@ -12,6 +12,8 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 #include "exec/static_thread_pool.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
+#include "kokkos_ext/impl/completion_signatures.hpp"
+
 /**
  * @addtogroup unittests
  *
@@ -131,16 +133,14 @@ struct ThenSender
     >;
 
     template <class Self, typename... Env>
-    using completion_signatures = ::stdexec::transform_completion_signatures<
+    using _completion_signatures = ::stdexec::transform_completion_signatures<
         ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
         with_error_invoke_t,
         set_value_t
     >;
     ///@}
 
-    //! As required by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/include/stdexec/__detail/__diagnostics.hpp#L266-L310.
-    template <class... Env>
-    auto get_completion_signatures(Env&&...) -> completion_signatures<ThenSender, Env...> { return {}; } // NOLINT(cppcoreguidelines-missing-std-forward)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ThenSender)
 
     template <::stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
@@ -189,7 +189,7 @@ struct Domain
 
         if constexpr (::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>, Env>) {
             auto schd = ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr), env);
-            return sndr.apply(std::forward<Sndr>(sndr), TransformThen<ID, 'L', decltype(schd)>{.schd = std::move(schd)});
+            return ::stdexec::__apply(TransformThen<ID, 'L', decltype(schd)>{.schd = std::move(schd)}, std::forward<Sndr>(sndr));
         } else {
             static_assert(::stdexec::__completes_on<Sndr, DomainSpecificScheduler<Domain>, Env>);
         }

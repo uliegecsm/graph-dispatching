@@ -17,6 +17,7 @@ PATTERNS=(
     'kokkos_ext/impl/GraphContext_fwd.hpp'
     'kokkos_ext/impl/GraphContext.hpp'
     'kokkos_ext/impl/bulk.hpp'
+    'kokkos_ext/impl/completion_signatures.hpp'
     'kokkos_ext/impl/sync_wait.hpp'
     'tests/kokkos_ext/execution_space/test_scheduler.cpp'
     'tests/kokkos_ext/graph/*.cpp'
