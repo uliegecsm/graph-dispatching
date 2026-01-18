@@ -9,6 +9,7 @@ Many references are in our [references](docs/references.bib).
 Start by reading:
 * @cite P2300R10
 * @cite henriksen-extending-2025
+* https://intel.github.io/cpp-baremetal-senders-and-receivers/
 * https://en.cppreference.com/w/cpp/experimental/execution
 
 ## What is a graph then ?
