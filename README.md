@@ -2,15 +2,14 @@
 
 This repository is a playground for graph-based dispatching of asynchronous workloads using `Kokkos` and the P2300 formalism.
 
-## Terminology
+## References
 
-For a definition of:
-- `execution context`
-- `sender`
+Many references are in our [references](docs/references.bib).
 
-see https://en.cppreference.com/w/cpp/experimental/execution.
-
-As opposed to a *single-shot sender* that can be consumed only *once*, a *multi-shot sender* can be consumed *many times*.
+Start by reading:
+* @cite P2300R10
+* @cite henriksen-extending-2025
+* https://en.cppreference.com/w/cpp/experimental/execution
 
 ## What is a graph then ?
 
