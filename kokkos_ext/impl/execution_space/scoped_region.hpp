@@ -13,8 +13,8 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "impl/Kokkos_Profiling.hpp"
 
-#include "kokkos_ext/impl/completion_signatures.hpp"
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
+#include "kokkos_ext/impl/completion_signatures.hpp"
 
 /**
  * @file
@@ -25,18 +25,15 @@ PRAGMA_DIAGNOSTIC_POP
  *  - https://github.com/NVIDIA/stdexec/blob/f7308ea245b896a76c6fd9a58a097ae23579e489/include/nvexec/nvtx.cuh
  */
 
-namespace Kokkos::Experimental::details::execution_space
-{
+namespace Kokkos::Experimental::details::execution_space {
 //! Kind of region action.
-enum class Kind : std::uint8_t
-{
+enum class Kind : std::uint8_t {
     PUSH,
     POP
 };
 
 template <Kind kind, stdexec::receiver Rcvr, stdexec::__is_instance_of<Scheduler> Schd>
-struct RegionReceiver
-{
+struct RegionReceiver {
     using receiver_concept = stdexec::receiver_t;
 
     Rcvr rcvr;
@@ -44,9 +41,10 @@ struct RegionReceiver
     Schd schd;
 
     template <typename Tag, typename... Args>
-    void complete(Tag tag, Args&&... args) && noexcept
-    {
-        std::move(schd).exec.fence(std::format("{}: {}", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name(), kind == Kind::PUSH ? "push" : "pop"));
+    void complete(Tag tag, Args&&... args) && noexcept {
+        std::move(schd).exec.fence(
+            std::format(
+                "{}: {}", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name(), kind == Kind::PUSH ? "push" : "pop"));
 
         if constexpr (kind == Kind::PUSH) {
             Kokkos::Profiling::pushRegion(name);
@@ -72,8 +70,7 @@ struct RegionReceiver
 };
 
 template <Kind kind, stdexec::sender Sndr>
-struct RegionSender
-{
+struct RegionSender {
     using sender_concept = stdexec::sender_t;
 
     template <typename Self, typename... Env>
@@ -84,28 +81,25 @@ struct RegionSender
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(RegionSender)
 
     template <stdexec::receiver Rcvr>
-    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-    {
+    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 
         using recv_t = RegionReceiver<kind, std::remove_cvref_t<Rcvr>, std::remove_cvref_t<decltype(schd)>>;
 
         return stdexec::connect(
             std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .name = std::move(name), .schd = std::move(schd)}
-        );
+            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .name = std::move(name), .schd = std::move(schd)});
     }
 
     Sndr sndr;
-    std::string name {};
+    std::string name{};
 
     auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
         return stdexec::get_env(sndr);
     }
 };
 
-struct Push
-{
+struct Push {
     template <stdexec::sender Sndr, typename T>
     auto operator()(Sndr&& sndr, T&& name) const noexcept -> RegionSender<Kind::PUSH, Sndr> {
         return RegionSender<Kind::PUSH, Sndr>{.sndr = std::forward<Sndr&&>(sndr), .name = std::forward<T>(name)};
@@ -117,8 +111,7 @@ struct Push
     }
 };
 
-struct Pop
-{
+struct Pop {
     template <stdexec::sender Sndr>
     auto operator()(Sndr&& sndr) const noexcept -> RegionSender<Kind::POP, Sndr> {
         return RegionSender<Kind::POP, Sndr>{.sndr = std::forward<Sndr>(sndr)};
@@ -130,8 +123,7 @@ struct Pop
 };
 
 //! Helper for @c Kokkos::Profiling::scoped_region.
-struct ScopedRegion
-{
+struct ScopedRegion {
     template <stdexec::sender Sndr, typename T, stdexec::__sender_adaptor_closure Closure>
     auto operator()(Sndr&& sndr, T&& name, Closure&& closure) const noexcept {
         return std::forward<Sndr&&>(sndr) | Push{}(std::forward<T>(name)) | std::forward<Closure>(closure) | Pop{}();
@@ -139,18 +131,13 @@ struct ScopedRegion
 
     template <typename T, stdexec::__sender_adaptor_closure Closure>
     auto operator()(T&& name, Closure&& closure) const noexcept {
-        return stdexec::__closure{
-            *this,
-            std::forward<T>(name),
-            std::forward<Closure>(closure)
-        };
+        return stdexec::__closure{*this, std::forward<T>(name), std::forward<Closure>(closure)};
     }
 };
 
 } // namespace Kokkos::Experimental::details::execution_space
 
-namespace Kokkos::Profiling
-{
+namespace Kokkos::Profiling {
 inline constexpr Kokkos::Experimental::details::execution_space::Push push{};
 inline constexpr Kokkos::Experimental::details::execution_space::Pop pop{};
 inline constexpr Kokkos::Experimental::details::execution_space::ScopedRegion scoped_region{};
