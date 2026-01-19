@@ -223,4 +223,23 @@ TEST_F(ThenTest, then_lifetime)
     );
 }
 
+TEST_F(ThenTest, fusion) {
+    const view_s_t data(Kokkos::view_alloc("data - shared space", exec));
+
+    const context_t esc{exec};
+
+    ::stdexec::sender auto sndr = ::stdexec::just() | ADD_THEN | ADD_THEN;
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record([&esc, sndr = std::move(sndr)] () mutable { ::stdexec::sync_wait(::stdexec::starts_on(esc.get_scheduler_fusion(), std::move(sndr))); }),
+        ::testing::ElementsAre(
+            MATCHER_FOR_BEGIN_PFOR (exec, dispatch_label(exec, "then")),
+            MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))
+    ));
+
+    ASSERT_EQ(data(), 2);
+}
+
 } // namespace tests::kokkos_ext

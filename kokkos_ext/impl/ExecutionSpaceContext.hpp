@@ -56,10 +56,10 @@ struct Domain : public stdexec::default_domain
 };
 
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
-template <Kokkos::ExecutionSpace Exec>
+template <Kokkos::ExecutionSpace Exec, is_property props>
 struct SchedulerEnv
 {
-    [[nodiscard]] constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec> {
+    [[nodiscard]] constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec, props> {
         return {exec};
     }
 
@@ -76,11 +76,14 @@ struct SchedulerEnv
  * Note that storing a @c Kokkos execution space instance and moving it around
  * generally implies a shared pointer copy, see https://github.com/kokkos/kokkos/pull/8807.
  */
-template <Kokkos::ExecutionSpace Exec>
+template <Kokkos::ExecutionSpace Exec, is_property props>
 struct Scheduler
 {
     //! As per https://eel.is/c++draft/exec.sched#1.
     using scheduler_concept = stdexec::scheduler_t;
+
+    using execution_space = Exec;
+    using properties_t = props;
 
     template <stdexec::receiver Rcvr>
     struct OpState
@@ -106,9 +109,9 @@ struct Scheduler
             return {std::forward<Rcvr>(rcvr)};
         }
 
-        [[nodiscard]] constexpr auto get_env() const noexcept -> const SchedulerEnv<Exec>& { return env; }
+        [[nodiscard]] constexpr auto get_env() const noexcept -> const SchedulerEnv<Exec, props>& { return env; }
 
-        SchedulerEnv<Exec> env;
+        SchedulerEnv<Exec, props> env;
     };
 
     [[nodiscard]] Sender schedule() const noexcept { return {exec}; }
@@ -142,7 +145,12 @@ struct ExecutionSpaceContext
 {
     Exec exec;
 
-    auto get_scheduler() const noexcept -> details::execution_space::Scheduler<Exec> {
+    auto get_scheduler() const noexcept -> details::execution_space::Scheduler<Exec, details::execution_space::Property<Mode::NORMAL>> {
+        return {exec};
+    }
+
+    //! Explicitly allow fusion.
+    auto get_scheduler_fusion() const noexcept -> details::execution_space::Scheduler<Exec, details::execution_space::Property<Mode::FUSION>> {
         return {exec};
     }
 };
