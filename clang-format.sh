@@ -11,6 +11,8 @@ fi
 
 PATTERNS=(
     'kokkos_ext/impl/execution_space/bulk.hpp'
+    'kokkos_ext/impl/execution_space/continues_on.hpp'
+    'kokkos_ext/impl/execution_space/get_exec.hpp'
     'kokkos_ext/impl/execution_space/scoped_region.hpp'
     'kokkos_ext/impl/execution_space/sync_wait.hpp'
     'kokkos_ext/impl/execution_space/then.hpp'
