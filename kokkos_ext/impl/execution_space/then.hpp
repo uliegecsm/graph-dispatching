@@ -9,70 +9,124 @@
 
 namespace Kokkos::Experimental::details::execution_space {
 
+//! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
+template <typename Functor>
+struct ThenWrapper {
+    Functor functor;
+
+    template <std::integral T>
+    KOKKOS_FUNCTION void operator()(const T) const {
+        functor();
+    }
+};
+
+template <typename... Fused>
+struct ThenFusedWrapper {
+    std::tuple<Fused...> fused;
+
+    template <size_t... Is>
+    KOKKOS_FUNCTION void call_impl(std::index_sequence<Is...>) const {
+        (std::get<Is>(fused)(), ...);
+    }
+    
+    template <std::integral T>
+    KOKKOS_FUNCTION void operator()(const T) const {
+        call_impl(std::make_index_sequence<sizeof...(Fused)>{});
+    }
+};
+
+template <stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor, stdexec::__is_instance_of<Scheduler> Schd>
+struct ThenReceiver;
+
+template <stdexec::sender Sndr, stdexec::receiver InnerRcvr, typename Functor, stdexec::__is_instance_of<Scheduler> Schd>
+struct ThenOpState {
+    using rcvr_t = ThenReceiver<Sndr, InnerRcvr, Functor, Schd>;
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, rcvr_t>;
+    using functor_t = Functor;
+
+    Schd schd;
+    InnerRcvr inner_rcvr;
+    inner_opstate_t inner_opstate;
+    Functor functor;
+
+    bool do_dispatch = true;
+
+    template <stdexec::sender Sender, stdexec::receiver Rcvr, typename Func>
+    ThenOpState(Schd&& schd_, Sender&& sndr, Rcvr&& rcvr, Func&& func)
+        : schd(std::move(schd_))
+        , inner_rcvr(std::forward<Rcvr>(rcvr))
+        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
+        , functor(std::forward<Func>(func)) {
+        PLOG_DEBUG << Kokkos::Impl::TypeInfo<typename Schd::properties_t>::name();
+        PLOG_DEBUG << Kokkos::Impl::TypeInfo<inner_opstate_t>::name();
+        if constexpr (stdexec::__is_instance_of_<inner_opstate_t, ThenOpState>) {
+            PLOG_DEBUG << "Inner opstate derives from ThenOpState.";
+            // add check on the scheduler properties, mode must be "allow fusion"
+            inner_opstate.do_dispatch = false;
+        }
+    }
+
+    //! The operation state solve the problem with the resource ? It should in principle but not for our kokkos customization.
+    void dispatch() noexcept {
+        if (do_dispatch) {
+            if constexpr (stdexec::__is_instance_of_<inner_opstate_t, ThenOpState>) {
+                Kokkos::parallel_for(
+                    std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
+                    Kokkos::RangePolicy(std::move(this->schd).exec, 0, 1),
+                    // ThenWrapper{std::move(functor)}
+                    ThenFusedWrapper<typename inner_opstate_t::functor_t, Functor>{{std::move(inner_opstate.functor), std::move(functor)}}
+                );
+            } else {
+                Kokkos::parallel_for(
+                    std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
+                    Kokkos::RangePolicy(std::move(this->schd).exec, 0, 1),
+                    ThenWrapper{std::move(functor)});
+            }
+        }
+    }
+
+    void start() & noexcept {
+        stdexec::start(inner_opstate);
+    }
+
+    template <typename Tag, typename... Args>
+    void propagate_completion_signal(Tag, Args&&... args) && noexcept {
+        Tag()(std::move(inner_rcvr), std::forward<Args>(args)...);
+    }
+
+    auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
+        return ::stdexec::get_env(inner_rcvr);
+    }
+};
+
 /**
  * @brief Receiver for @c then.
  *
  * @note It must be nothrow moveable, see @cite P3383R3.
  */
-template <stdexec::receiver Rcvr, typename Functor, stdexec::__is_instance_of<Scheduler> Schd>
-struct ThenReceiver : public Receiver<Schd, Rcvr> {
-    using base_t = Receiver<Schd, Rcvr>;
+template <stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor, stdexec::__is_instance_of<Scheduler> Schd>
+struct ThenReceiver {
+    using receiver_concept = stdexec::receiver_t;
+    using opstate_t = ThenOpState<Sndr, Rcvr, Functor, Schd>;
 
-    //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
-    struct ThenWrapper {
-        Functor functor;
-
-        template <std::integral T>
-        KOKKOS_FUNCTION void operator()(const T) const {
-            functor();
-        }
-    };
-
-    ThenWrapper wrapper;
-
-    template <typename Rcv, typename Fun, typename Sch>
-    ThenReceiver(Rcv&& rcv, Fun&& fun, Sch&& sch)
-        : base_t(std::forward<Sch>(sch), std::forward<Rcv>(rcv))
-        , wrapper{std::forward<Fun>(fun)} {
-    }
-
-    ThenReceiver(const ThenReceiver&) = delete;
-    ThenReceiver& operator=(const ThenReceiver&) = delete;
-    ThenReceiver(ThenReceiver&&) noexcept = default;
-    ThenReceiver& operator=(ThenReceiver&&) noexcept = default;
-    ~ThenReceiver() = default;
+    opstate_t* opstate;
 
     void set_value() && noexcept {
-        try {
-            Kokkos::parallel_for(
-                std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
-                Kokkos::RangePolicy(std::move(this->schd).exec, 0, 1),
-                /// We cannot write:
-                /// @code
-                /// ThenWrapper{.functor = std::move(functor)}
-                /// @endcode
-                /// because, as @c Kokkos::parallel_for spawns a possibly asynchronous
-                /// kernel, we must keep any resource alive.
-                /// @todo Using @c async_scope from https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3149r3.html#executionasync_scope
-                ///       would move the responsibility of lifetime bookkeeping to the user.
-                wrapper);
-        } catch (...) {
-            stdexec::set_error(std::move(this->rcvr), std::current_exception());
-        }
-        stdexec::set_value(std::move(this->rcvr));
+        opstate->dispatch();
+        std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(this->rcvr), std::forward<Error>(err));
+        std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
     }
 
     void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(this->rcvr));
+        std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
     }
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
-        return ::stdexec::get_env(this->rcvr);
+    auto get_env() const noexcept -> stdexec::env_of_t<Rcvr> {
+        return opstate->get_env();
     }
 };
 
@@ -102,10 +156,7 @@ struct ThenSender {
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = ThenReceiver<std::remove_cvref_t<Rcvr>, Functor, Schd>;
-
-        return ::stdexec::connect(
-            std::move(sndr), recv_t{std::forward<Rcvr>(rcvr), std::move(functor), std::move(schd)});
+        return ThenOpState<Sndr, Rcvr, Functor, Schd>(std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr), std::move(functor));
     }
 
     Sndr sndr;
