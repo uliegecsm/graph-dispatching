@@ -10,6 +10,9 @@ else
 fi
 
 PATTERNS=(
+    'algorithms/newton/*.hpp'
+    'apps/**.hpp'
+    'benchmarks/newton/benchmark_compare.cpp'
     'kokkos_ext/impl/execution_space/bulk.hpp'
     'kokkos_ext/impl/execution_space/continues_on.hpp'
     'kokkos_ext/impl/execution_space/get_exec.hpp'
@@ -25,6 +28,8 @@ PATTERNS=(
     'tests/kokkos_ext/execution_space/test_scheduler.cpp'
     'tests/kokkos_ext/graph/*.cpp'
     'tests/kokkos_ext/graph/*.hpp'
+    'tests/newton/*.cpp'
+    'tests/newton/*.hpp'
     'tests/utils/*'
     'tests/CallbackMatchers.hpp'
     'tests/Functors.hpp'
