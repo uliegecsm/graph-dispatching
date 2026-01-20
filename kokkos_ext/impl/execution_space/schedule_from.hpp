@@ -33,10 +33,8 @@ struct ScheduleFromReceiver {
         stdexec::set_stopped(std::move(rcvr));
     }
 
-    [[nodiscard]]
-    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>> {
-        return stdexec::__fwd_env(stdexec::get_env(this->rcvr));
-    }
+    //! Make others aware of which execution space instance it may synchronize.
+    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec)
 };
 
 //! Sender for @c schedule_from.

@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 
     //! Instruct the tools to avoid global fences if possible.
     Kokkos::Tools::Experimental::set_request_tool_settings_callback(
-        [](const uint32_t, Kokkos::Tools::Experimental::ToolSettings* settings) {
+        [](const uint32_t, Kokkos::Tools::Experimental::ToolSettings* settings) -> void {
             settings->requires_global_fencing = false;
         });
 
