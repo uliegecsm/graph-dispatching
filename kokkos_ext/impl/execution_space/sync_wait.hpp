@@ -14,29 +14,29 @@ template <Kokkos::ExecutionSpace Exec>
 struct SyncWaitReceiver {
     using receiver_concept = stdexec::receiver_t;
 
-    Exec exec;
-    Kokkos::Experimental::details::impl::State* state;
+    State<Exec>* state;
+    Kokkos::Experimental::details::impl::State* runloop_state;
 
     void set_value() && noexcept {
-        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
-        state->loop.finish();
+        state->exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
+        runloop_state->loop.finish();
     }
 
     template <typename Error>
     void set_error(Error&& err) && noexcept {
-        state->error = std::forward<Error>(err);
-        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
-        state->loop.finish();
+        runloop_state->error = std::forward<Error>(err);
+        state->exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
+        runloop_state->loop.finish();
     }
 
     void set_stopped() noexcept {
-        exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
-        state->loop.finish();
+        state->exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
+        runloop_state->loop.finish();
     }
 
     [[nodiscard]]
     constexpr auto get_env() const noexcept -> Kokkos::Experimental::details::impl::env {
-        return {state->loop.get_scheduler()};
+        return {runloop_state->loop.get_scheduler()};
     }
 };
 
@@ -49,19 +49,20 @@ struct SyncWait {
      */
     template <stdexec::sender Sndr>
     auto operator()(Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>> {
-        Kokkos::Experimental::details::impl::State state;
+        Kokkos::Experimental::details::impl::State runloop_state;
 
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 
-        auto op_state =
-            stdexec::connect(std::forward<Sndr>(sndr), SyncWaitReceiver{.exec = std::move(schd.exec), .state = &state});
+        auto op_state = stdexec::connect(
+            std::forward<Sndr>(sndr),
+            SyncWaitReceiver{.state = std::move(schd.state), .runloop_state = &runloop_state});
 
         stdexec::start(op_state);
 
-        state.loop.run();
+        runloop_state.loop.run();
 
-        if (state.error)
-            std::rethrow_exception(std::move(state.error));
+        if (runloop_state.error)
+            std::rethrow_exception(std::move(runloop_state.error));
 
         return std::tuple{};
     }
