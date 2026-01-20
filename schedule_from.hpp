@@ -19,7 +19,8 @@ struct ScheduleFromReceiver {
 
     void set_value() && noexcept {
         if (!skip)
-            schd.exec.fence(std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(schd.exec)>::name()));
+            schd.state->exec.fence(
+                std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<typename Schd::execution_space>::name()));
         stdexec::set_value(std::move(rcvr));
     }
 
@@ -84,9 +85,9 @@ struct transform_sender_for<stdexec::schedule_from_t, Env> {
             if constexpr (stdexec::__queryable_with<Env, get_exec_t>) {
                 if constexpr (std::same_as<
                                   std::remove_cvref_t<decltype(get_exec(env_))>,
-                                  std::remove_cvref_t<decltype(schd.exec)>
+                                  std::remove_cvref_t<decltype(schd.state->exec)>
                               >) {
-                    return schd.exec == get_exec(env_);
+                    return schd.state->exec == get_exec(env_);
                 }
             }
             return false;

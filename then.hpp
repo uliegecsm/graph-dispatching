@@ -45,8 +45,8 @@ struct ThenReceiver : public Receiver<Schd, Rcvr> {
     void set_value() && noexcept {
         try {
             Kokkos::parallel_for(
-                std::format("{}: then", Kokkos::Impl::TypeInfo<decltype(this->schd.exec)>::name()),
-                Kokkos::RangePolicy(std::move(this->schd).exec, 0, 1),
+                std::format("{}: then", Kokkos::Impl::TypeInfo<typename Schd::execution_space>::name()),
+                Kokkos::RangePolicy(this->schd.state->exec, 0, 1),
                 /// We cannot write:
                 /// @code
                 /// ThenWrapper{.functor = std::move(functor)}
