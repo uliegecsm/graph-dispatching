@@ -89,7 +89,8 @@ TEST(check_scheduler, split_transfer_when_all_no_forward)
     ::stdexec::sync_wait(std::move(chain) | check_scheduler<static_thread_pool_scheduler_t>());
 }
 
-void test_multiple_splits()
+//! @test Multiple splits.
+TEST(check_scheduler, multiple_splits)
 {
     ::exec::static_thread_pool pool{1};
 
@@ -98,40 +99,23 @@ void test_multiple_splits()
         | THEN_SHOW_ID
         | ::stdexec::split();
 
-    PRAGMA_DIAGNOSTIC_PUSH
-    PRAGMA_DIAGNOSTIC_IGNORED_STRINGOP_OVERFLOW
-    auto chain_A = ::stdexec::when_all(
-                  fork_A  | THEN_SHOW_ID,
-        std::move(fork_A) | THEN_SHOW_ID
-    ) | THEN_SHOW_ID;
-    PRAGMA_DIAGNOSTIC_POP
+    auto chain_A_branch_a = fork_A | THEN_SHOW_ID;
+    auto chain_A_branch_b = std::move(fork_A)  | THEN_SHOW_ID;
+
+    auto chain_A = ::stdexec::when_all(std::move(chain_A_branch_a), std::move(chain_A_branch_b)) | THEN_SHOW_ID;
 
     auto fork_B = std::move(chain_A)
         | ::stdexec::continues_on(pool.get_scheduler())
         | check_scheduler<static_thread_pool_scheduler_t>()
         | ::stdexec::split();
 
-    PRAGMA_DIAGNOSTIC_PUSH
-    PRAGMA_DIAGNOSTIC_IGNORED_STRINGOP_OVERFLOW
-    auto chain_B = ::stdexec::when_all(
-                  fork_B  | THEN_SHOW_ID | check_scheduler<default_scheduler_t>(),
-        std::move(fork_B) | THEN_SHOW_ID | check_scheduler<default_scheduler_t>()
-    ) | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
-    PRAGMA_DIAGNOSTIC_POP
+    auto chain_B_branch_a = fork_B | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
+    auto chain_B_branch_b = std::move(fork_B) | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
+
+    auto chain_B = ::stdexec::when_all(std::move(chain_B_branch_a), std::move(chain_B_branch_b))
+        | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
 
     ::stdexec::sync_wait(std::move(chain_B) | check_scheduler<default_scheduler_t>());
-}
-
-//! @test Multiple splits.
-TEST(check_scheduler, multiple_splits)
-{
-    //! GCC 13.3.0 and 14.2.0 seem to raise a false positive for -Wstringop-overflow, but it will segfault. See https://github.com/NVIDIA/stdexec/issues/1743.
-#if defined(__GNUC__) && !defined(__clang__)
-    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
-    ASSERT_DEATH(test_multiple_splits(), ".*");
-#else
-    test_multiple_splits();
-#endif
 }
 
 } // namespace tests::stdexec
