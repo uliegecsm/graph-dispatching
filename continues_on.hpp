@@ -32,11 +32,11 @@ struct ContinuesOnReceiver {
 
     [[nodiscard]]
     constexpr auto get_env() const noexcept -> stdexec::__join_env_t<
-        stdexec::prop<get_exec_t, typename Schd::execution_space>,
+        stdexec::prop<get_exec_t, ExecutionSpaceRef<typename Schd::execution_space>>,
         stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>>
     > {
         return stdexec::__env::__join(
-            stdexec::prop{get_exec, schd.state->exec}, stdexec::__fwd_env(stdexec::get_env(rcvr)));
+            stdexec::prop{get_exec, ExecutionSpaceRef{schd.state->exec}}, stdexec::__fwd_env(stdexec::get_env(rcvr)));
     }
 };
 
