@@ -3,21 +3,18 @@
 
 #include "stdexec/execution.hpp"
 
-namespace Kokkos::Experimental::details::execution_space
-{
-struct ReceiverBase
-{
+namespace Kokkos::Experimental::details::execution_space {
+struct ReceiverBase {
     using receiver_concept = stdexec::receiver_t;
 };
 
 template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
-struct Receiver : public ReceiverBase
-{
+struct Receiver : public ReceiverBase {
     template <typename Scheduler, typename Rec>
     Receiver(Scheduler&& scheduler, Rec&& receiver)
-        : schd(std::forward<Scheduler>(scheduler)),
-          rcvr(std::forward<Rec>(receiver))
-    {}
+        : schd(std::forward<Scheduler>(scheduler))
+        , rcvr(std::forward<Rec>(receiver)) {
+    }
 
     Schd schd;
     Rcvr rcvr;
