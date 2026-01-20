@@ -84,10 +84,10 @@ struct transform_sender_for<stdexec::schedule_from_t, Env> {
         const bool skip = [&]() {
             if constexpr (stdexec::__queryable_with<Env, get_exec_t>) {
                 if constexpr (std::same_as<
-                                  std::remove_cvref_t<decltype(get_exec(env_))>,
+                                  std::remove_cvref_t<decltype(get_exec(env_).get())>,
                                   std::remove_cvref_t<decltype(schd.state->exec)>
                               >) {
-                    return schd.state->exec == get_exec(env_);
+                    return schd.state->exec == get_exec(env_).get();
                 }
             }
             return false;
