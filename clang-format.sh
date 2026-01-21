@@ -24,6 +24,7 @@ PATTERNS=(
     'tests/kokkos_ext/execution_space/*.cpp'
     'tests/kokkos_ext/graph/*.cpp'
     'tests/kokkos_ext/graph/*.hpp'
+    'tests/main.cpp'
     'tests/newton/*.cpp'
     'tests/newton/*.hpp'
     'tests/stdexec/adaptors/test_split.cpp'
