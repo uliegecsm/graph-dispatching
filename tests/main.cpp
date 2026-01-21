@@ -3,8 +3,7 @@
 #include "Kokkos_Core.hpp"
 
 //! Entry point that will initialize both <tt>Google Test</tt> and @c Kokkos.
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
     //! Instruct the tools to avoid global fences if possible.
