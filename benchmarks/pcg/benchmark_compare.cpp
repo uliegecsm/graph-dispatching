@@ -124,14 +124,22 @@ void CustomArguments(benchmark::internal::Benchmark* benchmark) {
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters", "nsweeps"})
 
-    ->Args({10,  4, 4})
-    ->Args({10,  4, 8})
-
-    ->Args({20,  9, 4})
-    ->Args({20,  9, 8})
-
-    ->Args({40,  19, 4})
-    ->Args({40,  16, 8})
+    ->Args({    10,     4, 4})->Args({    10,     4, 8})
+    ->Args({    20,     9, 4})->Args({    20,     9, 8})
+    ->Args({    50,    23, 4})->Args({    50,    19, 8})
+#if false
+    ->Args({   100,    43, 4})->Args({   100,    33, 8})
+    ->Args({   150,    62, 4})->Args({   150,    47, 8})
+    ->Args({   200,    81, 4})->Args({   200,    60, 8})
+    ->Args({   300,   118, 4})->Args({   300,    87, 8})
+    ->Args({   500,   190, 4})->Args({   500,   139, 8})
+    ->Args({  1000,   371, 4})->Args({  1000,   268, 8})
+    ->Args({  2000,   729, 4})->Args({  2000,   522, 8})
+    ->Args({ 10000,  3571, 4})->Args({ 10000,  2536, 8})
+    ->Args({ 20000,  7115, 4})->Args({ 20000,  5044, 8})
+    ->Args({ 50000, 17735, 4})->Args({ 50000, 12558, 8})
+    ->Args({100000, 59954, 4})->Args({100000, 25074, 8})
+#endif
     ;
 }
 

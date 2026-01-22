@@ -150,7 +150,7 @@ class PCGBenchmark(BenchmarkBase):
         ax_time  = axes[0]
         ax_ratio = axes[1]
 
-        COLORS = ['r', 'b']
+        COLORS: typing.Final[tuple[str, str]] = ('r', 'b')
 
         for insweeps, nsweeps in enumerate(nsweeps_sorted_set):
             ax_ratio.plot(
@@ -208,9 +208,10 @@ class PCGBenchmark(BenchmarkBase):
         ax_time .grid(True)
 
         # Save figure.
-        output = self.results.with_suffix('.svg')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
+        for ext in ('svg', 'eps', 'png'):
+            output = self.results.with_suffix('.' + ext)
+            logging.info(f'Saving figure to {output}.')
+            matplotlib.pyplot.savefig(output, bbox_inches=0, transparent=False)
 
 if __name__ == '__main__':
 

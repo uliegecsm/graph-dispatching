@@ -76,7 +76,7 @@ function(add_one_benchmark)
     set_property(
         TEST ${EXECUTABLE_NAME}
         APPEND PROPERTY
-            ENVIRONMENT_MODIFICATION PYTHONPATH=prepend:${CMAKE_SOURCE_DIR}
+            ENVIRONMENT_MODIFICATION PYTHONPATH=path_list_prepend:${CMAKE_SOURCE_DIR}
     )
 
 endfunction()
