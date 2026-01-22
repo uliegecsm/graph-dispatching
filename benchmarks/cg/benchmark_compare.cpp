@@ -173,9 +173,23 @@ void CustomArguments(benchmark::internal::Benchmark* benchmark) {
     benchmark
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters"})
-    ->Args({   10,     9})
-    ->Args({   20,    18})
-    ->Args({   90,    89});
+    ->Args({    10,     9})
+    ->Args({    20,    18})
+    ->Args({    50,    48})
+#if false
+    ->Args({   100,    99})
+    ->Args({   150,   149})
+    ->Args({   200,   198})
+    ->Args({   300,   299})
+    ->Args({   500,   498})
+    ->Args({  1000,   999})
+    ->Args({  2000,  1998})
+    ->Args({ 10000,  9999})
+    ->Args({ 20000, 19998})
+    ->Args({ 50000, 49998})
+    ->Args({100000, 99999})
+#endif
+;
 }
 
 /// @name Benchmarks that will go up to convergence.

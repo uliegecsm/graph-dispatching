@@ -375,7 +375,11 @@ def parse_args() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
 
     parser.add_argument(dest = "target_args" , help = "Arguments that will be passed to the 'target'.", nargs = '*')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    args.target = args.target.resolve()
+
+    return args
 
 if __name__ == '__main__':
 
