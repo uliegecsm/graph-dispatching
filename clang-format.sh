@@ -27,6 +27,7 @@ PATTERNS=(
     'tests/main.cpp'
     'tests/newton/*.cpp'
     'tests/newton/*.hpp'
+    'tests/stdexec/adaptors/test_let_value.cpp'
     'tests/stdexec/adaptors/test_split.cpp'
     'tests/utils/*'
     'tests/CallbackMatchers.hpp'
