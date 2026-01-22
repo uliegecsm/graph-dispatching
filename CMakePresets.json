@@ -58,6 +58,22 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "$penv{Kokkos_ROOT}/bin/nvcc_wrapper"}
         },
         {
+            "$comment": "Inherit from this preset to use the address sanitizer.",
+            "name": "sanitize-address",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-fsanitize=address"
+            }
+        },
+        {
+            "$comment": "Inherit from this preset to use the thread sanitizer.",
+            "name": "sanitize-thread",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-fsanitize=thread"
+            }
+        },
+        {
             "name"           : "gcc-OpenMP",
             "inherits"       : ["default", "gcc", "ccache"],
             "cacheVariables" : {
@@ -66,18 +82,16 @@
         },
         {
             "name"           : "clang-OpenMP",
-            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
+            "inherits"       : ["default", "clang", "clang-tidy", "ccache", "sanitize-address"],
             "cacheVariables" : {
-                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP",
-                "CMAKE_CXX_FLAGS": "-fsanitize=address"
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
         },
         {
             "name"           : "clang-HPX",
-            "inherits"       : ["default", "clang", "ccache"],
+            "inherits"       : ["default", "clang", "ccache", "sanitize-address"],
             "cacheVariables" : {
-                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX",
-                "CMAKE_CXX_FLAGS": "-fsanitize=address"
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX"
             }
         },
         {
@@ -89,9 +103,8 @@
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
+            "inherits"       : ["default", "clang", "clang-tidy", "ccache", "sanitize-thread"],
             "cacheVariables" : {
-                "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
             }
         },
@@ -99,7 +112,6 @@
             "name"           : "clang-HPX-Cuda",
             "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
-                "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX;CUDA"
             }
         },
@@ -173,6 +185,13 @@
             }
         },
         {
+            "name": "tsan-suppressions",
+            "hidden": true,
+            "environment": {
+                "TSAN_OPTIONS": "suppressions=${sourceDir}/suppressions/tsan.supp"
+            }
+        },
+        {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
             "inherits"        : "default"
@@ -195,7 +214,7 @@
         {
             "name"            : "clang-Cuda",
             "configurePreset" : "clang-Cuda",
-            "inherits"        : "default"
+            "inherits"        : ["default", "tsan-suppressions"]
         },
         {
             "name"            : "clang-HPX-Cuda",

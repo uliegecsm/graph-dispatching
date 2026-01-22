@@ -31,6 +31,10 @@ if(
             -Werror=unused-member-function
             -Werror=delete-non-virtual-dtor
         )
+
+        if(CUDA IN_LIST Kokkos_DEVICES)
+            add_compile_options(-Wno-error=unknown-cuda-version)
+        endif()
     endif()
 
 else()
