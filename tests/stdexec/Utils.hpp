@@ -23,21 +23,13 @@ concept has_completion_signatures = ::stdexec::queryable<Sndr> && std::same_as<
 namespace impl
 {
 
-template <::stdexec::receiver Rcvr>
-struct CheckSchedulerReceiver : public ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>
-{
-    explicit CheckSchedulerReceiver(Rcvr&& rcvr) : ::stdexec::receiver_adaptor<CheckSchedulerReceiver<Rcvr>, Rcvr>{std::move(rcvr)} {}
-};
-
 template <::stdexec::scheduler Scheduler, typename Tag, ::stdexec::sender Sndr>
 struct CheckSchedulerSender
 {
     using sender_concept = ::stdexec::sender_t;
 
     template <typename Self, typename... Env>
-    using _completion_signatures = ::stdexec::transform_completion_signatures<
-        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>
-    >;
+    using _completion_signatures = ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>;
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(CheckSchedulerSender)
 
@@ -45,9 +37,9 @@ struct CheckSchedulerSender
     constexpr ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
     {
         /// First, try to get the completion scheduler from the sender environment.
-        if constexpr (requires { ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr), ::stdexec::get_env(rcvr)); })
+        if constexpr (requires { ::stdexec::get_completion_scheduler<Tag>(::stdexec::get_env(sndr), ::stdexec::get_env(rcvr)); })
         {
-            using scheduler_t = decltype(::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(sndr), ::stdexec::get_env(rcvr)));
+            using scheduler_t = decltype(::stdexec::get_completion_scheduler<Tag>(::stdexec::get_env(sndr), ::stdexec::get_env(rcvr)));
 
             static_assert(
                 std::same_as<std::remove_cvref_t<scheduler_t>, Scheduler>,
@@ -71,13 +63,14 @@ struct CheckSchedulerSender
             >, "No scheduler found.");
         }
 
-        return ::stdexec::connect(std::move(sndr), CheckSchedulerReceiver<std::remove_cvref_t<Rcvr>>{std::forward<Rcvr>(rcvr)});
+        return ::stdexec::connect(std::move(sndr), std::forward<Rcvr>(rcvr));
     }
 
-    Sndr sndr;
+    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
-        return ::stdexec::get_env(sndr);
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> ::stdexec::__fwd_env_t<::stdexec::env_of_t<Sndr>> {
+        return ::stdexec::__fwd_env(::stdexec::get_env(sndr));
     }
 };
 
