@@ -79,7 +79,7 @@ TEST_F(ForkJoinTest, copies) {
                   ::stdexec::completion_signatures<::stdexec::set_stopped_t(), ::stdexec::set_value_t()>
     >);
 
-    /// The completion domain after the @c exec::fork_join is the one of the upstream (before the fork). Compared to @c stdexec::when_all
+    /// The completion scheduler after the @c exec::fork_join is the one of the upstream (before the fork). Compared to @c stdexec::when_all
     /// that does not know about the sender that lives *before* the fork, @c exec::fork_join has that knowledge.
     static_assert(std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<chain_t>>, ::stdexec::default_domain>);
     static_assert(std::same_as<

@@ -39,7 +39,7 @@ class LetValueTest
 };
 
 /**
- * @test Use @c stdexec::let_value to express branching instead of @c stdexec::split, as proposed in @ref P3682R0.
+ * @test Use @c stdexec::let_value to express branching instead of @c stdexec::split, as proposed in @cite P3682R0.
  *
  * The semantic seems different. With @c stdexec::let_value, the inner sender is connected "lately", only when the @c stdexec::let_value
  * receiver is consumed.
@@ -59,15 +59,17 @@ TEST_F(LetValueTest, for_branching) {
                   });
 
     ::stdexec::sync_wait(
-        std::move(shared) | ::stdexec::let_value([this, &consumed, &thrids](const double value) {
-            std::printf("Value received is %f.\n", value);
-            if (!consumed)
-                throw std::runtime_error("Not consumed yet.");
-            auto br_b = ::stdexec::schedule(pools.at(index_of_B).get_scheduler()) | THEN_STORE_ID(thrids[1]);
-            auto br_c = ::stdexec::schedule(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids[2]);
-            auto br_d = ::stdexec::schedule(pools.at(index_of_D).get_scheduler()) | THEN_STORE_ID(thrids[3]);
-            return ::stdexec::when_all(std::move(br_b), std::move(br_c), std::move(br_d));
-        }));
+        std::move(shared) // NOLINT(performance-move-const-arg)
+        | ::stdexec::let_value([this, &consumed, &thrids](const double value) {
+              std::printf("Value received is %f.\n", value);
+              if (!consumed)
+                  throw std::runtime_error("Not consumed yet.");
+              auto br_b = ::stdexec::schedule(pools.at(index_of_B).get_scheduler()) | THEN_STORE_ID(thrids[1]);
+              auto br_c = ::stdexec::schedule(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids[2]);
+              auto br_d = ::stdexec::schedule(pools.at(index_of_D).get_scheduler()) | THEN_STORE_ID(thrids[3]);
+              return ::stdexec::when_all(
+                  std::move(br_b), std::move(br_c), std::move(br_d)); // NOLINT(performance-move-const-arg)
+          }));
 
     ASSERT_EQ(thrids[0], threads.at(index_of_A));
     ASSERT_EQ(thrids[1], threads.at(index_of_B));
