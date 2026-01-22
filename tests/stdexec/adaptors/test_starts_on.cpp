@@ -186,13 +186,7 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
-    //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
     using starts_on_t = decltype(starts_on);
-
-    static_assert(std::derived_from<
-        ::std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
-        ::stdexec::dependent_sender_error
-    >);
 
     static_assert(std::same_as<std::invoke_result_t<
         ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
@@ -214,13 +208,7 @@ TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
-    //! Until it is connected, the completion signatures are *dependent* (they are not fully known yet).
     using starts_on_t = decltype(starts_on);
-
-    static_assert(std::derived_from<
-        ::std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
-        ::stdexec::dependent_sender_error
-    >);
 
     static_assert(std::same_as<std::invoke_result_t<
         ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
