@@ -116,7 +116,9 @@ RUN <<EOF
 
     cd googletest
 
-    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/opt/google-test-${GOOGLETEST_VERSION}
+    cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/google-test-${GOOGLETEST_VERSION}
 
     cmake --build build -j4
 

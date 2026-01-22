@@ -1,5 +1,3 @@
-#include <format>
-
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/pcg/Graph.hpp"
 #include "algorithms/pcg/Preconditioners.hpp"
@@ -80,9 +78,9 @@ public:
 
         const auto output = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR)
             / state.name()
-            / std::format("nrows_{}",   state.range(state_nrows))
-            / std::format("niters_{}",  state.range(state_niters))
-            / std::format("nsweeps_{}", state.range(state_nsweeps))
+            / ("nrows_" + std::to_string(state.range(state_nrows)))
+            / ("niters_" + std::to_string(state.range(state_niters)))
+            / ("nsweeps_" + std::to_string(state.range(state_nsweeps)))
             / "timings.bin";
 
         this->write(output, std::span{timings});
