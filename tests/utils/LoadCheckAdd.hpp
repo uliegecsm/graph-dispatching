@@ -16,6 +16,18 @@ constexpr bool on_device() {
 #endif
 }
 
+template <bool OnDevice>
+struct RaiseIfNot {
+    KOKKOS_FUNCTION
+    constexpr void operator()() const {
+        if constexpr (OnDevice) {
+            KOKKOS_IF_ON_HOST(Kokkos::abort("You should not be running on host.");)
+        } else {
+            KOKKOS_IF_ON_DEVICE(Kokkos::abort("You should not be running on device.");)
+        }
+    }
+};
+
 /**
  * @brief Load the value at @ref data and check it is equal to @ref prev. Then, add @ref value to it.
  *
@@ -29,16 +41,26 @@ struct LoadCheckAddFunctor {
 
     KOKKOS_FUNCTION
     void operator()() const {
-        if constexpr (OnDevice) {
-            KOKKOS_IF_ON_HOST(Kokkos::abort("You should not be running on host.");)
-        } else {
-            KOKKOS_IF_ON_DEVICE(Kokkos::abort("You should not be running on device.");)
-        }
+        RaiseIfNot<OnDevice>{}();
 
         if (*data != prev) {
             KOKKOS_IF_ON_HOST(Kokkos::abort("Unexpected value on host.");)
             KOKKOS_IF_ON_DEVICE(Kokkos::abort("Unexpected value on device.");)
         }
+        *data += value;
+    }
+};
+
+//! Similar to @ref LoadCheckAddFunctor but does not check the previous value.
+template <typename ValueType, bool OnDevice>
+struct AddFunctor {
+    ValueType value;
+    ValueType* data;
+
+    KOKKOS_FUNCTION
+    void operator()() const {
+        RaiseIfNot<OnDevice>{}();
+
         *data += value;
     }
 };

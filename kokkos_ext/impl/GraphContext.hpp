@@ -83,6 +83,8 @@ struct State {
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
                     PLOG_DEBUG << "Instantiating the graph at " << std::addressof(*graph);
 #endif
+                    Kokkos::Profiling::markEvent(
+                        std::format("{}: graph instantiate", Kokkos::Impl::TypeInfo<Exec>::name()));
                     graph->instantiate();
                     is_instantiated = true;
                 }
