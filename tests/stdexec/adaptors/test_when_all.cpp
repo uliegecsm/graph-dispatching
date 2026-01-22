@@ -38,8 +38,14 @@ TEST(when_all, propagates_completion_domain_from_same_type_children)
         ::stdexec::starts_on(pool_A.get_scheduler(), ::stdexec::just(13)),
         ::stdexec::starts_on(pool_B.get_scheduler(), ::stdexec::just(3.14))
     );
-    auto domain = ::stdexec::get_completion_domain<::stdexec::set_value_t>(::stdexec::get_env(sndr), ::stdexec::env<>{});
-    static_assert(std::same_as<decltype(domain), ::exec::_pool_::_static_thread_pool::domain>);
+
+    static_assert(std::same_as<
+                  decltype(::stdexec::get_completion_domain<::stdexec::set_value_t>(
+                      ::stdexec::get_env(sndr), ::stdexec::env<>{})),
+                  ::exec::_pool_::_static_thread_pool::domain
+    >);
+
+    static_assert(!tests::stdexec::has_completion_scheduler_for<decltype(sndr), ::stdexec::set_value_t>);
 }
 
 /**
