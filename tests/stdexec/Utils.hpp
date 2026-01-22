@@ -101,20 +101,36 @@ constexpr auto check_scheduler() {
     return impl::CheckScheduler<Scheduler, Tag>{}();
 };
 
+//! A receiver that can handle all completions and does nothing with them.
+struct SinkReceiver
+{
+    using receiver_concept = ::stdexec::receiver_t;
+    
+    void set_value(auto&&...) noexcept {}
+    void set_error(auto&&) noexcept {}
+    void set_stopped() noexcept {}
+    
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> ::stdexec::env<> {
+        return {};
+    }
+};
+
 //! Receiver for a value, inspired by https://github.com/NVIDIA/stdexec/blob/3363435259b7ffae43d3f2e5f6b7a7b36d7cd7d3/test/test_common/receivers.hpp#L95.
 template <typename ValueType, typename Env = ::stdexec::env<>>
-struct value_receiver
+struct ValueReceiver
 {
     using receiver_concept = ::stdexec::receiver_t;
 
     ValueType* value;
     Env env_ {};
 
-    void set_value(ValueType value_) noexcept { *value = value_; }
+    void set_value(ValueType value_) noexcept { *value = std::move(value_); }
     void set_error(std::exception_ptr) noexcept {} // NOLINT(performance-unnecessary-value-param)
     void set_stopped() noexcept {}
 
-    auto get_env() const noexcept -> const Env& { return env_; }
+    [[nodiscard]]
+    constexpr auto get_env() const noexcept -> const Env& { return env_; }
 };
 
 //! Default scheduler type when none provided.
