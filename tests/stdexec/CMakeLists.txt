@@ -4,6 +4,7 @@ set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRE
 add_subdirectory(adaptors)
 add_subdirectory(factories)
 add_subdirectory(nvcc)
+add_subdirectory(queries)
 
 add_one_test(NAME check_scheduler  DISABLE_KOKKOS ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME custom_scheduler DISABLE_KOKKOS ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
