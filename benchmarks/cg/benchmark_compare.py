@@ -248,7 +248,7 @@ class CGBenchmark(unittest.TestCase):
 
         convergence_ax_ratio.set_xscale('log')
         convergence_ax_ratio.set_xlabel('size [-]')
-        convergence_ax_ratio.set_ylabel('overall ratio [-]')
+        convergence_ax_ratio.set_ylabel('ratio [-]')
 
         convergence_ax_per_i.set_xscale('log')
         convergence_ax_per_i.set_ylabel(f'avg. iteration [{time_unit}]')
@@ -272,6 +272,7 @@ class CGBenchmark(unittest.TestCase):
                 marker    = MARKER_RATIO_FULL,
                 linestyle = LINESTYLES[flavor],
                 color     = COLORS[flavor],
+                label     = 'overall',
             )
             convergence_ax_ratio.plot(
                 nrows_sorted_set,
@@ -279,6 +280,7 @@ class CGBenchmark(unittest.TestCase):
                 marker    = MARKER_RATIO_PER_ITER,
                 linestyle = LINESTYLES[flavor],
                 color     = COLORS[flavor],
+                label     = 'per iteration',
             )
 
         # Plot the 'one' ratio.
@@ -289,16 +291,14 @@ class CGBenchmark(unittest.TestCase):
         convergence_ax_per_i.grid(True)
 
         # Legend.
-        convergence_ax_per_i.legend(loc = 'upper left')
+        convergence_ax_per_i.legend(framealpha=1., loc = 'upper left')
+        convergence_ax_ratio.legend(framealpha=1., loc = 'upper right')
 
         # Save figure.
-        output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.svg')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
-
-        output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.png')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
+        for ext in ('png', 'svg', 'eps'):
+            output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.' + ext).resolve()
+            logging.info(f'Saving figure to {output}.')
+            matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
 
         # Plot the time it takes for the CG initial setup, graph creation and instantiation.
         # See also https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html#grouped-bar-chart-with-labels.
