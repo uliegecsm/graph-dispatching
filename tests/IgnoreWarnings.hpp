@@ -18,7 +18,7 @@
 /// We need to ignore a dangling reference warning under @c GCC, which is
 /// a known issue (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107532) and a false
 /// positive.
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 13
     #define PRAGMA_DIAGNOSTIC_IGNORED_DANGLING_REFERENCE PRAGMA_DIAGNOSTIC_IGNORED("-Wdangling-reference")
 #else
     #define PRAGMA_DIAGNOSTIC_IGNORED_DANGLING_REFERENCE
