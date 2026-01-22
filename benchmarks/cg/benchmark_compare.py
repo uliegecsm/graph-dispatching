@@ -1,4 +1,3 @@
-import argparse
 import enum
 import functools
 import itertools
@@ -8,12 +7,13 @@ import pathlib
 import re
 import subprocess
 import typing
-import unittest
 
 import matplotlib.pyplot
 import matplotlib.patches
 import numpy
 import typeguard
+
+from benchmarks.base import BenchmarkBase, parse_args
 
 class CGFlavor(enum.StrEnum):
     """
@@ -42,12 +42,11 @@ class CollectionMethod(enum.StrEnum):
             case _:
                 raise ValueError()
 
-class CGBenchmark(unittest.TestCase):
+class CGBenchmark(BenchmarkBase):
 
     @typeguard.typechecked
-    def __init__(self, target : pathlib.Path) -> None:
-        super().__init__()
-        self.target  = target
+    def __init__(self, target: pathlib.Path) -> None:
+        super().__init__(target=target)
         self.results = {
             CollectionMethod.CONVERGENCE: pathlib.Path(str(self.target) + '.CONVERGENCE.json'),
             CollectionMethod.SINGLE_ITER: pathlib.Path(str(self.target) + '.SINGLE_ITER.json'),
@@ -364,22 +363,6 @@ class CGBenchmark(unittest.TestCase):
         output = self.results[CollectionMethod.SINGLE_ITER].with_suffix('.png')
         logging.info(f'Saving figure to {output}.')
         matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
-
-def parse_args() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
-    """
-    Parse CLI args.
-    """
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--target', type = pathlib.Path, required = True)
-
-    parser.add_argument(dest = "target_args" , help = "Arguments that will be passed to the 'target'.", nargs = '*')
-
-    args = parser.parse_args()
-
-    args.target = args.target.resolve()
-
-    return args
 
 if __name__ == '__main__':
 

@@ -73,6 +73,11 @@ function(add_one_benchmark)
                 --
                 --benchmark_min_time=1x
     )
+    set_property(
+        TEST ${EXECUTABLE_NAME}
+        APPEND PROPERTY
+            ENVIRONMENT_MODIFICATION PYTHONPATH=prepend:${CMAKE_SOURCE_DIR}
+    )
 
 endfunction()
 
