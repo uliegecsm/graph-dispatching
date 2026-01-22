@@ -123,6 +123,11 @@ TEST_F(ThenTest, then_starts_on) {
     >);
 
     static_assert(std::same_as<
+                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
+                  ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>
+    >);
+
+    static_assert(std::same_as<
                   std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
                   ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>
     >);
