@@ -46,15 +46,15 @@ class ForkJoinTest
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CHAIN(_schd_)                                                                                                  \
-    ::stdexec::schedule(_schd_) | ::stdexec::then([&witness]() -> int {                                                \
+    ::stdexec::schedule(_schd_) | ::stdexec::then([&witness]() noexcept -> int {                                       \
         ++witness;                                                                                                     \
         return witness;                                                                                                \
     })                                                                                                                 \
         | ::exec::fork_join(                                                                                           \
             ::tests::stdexec::check_scheduler<::tests::stdexec::default_scheduler_t>()                                 \
-                | ::stdexec::then([&witness](const int received) { witness += received; }),                            \
+                | ::stdexec::then([&witness](const int received) noexcept { witness += received; }),                   \
             ::tests::stdexec::check_scheduler<::tests::stdexec::default_scheduler_t>()                                 \
-                | ::stdexec::then([&witness](const int received) { witness += received; })                             \
+                | ::stdexec::then([&witness](const int received) noexcept { witness += received; })                    \
                 | ::stdexec::then(::tests::utils::Counter{}))
 
 /**
@@ -70,7 +70,34 @@ TEST_F(ForkJoinTest, copies) {
 
     std::atomic<int> witness{0};
 
-    ::stdexec::sync_wait(CHAIN(pools.at(index_of_A).get_scheduler()));
+    auto chain = CHAIN(pools.at(index_of_A).get_scheduler());
+
+    using chain_t = decltype(chain);
+
+    static_assert(std::same_as<
+                  std::invoke_result_t<::stdexec::get_completion_signatures_t, chain_t>,
+                  ::stdexec::completion_signatures<::stdexec::set_stopped_t(), ::stdexec::set_value_t()>
+    >);
+
+    /// The completion domain after the @c exec::fork_join is the one of the upstream (before the fork). Compared to @c stdexec::when_all
+    /// that does not know about the sender that lives *before* the fork, @c exec::fork_join has that knowledge.
+    static_assert(std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<chain_t>>, ::stdexec::default_domain>);
+    static_assert(std::same_as<
+                  ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, chain_t>,
+                  ::exec::_pool_::_static_thread_pool::domain
+    >);
+    static_assert(std::same_as<
+                  decltype(::stdexec::get_completion_domain<::stdexec::set_value_t>(
+                      ::stdexec::get_env(chain), ::stdexec::env<>{})),
+                  ::exec::_pool_::_static_thread_pool::domain
+    >);
+    static_assert(std::same_as<
+                  decltype(::stdexec::get_completion_scheduler<::stdexec::set_value_t>(
+                      ::stdexec::get_env(chain), ::stdexec::env<>{})),
+                  ::exec::_pool_::_static_thread_pool::scheduler
+    >);
+
+    ::stdexec::sync_wait(std::move(chain));
 
     ASSERT_EQ(witness, 3);
     ASSERT_EQ(::tests::utils::Counter::copy_constructions.load(), 0);
