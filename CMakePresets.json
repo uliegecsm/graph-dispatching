@@ -68,14 +68,16 @@
             "name"           : "clang-OpenMP",
             "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
             "cacheVariables" : {
-                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address"
             }
         },
         {
             "name"           : "clang-HPX",
             "inherits"       : ["default", "clang", "ccache"],
             "cacheVariables" : {
-                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX"
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address"
             }
         },
         {
@@ -164,6 +166,13 @@
             }
         },
         {
+            "name": "lsan-suppressions",
+            "hidden": true,
+            "environment": {
+                "LSAN_OPTIONS": "suppressions=${sourceDir}/suppressions/lsan.supp"
+            }
+        },
+        {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
             "inherits"        : "default"
@@ -171,12 +180,12 @@
         {
             "name"            : "clang-OpenMP",
             "configurePreset" : "clang-OpenMP",
-            "inherits"        : "default"
+            "inherits"        : ["default", "lsan-suppressions"]
         },
         {
             "name"            : "clang-HPX",
             "configurePreset" : "clang-HPX",
-            "inherits"        : "default"
+            "inherits"        : ["default", "lsan-suppressions"]
         },
         {
             "name"            : "gcc-Cuda",
