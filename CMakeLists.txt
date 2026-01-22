@@ -13,6 +13,9 @@ project(
     LANGUAGES CXX
 )
 
+#---- Enable HPX testing.
+option(ENABLE_HPX_TESTING "Enable testing of HPX adaptors." ON)
+
 #---- Enable clang-tidy. This might bloat the compile time.
 option(ENABLE_CLANG_TIDY OFF)
 
