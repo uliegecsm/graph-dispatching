@@ -2,6 +2,7 @@
 
 #include "Kokkos_Core.hpp"
 
+#include "kokkos-utils/callbacks/ConjunctionMatcher.hpp"
 #include "kokkos-utils/callbacks/EventNameMatcher.hpp"
 #include "kokkos-utils/callbacks/EventRegionMatcher.hpp"
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
@@ -45,7 +46,12 @@ class CGGraphTest : public ::testing::Test,
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
 
-    using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
+    using conjunction_matcher_t = ConjunctionMatcher<
+            EventDiscardMatcher<execution_space>,
+            EventRegionMatcher<EventNameMatcher>>;
+    using event_in_region_recorder_t = RecorderListener<
+        conjunction_matcher_t,
+        event_types_list_t>;
 };
 
 using CGGraphTestTypes = ::testing::Types<UseHostNode, UseDeviceNode>;
@@ -54,7 +60,9 @@ TYPED_TEST_SUITE(CGGraphTest, CGGraphTestTypes);
 
 TYPED_TEST(CGGraphTest, 10x10)
 {
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGGraph - submit r"}};
+    typename TestFixture::conjunction_matcher_t matcher{
+        EventDiscardMatcher<execution_space>{},
+        EventRegionMatcher{.matcher = EventNameMatcher{.name = "CGGraph - submit r"}}};
 
     const auto recorder = std::make_shared<typename TestFixture::event_in_region_recorder_t>(std::move(matcher));
 

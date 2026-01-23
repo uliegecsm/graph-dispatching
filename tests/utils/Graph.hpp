@@ -5,7 +5,7 @@
 
 namespace tests::utils {
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || (defined(KOKKOS_ENABLE_SYCL) && defined(KOKKOS_IMPL_SYCL_GRAPH_SUPPORT))
 #    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -62,6 +62,13 @@ struct AggregateNode<Kokkos::Cuda> {
 template <>
 struct AggregateNode<Kokkos::HIP> {
     using type = Kokkos::Impl::HIPGraphNodeAggregate;
+};
+#endif
+
+#if defined(KOKKOS_ENABLE_SYCL) && defined(KOKKOS_IMPL_SYCL_GRAPH_SUPPORT)
+template <>
+struct AggregateNode<Kokkos::SYCL> {
+    using type = Kokkos::Impl::SYCLGraphNodeAggregate;
 };
 #endif
 

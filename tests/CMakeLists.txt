@@ -1,5 +1,6 @@
 #---- Helpers.
 include(${CMAKE_SOURCE_DIR}/cmake/functions/path.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/functions/ur_cuda_skip.cmake)
 
 #---- Function to add a test (common steps).
 function(add_one_test_common PREFIX OPTIONS ONE_VALUE_KEYWORDS MULTI_VALUE_KEYWORDS)

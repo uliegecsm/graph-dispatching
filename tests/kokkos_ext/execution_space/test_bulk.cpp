@@ -28,7 +28,10 @@ class BulkTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent
+    >;
 };
 
 //! @test Check that @ref Kokkos::Experimental::ExecutionSpaceContext does its duty well when used with @c bulk.

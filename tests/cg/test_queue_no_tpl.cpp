@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "kokkos-utils/callbacks/ConjunctionMatcher.hpp"
 #include "kokkos-utils/callbacks/EventNameMatcher.hpp"
 #include "kokkos-utils/callbacks/EventRegionMatcher.hpp"
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
@@ -48,12 +49,19 @@ class CGQueueNoTPLTest : public ::testing::Test,
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
 
-    using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
+    using conjunction_matcher_t = ConjunctionMatcher<
+            EventDiscardMatcher<execution_space>,
+            EventRegionMatcher<EventNameMatcher>>;
+    using event_in_region_recorder_t = RecorderListener<
+        conjunction_matcher_t,
+        event_types_list_t>;
 };
 
 TEST_F(CGQueueNoTPLTest, 10x10)
 {
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGQueue - iter 7"}};
+    conjunction_matcher_t matcher{
+        EventDiscardMatcher<execution_space>{},
+        EventRegionMatcher{.matcher = EventNameMatcher{.name = "CGQueue - iter 7"}}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
     Kokkos::utils::callbacks::Manager::register_listener(recorder);

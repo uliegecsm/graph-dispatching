@@ -42,7 +42,10 @@ class ForkJoinTest
     : public impl::GraphContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent, ProfileEvent
+    >;
     using variant_t = std::variant<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
 
     static constexpr bool on_device = ::tests::utils::on_device<execution_space>();

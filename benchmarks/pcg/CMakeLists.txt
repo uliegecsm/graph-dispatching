@@ -1,1 +1,2 @@
 add_one_benchmark(NAME compare ADDITIONAL_LINK_LIBRARIES KokkosKernels::kokkoskernels Kokkos::kokkosutils)
+sycl_ur_cuda_skip(benchmarks_pcg_compare)

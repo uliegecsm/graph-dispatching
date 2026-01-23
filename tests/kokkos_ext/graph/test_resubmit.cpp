@@ -49,8 +49,10 @@ class ResubmitTest
     : public impl::GraphContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t =
-        RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent
+    >;
 };
 
 //! @test Check that @ref Kokkos::Experimental::GraphContext can be resubmitted while creating the graph only the first time.

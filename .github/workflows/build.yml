@@ -313,6 +313,10 @@ jobs:
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx1201', 'gpu:0']"
                       docker_run_args: --privileged
                       tag_suffix     : -zen5-amd_gfx1201
+                    - backend        : SYCL
+                      compiler       : {family: intel, version: 2025.3}
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70', 'gpu:0']"
+                      tag_suffix     : -volta70
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler.family }}-${{ matrix.compiler.version }}-${{ matrix.backend }}${{ matrix.tag_suffix }}
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
