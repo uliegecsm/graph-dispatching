@@ -123,7 +123,7 @@ class PCGBenchmark(BenchmarkBase):
 
         logging.info(f'List of sweeps: {nsweeps_sorted_set}.')
 
-        self.assertEqual(len(nsweeps_sorted_set), 2)
+        self.assertEqual(len(nsweeps_sorted_set), 3)
 
         # Number of rows (unique, sorted).
         nrows_sorted_set = sorted(set([k.nrows for k in data[PCGFlavor.GRAPH      ].keys()]))
@@ -150,7 +150,7 @@ class PCGBenchmark(BenchmarkBase):
         ax_time  = axes[0]
         ax_ratio = axes[1]
 
-        COLORS: typing.Final[tuple[str, str]] = ('r', 'b')
+        COLORS: typing.Final[tuple[str, str]] = ('r', 'b', 'black')
 
         for insweeps, nsweeps in enumerate(nsweeps_sorted_set):
             ax_ratio.plot(
