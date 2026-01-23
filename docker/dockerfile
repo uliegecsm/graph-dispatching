@@ -112,6 +112,53 @@ RUN <<EOF
         clang-tidy=clang-tidy-${COMPILER_VERSION}
 EOF
 
+FROM requirements-cmake AS requirements-compiler-intel
+
+ARG COMPILER_VERSION
+
+RUN <<EOF
+    set -ex
+
+    apt-helpers install-packages --update --packages gpg wget
+
+    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+        | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+        | tee /etc/apt/sources.list.d/oneAPI.list
+
+    apt-helpers install-packages --update --clean --packages intel-oneapi-compiler-dpcpp-cpp-${COMPILER_VERSION}
+EOF
+
+ENV PATH=/opt/intel/oneapi/compiler/${COMPILER_VERSION}/bin/:$PATH
+ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/${COMPILER_VERSION}/lib:$LD_LIBRARY_PATH
+
+ARG UNIFIED_RUNTIME_VERSION=6.3.0
+
+RUN --mount=type=tmpfs,target=/tmp/build <<EOF
+    set -ex
+
+    cd /tmp/build
+
+    wget https://github.com/intel/llvm/archive/refs/tags/v${UNIFIED_RUNTIME_VERSION}.tar.gz
+
+    tar -xf v${UNIFIED_RUNTIME_VERSION}.tar.gz
+
+    cd llvm-${UNIFIED_RUNTIME_VERSION}/unified-runtime
+
+    cmake -S . -B build \
+      -DCMAKE_C_COMPILER=gcc \
+      -DCMAKE_CXX_COMPILER=g++ \
+      -DUR_BUILD_TESTS=OFF \
+      -DUR_ENABLE_TRACING=ON \
+      -DUR_BUILD_ADAPTER_CUDA=ON \
+      -DUR_BUILD_ADAPTER_OPENCL=OFF \
+      -DCMAKE_BUILD_TYPE=Release
+
+    cmake --build build -j4
+
+    cp -r build/lib/* /opt/intel/oneapi/compiler/${COMPILER_VERSION}/lib/
+EOF
+
 FROM requirements-compiler-${COMPILER_FAMILY} AS requirements
 
 RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
@@ -271,12 +318,15 @@ ARG KOKKOS_KERNELS_SHA
 RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_KERNELS_BRANCH} https://github.com/kokkos/kokkos-kernels /kokkos-kernels-sources
 
 RUN --mount=target=/cmake/presets/kokkos-kernels.json,type=bind,source=cmake/presets/kokkos-kernels.json \
-    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
+    --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py \
+    --mount=target=/patches/KokkosBatched_HostLevel_Gemm_DblBuf_Impl.patch,type=bind,source=docker/patches/kokkos-kernels/KokkosBatched_HostLevel_Gemm_DblBuf_Impl.patch <<EOF
     set -ex
 
     cd /kokkos-kernels-sources
 
     git checkout ${KOKKOS_KERNELS_SHA}
+
+    patch -p0 -i /patches/KokkosBatched_HostLevel_Gemm_DblBuf_Impl.patch
 
     python3 /cmake/presets/generate.py                   \
         --input-file  /cmake/presets/kokkos-kernels.json \

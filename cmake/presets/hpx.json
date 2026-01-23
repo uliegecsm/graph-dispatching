@@ -37,6 +37,13 @@
             "cacheVariables" : {
                 "CMAKE_CXX_COMPILER" : "hipcc"
             }
+        },
+        {
+            "name"           : "intel",
+            "inherits"       : "default",
+            "cacheVariables" : {
+                "CMAKE_CXX_COMPILER" : "icpx"
+            }
         }
     ],
     "buildPresets" : [
