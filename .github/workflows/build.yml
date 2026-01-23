@@ -224,9 +224,9 @@ jobs:
                       kokkos_archs   : [ARMV9_GRACE, HOPPER90]
                     - backend        : HIP
                       compiler_family: rocm
-                      base_image     : rocm/dev-ubuntu-24.04:6.4
+                      base_image     : rocm/dev-ubuntu-24.04:7.0.2
                       platforms      : linux/amd64
-                      kokkos_archs   : [ZEN4, AMD_GFX942_APU]
+                      kokkos_archs   : [ZEN5, AMD_GFX1201]
         steps:
             - uses: actions/checkout@v6
               with:
@@ -304,6 +304,11 @@ jobs:
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906', 'gpu:0', 'gpu:1']"
                       docker_run_args: --privileged
                       tag_suffix     : -amd_gfx906
+                    - backend        : HIP
+                      compiler_family: rocm
+                      runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx1201', 'gpu:0']"
+                      docker_run_args: --privileged
+                      tag_suffix     : -zen5-amd_gfx1201
         container:
             image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.tag_suffix }}
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.

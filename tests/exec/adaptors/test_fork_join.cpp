@@ -4,6 +4,7 @@
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
@@ -29,10 +30,17 @@ PRAGMA_DIAGNOSTIC_POP
  * The tests can be found in @ref tests/exec/adaptors/test_fork_join.cpp.
  */
 
-#if defined(__clang__) && defined(__HIPCC__) && (__clang_major__ == 19 && __clang_minor__ == 0 && __clang_patch__ == 0)
-#    define SKIP_FOR_HIPCC_19 GTEST_SKIP() << "This test is known to seg. fault if compiled with hipcc 19.0.0.";
+#if defined(__HIPCC__)
+#    include "hip/hip_runtime.h"
+#endif
+
+#if defined(__HIPCC__)                                                                                                 \
+    && (((HIP_VERSION_MAJOR == 6) && (HIP_VERSION_MINOR == 4))                                                         \
+        || ((HIP_VERSION_MAJOR == 7) && (HIP_VERSION_MINOR == 0)))
+#    define SKIP_IF_HIPCC                                                                                              \
+        GTEST_SKIP() << "Skipping test when compiled with HIPCC " << HIP_VERSION_MAJOR << "." << HIP_VERSION_MINOR;
 #else
-#    define SKIP_FOR_HIPCC_19
+#    define SKIP_IF_HIPCC
 #endif
 
 namespace tests::exec::adaptors {
@@ -65,7 +73,7 @@ class ForkJoinTest
  * @warning According to @cite P3682R0, @c stdexec::split will be removed from the proposed @c std::execution for C++26.
  */
 TEST_F(ForkJoinTest, copies) {
-    SKIP_FOR_HIPCC_19
+    SKIP_IF_HIPCC
     ::tests::utils::Counter::reset();
 
     std::atomic<int> witness{0};
@@ -112,7 +120,7 @@ TEST_F(ForkJoinTest, copies) {
  * See also @ref tests::exec::adaptors::RepeatEffectUntilTest_split_Test.
  */
 TEST_F(ForkJoinTest, fork_join_does_not_memoize_results) {
-    SKIP_FOR_HIPCC_19
+    SKIP_IF_HIPCC
     ::tests::utils::Counter::reset();
 
     unsigned short int irep = 0;
