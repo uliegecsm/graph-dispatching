@@ -5,7 +5,6 @@
 
 #include "Kokkos_Graph.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
 #include "kokkos-utils/concepts/View.hpp"
 #include "kokkos-utils/impl/type_traits.hpp"
 
@@ -68,11 +67,11 @@ decltype(auto) then_deep_copy(const Pred& pred, DstType&& dst, SrcType&& src)
 template <typename MatrixType>
 struct IdentityPreconditioner
 {
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     IdentityPreconditioner(const Exec&, const MatrixType&) {}
 
     //! @note It must be a deep copy because it's not supposed to touch the address of @p dst.
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, Kokkos::utils::concepts::ViewOfRank<1> VectorType>
+    template <Kokkos::ExecutionSpace Exec, Kokkos::utils::concepts::ViewOfRank<1> VectorType>
     void apply(const Exec& exec, const VectorType& dst, const VectorType& src) const {
         Kokkos::deep_copy(exec, dst, src);
     }
@@ -93,7 +92,7 @@ struct DiagonalPreconditioner
     //! The constructor will pre-compute the inverse of the diagonal values.
     const_values_view_t values;
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     DiagonalPreconditioner(const Exec& exec, const typename MatrixType::const_type& mat) {
         this->init(exec, mat);
     }
@@ -143,7 +142,7 @@ struct DiagonalPreconditioner
     };
 
     template <
-        Kokkos::utils::concepts::ExecutionSpace Exec,
+        Kokkos::ExecutionSpace Exec,
         typename DstType,
         typename SrcType
     > requires (std::remove_cvref_t<DstType>::rank() == 1 && std::remove_cvref_t<SrcType>::rank() == 1)
@@ -189,7 +188,7 @@ struct JacobiPreconditioner
 
     sweep_t num_sweeps = 4; //! Number of sweeps.
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     JacobiPreconditioner(const Exec& exec, const_mat_t mat_)
         : mat{std::move(mat_)},
           tmp(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Jacobi temporary storage", exec), mat.numRows())
@@ -255,7 +254,7 @@ struct JacobiPreconditioner
         }
     };
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, Kokkos::utils::concepts::ViewOfRank<1> DstType, Kokkos::utils::concepts::ViewOfRank<1> SrcType>
+    template <Kokkos::ExecutionSpace Exec, Kokkos::utils::concepts::ViewOfRank<1> DstType, Kokkos::utils::concepts::ViewOfRank<1> SrcType>
     void apply(const Exec& exec, const DstType& dst, const SrcType& src) const
     {
         /// In the first pass, we should set @p dst to 0. But as it is equivalent to diagonal

@@ -6,8 +6,6 @@
 #include "KokkosSparse_CrsMatrix.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-#include "kokkos-utils/concepts/MemorySpace.hpp"
 #include "kokkos-utils/timer/Timer.hpp"
 
 namespace tests::cg
@@ -33,7 +31,7 @@ namespace tests::cg
  *
  * The solution is trivial.
  */
-template <typename ScalarType, Kokkos::utils::concepts::MemorySpace Mem>
+template <typename ScalarType, Kokkos::MemorySpace Mem>
 struct FakeFEMLaplacian1D
 {
     using matrix_t = KokkosSparse::CrsMatrix<
@@ -53,7 +51,7 @@ struct FakeFEMLaplacian1D
     rhs_t    rhs;
     rhs_t    guess;
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     static FakeFEMLaplacian1D create(const Exec& exec, const typename Exec::size_type size)
     {
         const auto nnz = 3 * size - 2;
@@ -127,7 +125,7 @@ struct FakeFEMLaplacian1D
     }
 };
 
-template <Kokkos::utils::concepts::ExecutionSpace Exec>
+template <Kokkos::ExecutionSpace Exec>
 struct NbyNSolverTestHelper
 {
     using execution_space = Exec;
@@ -141,12 +139,12 @@ struct NbyNSolverTest
     using solver_t = SolverType;
 
     //! If it's an aggregate, we simply initialize the members.
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType> requires std::is_aggregate_v<SolverType>
+    template <Kokkos::ExecutionSpace Exec, typename MatType, typename RhsType> requires std::is_aggregate_v<SolverType>
     static auto get_solver(const Exec&, MatType&& mat, RhsType&& rhs) {
         return solver_t{{}, std::forward<MatType>(mat), std::forward<RhsType>(rhs)};
     }
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType>
+    template <Kokkos::ExecutionSpace Exec, typename MatType, typename RhsType>
     static auto get_solver(const Exec& exec, MatType&& mat, RhsType&& rhs) {
         return solver_t{exec, std::forward<MatType>(mat), std::forward<RhsType>(rhs)};
     }
@@ -157,7 +155,7 @@ struct NbyNSolverTest
         void operator()(T&&) const {}
     };
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename Callback = NoOp>
+    template <Kokkos::ExecutionSpace Exec, typename Callback = NoOp>
     static auto run(const Exec& exec, const typename Exec::size_type nrows, const typename SolverType::Parameters& params, Callback&& callback = Callback{})
     {
         auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec, nrows);

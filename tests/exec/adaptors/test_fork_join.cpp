@@ -128,10 +128,8 @@ TEST_F(ForkJoinTest, fork_join_does_not_memoize_results) {
 
     auto loop = ::exec::repeat_effect_until(
         CHAIN(pools.at(index_of_A).get_scheduler()) | ::stdexec::then([&irep]() -> bool {
-            std::printf(
-                "Repetition %u: copy constructed %d times.\n",
-                irep++,
-                ::tests::utils::Counter::copy_constructions.load());
+            std::cout << "Repetition " << (irep++) << ": copy constructed "
+                      << ::tests::utils::Counter::copy_constructions.load() << "times.\n";
             return irep >= 5;
         }));
 

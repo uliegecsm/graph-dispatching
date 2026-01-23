@@ -8,8 +8,6 @@
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/cg/Helpers.hpp"
@@ -29,7 +27,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
     MatrixType mat;
     VectorType rhs;
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
+    template <Kokkos::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
     std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const typename base_t::Parameters& params) const
     {
         const Region region_setup("CGGraph - setup");

@@ -35,7 +35,7 @@ template <::stdexec::sender Sender>
     //! Enqueue a sender that prints to console, and returns an vector with a single value.
     ::stdexec::sender auto handshake = ::stdexec::then(std::forward<Sender>(start),
         []() -> std::vector<int> {
-            std::printf("Hello world! Have a vector of int.\n");
+            std::printf("Hello world! Have a vector of int.\n"); // NOLINT(modernize-use-std-print)
             return {13};
         });
 

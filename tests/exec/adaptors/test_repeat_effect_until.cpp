@@ -52,10 +52,9 @@ TEST_F(RepeatEffectUntilTest, copies) {
     unsigned short int irep = 0, witness = 0;
 
     auto chain = ::exec::repeat_effect_until(CHAIN | ::stdexec::then([&irep]() -> bool {
-                                                 std::printf(
-                                                     "Repetition %u: copy constructed %d times.\n",
-                                                     irep,
-                                                     ::tests::utils::Counter::copy_constructions.load());
+                                                 std::cout << "Repetition " << irep << ": copy constructed "
+                                                           << ::tests::utils::Counter::copy_constructions.load()
+                                                           << "times.\n";
                                                  return (++irep) >= 5;
                                              }));
 
@@ -77,7 +76,7 @@ TEST_F(RepeatEffectUntilTest, split) {
     unsigned short int irep = 0, witness = 0;
 
     auto chain = ::exec::repeat_effect_until(CHAIN | ::stdexec::split() | ::stdexec::then([&irep]() -> bool {
-                                                 std::printf(
+                                                 std::printf( // NOLINT(modernize-use-std-print)
                                                      "Repetition %u: copy constructed %d times.\n",
                                                      irep,
                                                      ::tests::utils::Counter::copy_constructions.load());

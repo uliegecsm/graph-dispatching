@@ -5,8 +5,6 @@
 
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-
 #include "algorithms/cg/Helpers.hpp"
 
 namespace algorithms::cg
@@ -39,7 +37,7 @@ template <typename Pred, typename Handle, typename Alpha, typename AMatrix, type
 decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& alpha, AMatrix&& mat, XVector&& vec_x, Beta&& beta, YVector&& vec_y)
 {
     using execution_space = std::conditional_t<
-        Kokkos::utils::concepts::ExecutionSpace<Pred>,
+        Kokkos::ExecutionSpace<Pred>,
         Pred,
         typename Pred::execution_space
     >;
@@ -68,7 +66,7 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
         0
     );
 
-    if constexpr (Kokkos::utils::concepts::ExecutionSpace<Pred>) {
+    if constexpr (Kokkos::ExecutionSpace<Pred>) {
         Kokkos::parallel_for(
             "algorithms::cg::spmv",
             Kokkos::RangePolicy(pred, 0, num_rows),
@@ -88,7 +86,7 @@ template <typename Pred, typename Result, typename ViewX, typename ViewY>
 decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec_y)
 {
     using execution_space = std::conditional_t<
-        Kokkos::utils::concepts::ExecutionSpace<Pred>,
+        Kokkos::ExecutionSpace<Pred>,
         Pred,
         typename Pred::execution_space
     >;
@@ -100,7 +98,7 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
         typename execution_space::size_type
     > functor(std::forward<ViewX>(vec_x), std::forward<ViewY>(vec_y));
 
-    if constexpr (Kokkos::utils::concepts::ExecutionSpace<Pred>) {
+    if constexpr (Kokkos::ExecutionSpace<Pred>) {
         Kokkos::parallel_reduce(
             "algorithms::cg::dot",
             Kokkos::RangePolicy(pred, 0, functor.m_x.size()),
@@ -167,7 +165,7 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
         .vec_y = std::forward<ViewY>(vec_y)
     };
 
-    if constexpr (Kokkos::utils::concepts::ExecutionSpace<Pred>) {
+    if constexpr (Kokkos::ExecutionSpace<Pred>) {
         Kokkos::parallel_for(
             "algorithms::cg::axpby",
             Kokkos::RangePolicy(pred, 0, size),

@@ -51,7 +51,7 @@ TEST_F(LetValueTest, for_branching) {
 
     auto shared = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids[0])
                 | ::stdexec::then([&consumed]() -> double {
-                      std::printf("Preliminary 'then' returning.\n");
+                      std::printf("Preliminary 'then' returning.\n"); // NOLINT(modernize-use-std-print)
                       if (consumed)
                           throw std::runtime_error("Already consumed.");
                       consumed = true;
@@ -61,7 +61,7 @@ TEST_F(LetValueTest, for_branching) {
     ::stdexec::sync_wait(
         std::move(shared) // NOLINT(performance-move-const-arg)
         | ::stdexec::let_value([this, &consumed, &thrids](const double value) {
-              std::printf("Value received is %f.\n", value);
+              std::cout << "Value received is " << value << ".\n";
               if (!consumed)
                   throw std::runtime_error("Not consumed yet.");
               auto br_b = ::stdexec::schedule(pools.at(index_of_B).get_scheduler()) | THEN_STORE_ID(thrids[1]);

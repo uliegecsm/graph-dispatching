@@ -58,6 +58,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "$penv{Kokkos_ROOT}/bin/nvcc_wrapper"}
         },
         {
+            "$comment": "Inherit from this preset to use C++23.",
+            "name" : "cxx23",
+            "hidden" : true,
+            "cacheVariables" : {"CMAKE_CXX_STANDARD": "23"}
+        },
+        {
             "name"           : "gcc-OpenMP",
             "inherits"       : ["default", "gcc", "ccache"],
             "cacheVariables" : {
@@ -66,7 +72,7 @@
         },
         {
             "name"           : "clang-OpenMP",
-            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
+            "inherits"       : ["cxx23", "default", "clang", "clang-tidy", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP",
                 "CMAKE_CXX_FLAGS": "-fsanitize=address"
@@ -74,7 +80,7 @@
         },
         {
             "name"           : "clang-HPX",
-            "inherits"       : ["default", "clang", "ccache"],
+            "inherits"       : ["cxx23", "default", "clang", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;HPX",
                 "CMAKE_CXX_FLAGS": "-fsanitize=address"
@@ -89,7 +95,7 @@
         },
         {
             "name"           : "clang-Cuda",
-            "inherits"       : ["default", "clang", "clang-tidy", "ccache"],
+            "inherits"       : ["cxx23", "default", "clang", "clang-tidy", "ccache"],
             "cacheVariables" : {
                 "CMAKE_CXX_FLAGS"         : "-Wno-error=unknown-cuda-version",
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"

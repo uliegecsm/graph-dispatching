@@ -8,8 +8,6 @@
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Helpers.hpp"
 
@@ -49,7 +47,7 @@ protected:
     VectorType mat_dir; //!< Placeholder for the product of @ref mat with @ref dir.
 
 public:
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType>
+    template <Kokkos::ExecutionSpace Exec, typename MatType, typename RhsType>
     PCGSingleQueue(const Exec& exec, MatType&& mat_, RhsType&& rhs_)
         : mat(std::forward<MatType>(mat_)),
           rhs(std::forward<RhsType>(rhs_)),
@@ -65,7 +63,7 @@ public:
 
     /// We explicitly don't partition @p exec.
     /// This decision is aligned with how @c KokkosKernels would use the incoming @p exec.
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const Exec& exec, const VectorType& sol, const base_t::Parameters& params) const
     {
         PLOG_INFO << "PCGSingleQueue(apply): starting...";

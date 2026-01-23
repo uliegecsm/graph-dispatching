@@ -9,8 +9,6 @@
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Helpers.hpp"
 
@@ -68,7 +66,7 @@ protected:
     mutable std::optional<GraphType> graph = std::nullopt; //!< For now it is mutable because the first time we enter @ref apply we build and instantiate it.
 
 public:
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename MatType, typename RhsType>
+    template <Kokkos::ExecutionSpace Exec, typename MatType, typename RhsType>
     PCGGraph(const Exec& exec, MatType&& mat_, RhsType&& rhs_)
         : mat(std::forward<MatType>(mat_)),
           rhs(std::forward<RhsType>(rhs_)),
@@ -85,7 +83,7 @@ public:
     //! Allow the user to interact with the preconditioner, *e.g.* to update its parameters between 2 subsequent calls to @ref apply.
     auto& get_preconditioner() { return preconditioner; }
 
-    template <Kokkos::utils::concepts::ExecutionSpace Exec>
+    template <Kokkos::ExecutionSpace Exec>
     std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const Exec& exec, const VectorType& sol, const base_t::Parameters& params) const
     {
         PLOG_INFO << "PCGGraph(apply): starting...";

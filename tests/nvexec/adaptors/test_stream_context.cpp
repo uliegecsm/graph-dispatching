@@ -92,7 +92,7 @@ struct BulkFunctor
     void operator()(const T index) const
     {
         KOKKOS_IF_ON_HOST(Kokkos::abort("Bulk: This should not happen.");)
-        Kokkos::printf("> %s with id %d: thread (%d,%d,%d): index %d\n", __PRETTY_FUNCTION__, id, threadIdx.x, threadIdx.y, threadIdx.z, index);
+        Kokkos::printf("> %s with id %d: thread (%d,%d,%d): index %d\n", __PRETTY_FUNCTION__, id, threadIdx.x, threadIdx.y, threadIdx.z, index); // NOLINT(modernize-use-std-print)
     }
 };
 

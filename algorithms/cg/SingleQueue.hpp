@@ -6,8 +6,6 @@
 #include "KokkosBlas1_update.hpp"
 #include "KokkosSparse_spmv.hpp"
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Helpers.hpp"
 
@@ -37,7 +35,7 @@ struct CGSingleQueue : public CGBase<MatrixType, VectorType>
 
     /// We explicitly don't partition @p exec.
     /// This decision is aligned with how @c KokkosKernels would use the incoming @p exec.
-    template <Kokkos::utils::concepts::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
+    template <Kokkos::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
     std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const typename base_t::Parameters& params) const
     {
         typename base_t::template spmv_handle_t<Exec> handle {};

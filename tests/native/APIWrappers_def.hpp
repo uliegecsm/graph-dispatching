@@ -115,7 +115,7 @@ View<T>::View(const Stream& stream, const std::span<const T>& values) requires (
 
 Graph::Graph()
 {
-    printf("> Creating a graph.\n");
+    std::printf("> Creating a graph.\n"); // NOLINT(modernize-use-std-print)
     CHECK_CALL(PREFIXED_API(GraphCreate)(&graph, 0));
 }
 
@@ -123,7 +123,7 @@ Graph::~Graph()
 {
     if(owning)
     {
-        printf("> Destroying graph at %p.\n", graph);
+        std::printf("> Destroying graph at %p.\n", graph); // NOLINT(modernize-use-std-print)
         CHECK_CALL(PREFIXED_API(GraphDestroy)(graph));
     }
 }
@@ -161,13 +161,13 @@ Graph::get_edges() const
 
 void Graph::print(const char* path, const unsigned int flags) const
 {
-    printf("> Exporting graph %p to %s with flags %u.\n", graph, path, flags);
+    std::printf("> Exporting graph %p to %s with flags %u.\n", graph, path, flags); // NOLINT(modernize-use-std-print)
     CHECK_CALL(PREFIXED_API(GraphDebugDotPrint)(graph, path, flags));
 }
 
 GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors) const
 {
-    printf("> Adding graph %p as child graph node to graph %p with %zu ancestors.\n", other.graph, this->graph, ancestors.size());
+    std::printf("> Adding graph %p as child graph node to graph %p with %zu ancestors.\n", other.graph, this->graph, ancestors.size()); // NOLINT(modernize-use-std-print)
 
     GraphNode child;
 
@@ -185,13 +185,13 @@ GraphNode Graph::add(const Graph& other, const std::vector<GraphNode>& ancestors
 
 GraphExecutable::GraphExecutable(const Graph& graph)
 {
-    printf("> Instantiating an executable graph from %p.\n", graph.graph);
+    std::printf("> Instantiating an executable graph from %p.\n", graph.graph); // NOLINT(modernize-use-std-print)
     CHECK_CALL(PREFIXED_API(GraphInstantiate)(&graph_exec, graph.graph, nullptr, nullptr, 0));
 }
 
 GraphExecutable::~GraphExecutable()
 {
-    printf("> Destroying executable graph at %p.\n", graph_exec);
+    std::printf("> Destroying executable graph at %p.\n", graph_exec); // NOLINT(modernize-use-std-print)
     CHECK_CALL(PREFIXED_API(GraphExecDestroy)(graph_exec));
 }
 
@@ -201,7 +201,7 @@ void GraphExecutable::set_enabled(const GraphNode& node, const bool is_enabled) 
 
 void GraphExecutable::submit(const Stream& stream) const
 {
-    printf("> Submitting executable graph %p on stream %p.\n", graph_exec, stream.stream);
+    std::printf("> Submitting executable graph %p on stream %p.\n", graph_exec, stream.stream); // NOLINT(modernize-use-std-print)
     CHECK_CALL(PREFIXED_API(GraphLaunch)(graph_exec, stream.stream));
 }
 
@@ -220,7 +220,7 @@ std::vector<PREFIXED_API(GraphNode_t)> GraphNode::transform_to_impl(const std::v
 template <typename Functor>
 GraphNodeKernel<Functor>::GraphNodeKernel(const Functor& functor, const size_t shape)
 {
-    printf("> Creating a kernel graph node with functor and size %zu (%s).\n", shape, __PRETTY_FUNCTION__);
+    std::printf("> Creating a kernel graph node with functor and size %zu (%s).\n", shape, __PRETTY_FUNCTION__); // NOLINT(modernize-use-std-print)
 
     params = {};
 
@@ -246,7 +246,7 @@ GraphNodeKernel<Functor>::GraphNodeKernel(const Functor& functor, const size_t s
 template <typename Functor>
 void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph kernel node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph kernel node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddKernelNode)(
         &node, graph.graph,
@@ -258,7 +258,7 @@ void GraphNodeKernel<Functor>::add(const Graph& graph, const std::vector<GraphNo
 #if defined(GRAPH_DISPATCHING_ENABLE_CUDA) || defined(DOXYGEN)
 GraphNodeConditionalIf::GraphNodeConditionalIf(cudaGraphConditionalHandle handle)
 {
-    printf("> Creating a graph conditional if node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__);
+    std::printf("> Creating a graph conditional if node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__); // NOLINT(modernize-use-std-print)
 
     params.type               = cudaGraphNodeTypeConditional;
     params.conditional.handle = handle;
@@ -268,7 +268,7 @@ GraphNodeConditionalIf::GraphNodeConditionalIf(cudaGraphConditionalHandle handle
 
 void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph conditional if node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph conditional if node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
@@ -283,7 +283,7 @@ void GraphNodeConditionalIf::add(const Graph& graph, const std::vector<GraphNode
 
 GraphNodeConditionalWhile::GraphNodeConditionalWhile(cudaGraphConditionalHandle handle)
 {
-    printf("> Creating a graph conditional while node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__);
+    std::printf("> Creating a graph conditional while node for handle %llu (%s).\n", handle, __PRETTY_FUNCTION__); // NOLINT(modernize-use-std-print)
 
     params.type               = cudaGraphNodeTypeConditional;
     params.conditional.handle = handle;
@@ -293,7 +293,7 @@ GraphNodeConditionalWhile::GraphNodeConditionalWhile(cudaGraphConditionalHandle 
 
 void GraphNodeConditionalWhile::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph conditional while node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph conditional while node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddNode)(
         &node, graph.graph,
@@ -319,7 +319,7 @@ template <typename T> requires std::same_as<std::remove_cvref_t<T>, Functor>
 GraphNodeHost<Functor>::GraphNodeHost(T&& functor)
     : data{.functor = std::forward<T>(functor)}
 {
-    printf("> Creating a graph host node with functor (%s).\n", __PRETTY_FUNCTION__);
+    std::printf("> Creating a graph host node with functor (%s).\n", __PRETTY_FUNCTION__); // NOLINT(modernize-use-std-print)
 
     params          = {};
     params.fn       = driver;
@@ -329,7 +329,7 @@ GraphNodeHost<Functor>::GraphNodeHost(T&& functor)
 template <typename Functor>
 void GraphNodeHost<Functor>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph host node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph host node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddHostNode)(
         &node, graph.graph,
@@ -349,7 +349,7 @@ GraphNodeMemcpy<T>::GraphNodeMemcpy(void* const src_, void* const dst_, const si
 template <typename T>
 void GraphNodeMemcpy<T>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph memcpy node (from %p to %p, size %zu) to graph %p with %zu ancestors.\n",
+    std::printf("> Adding graph memcpy node (from %p to %p, size %zu) to graph %p with %zu ancestors.\n", // NOLINT(modernize-use-std-print)
         src,
         dst,
         size,
@@ -371,7 +371,7 @@ GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const
 {
     const auto device_id = stream.device();
 
-    printf("> Creating a graph memory node for device ID %d of size %zu of %s (%s).\n", device_id, size, typeid(T).name(), __PRETTY_FUNCTION__);
+    std::printf("> Creating a graph memory node for device ID %d of size %zu of %s (%s).\n", device_id, size, typeid(T).name(), __PRETTY_FUNCTION__); // NOLINT(modernize-use-std-print)
 
     /// See https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemAllocNodeParams.html#structcudaMemAllocNodeParams.
     /// For the pool properties, see https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaMemPoolProps.html#structcudaMemPoolProps.
@@ -385,7 +385,7 @@ GraphNodeMemoryAllocation<T>::GraphNodeMemoryAllocation(const size_t size, const
 template <typename T>
 void GraphNodeMemoryAllocation<T>::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph memory allocation node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph memory allocation node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddMemAllocNode)(
         &node, graph.graph,
@@ -398,7 +398,7 @@ void GraphNodeMemoryAllocation<T>::add(const Graph& graph, const std::vector<Gra
 
 void GraphNodeMemoryFree::add(const Graph& graph, const std::vector<GraphNode>& ancestors)
 {
-    printf("> Adding graph memory free node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size());
+    std::printf("> Adding graph memory free node %p to graph %p with %zu ancestors.\n", node, graph.graph, ancestors.size()); // NOLINT(modernize-use-std-print)
     const auto ancestors_impl = transform_to_impl(ancestors);
     CHECK_CALL(PREFIXED_API(GraphAddMemFreeNode)(
         &node, graph.graph,
