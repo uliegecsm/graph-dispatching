@@ -1,4 +1,3 @@
-import argparse
 import dataclasses
 import enum
 import itertools
@@ -8,12 +7,13 @@ import pathlib
 import re
 import subprocess
 import typing
-import unittest
 
 import matplotlib.pyplot
 import numpy
 import numpy.typing
 import typeguard
+
+from benchmarks.base import BenchmarkBase, parse_args
 
 class PCGFlavor(enum.StrEnum):
     """
@@ -34,12 +34,11 @@ class Results:
     mean : float
     timings : numpy.typing.NDArray[float] = None
 
-class PCGBenchmark(unittest.TestCase):
+class PCGBenchmark(BenchmarkBase):
 
     @typeguard.typechecked
-    def __init__(self, target : pathlib.Path) -> None:
-        super().__init__()
-        self.target  = target
+    def __init__(self, target: pathlib.Path) -> None:
+        super().__init__(target=target)
         self.results = self.target.with_suffix('.json')
 
     @typeguard.typechecked
@@ -151,7 +150,7 @@ class PCGBenchmark(unittest.TestCase):
         ax_time  = axes[0]
         ax_ratio = axes[1]
 
-        COLORS = ['r', 'b']
+        COLORS: typing.Final[tuple[str, str]] = ('r', 'b')
 
         for insweeps, nsweeps in enumerate(nsweeps_sorted_set):
             ax_ratio.plot(
@@ -209,21 +208,10 @@ class PCGBenchmark(unittest.TestCase):
         ax_time .grid(True)
 
         # Save figure.
-        output = self.results.with_suffix('.svg')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
-
-def parse_args() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
-    """
-    Parse CLI args.
-    """
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--target', type = pathlib.Path, required = True)
-
-    parser.add_argument(dest = "target_args" , help = "Arguments that will be passed to the 'target'.", nargs = '*')
-
-    return parser.parse_args()
+        for ext in ('svg', 'eps', 'png'):
+            output = self.results.with_suffix('.' + ext)
+            logging.info(f'Saving figure to {output}.')
+            matplotlib.pyplot.savefig(output, bbox_inches=0, transparent=False)
 
 if __name__ == '__main__':
 

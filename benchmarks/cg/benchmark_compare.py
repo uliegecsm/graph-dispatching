@@ -1,4 +1,3 @@
-import argparse
 import enum
 import functools
 import itertools
@@ -8,12 +7,13 @@ import pathlib
 import re
 import subprocess
 import typing
-import unittest
 
 import matplotlib.pyplot
 import matplotlib.patches
 import numpy
 import typeguard
+
+from benchmarks.base import BenchmarkBase, parse_args
 
 class CGFlavor(enum.StrEnum):
     """
@@ -42,12 +42,11 @@ class CollectionMethod(enum.StrEnum):
             case _:
                 raise ValueError()
 
-class CGBenchmark(unittest.TestCase):
+class CGBenchmark(BenchmarkBase):
 
     @typeguard.typechecked
-    def __init__(self, target : pathlib.Path) -> None:
-        super().__init__()
-        self.target  = target
+    def __init__(self, target: pathlib.Path) -> None:
+        super().__init__(target=target)
         self.results = {
             CollectionMethod.CONVERGENCE: pathlib.Path(str(self.target) + '.CONVERGENCE.json'),
             CollectionMethod.SINGLE_ITER: pathlib.Path(str(self.target) + '.SINGLE_ITER.json'),
@@ -248,7 +247,7 @@ class CGBenchmark(unittest.TestCase):
 
         convergence_ax_ratio.set_xscale('log')
         convergence_ax_ratio.set_xlabel('size [-]')
-        convergence_ax_ratio.set_ylabel('overall ratio [-]')
+        convergence_ax_ratio.set_ylabel('ratio [-]')
 
         convergence_ax_per_i.set_xscale('log')
         convergence_ax_per_i.set_ylabel(f'avg. iteration [{time_unit}]')
@@ -272,6 +271,7 @@ class CGBenchmark(unittest.TestCase):
                 marker    = MARKER_RATIO_FULL,
                 linestyle = LINESTYLES[flavor],
                 color     = COLORS[flavor],
+                label     = 'overall',
             )
             convergence_ax_ratio.plot(
                 nrows_sorted_set,
@@ -279,6 +279,7 @@ class CGBenchmark(unittest.TestCase):
                 marker    = MARKER_RATIO_PER_ITER,
                 linestyle = LINESTYLES[flavor],
                 color     = COLORS[flavor],
+                label     = 'per iteration',
             )
 
         # Plot the 'one' ratio.
@@ -289,16 +290,14 @@ class CGBenchmark(unittest.TestCase):
         convergence_ax_per_i.grid(True)
 
         # Legend.
-        convergence_ax_per_i.legend(loc = 'upper left')
+        convergence_ax_per_i.legend(framealpha=1., loc = 'upper left')
+        convergence_ax_ratio.legend(framealpha=1., loc = 'upper right')
 
         # Save figure.
-        output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.svg')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
-
-        output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.png')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
+        for ext in ('png', 'svg', 'eps'):
+            output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.' + ext).resolve()
+            logging.info(f'Saving figure to {output}.')
+            matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
 
         # Plot the time it takes for the CG initial setup, graph creation and instantiation.
         # See also https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html#grouped-bar-chart-with-labels.
@@ -364,18 +363,6 @@ class CGBenchmark(unittest.TestCase):
         output = self.results[CollectionMethod.SINGLE_ITER].with_suffix('.png')
         logging.info(f'Saving figure to {output}.')
         matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
-
-def parse_args() -> typing.Tuple[argparse.Namespace, typing.List[str]]:
-    """
-    Parse CLI args.
-    """
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--target', type = pathlib.Path, required = True)
-
-    parser.add_argument(dest = "target_args" , help = "Arguments that will be passed to the 'target'.", nargs = '*')
-
-    return parser.parse_args()
 
 if __name__ == '__main__':
 
