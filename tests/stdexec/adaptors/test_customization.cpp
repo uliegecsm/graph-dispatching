@@ -1,4 +1,4 @@
-#include <future>
+#include <thread>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -58,19 +58,14 @@ struct ThenReceiver
     template <class... Args> requires std::invocable<Functor, Args...>
     void set_value(Args&&... args) && noexcept
     {
-        auto result = std::async(std::launch::async,
-            [func = std::move(functor)] (Args&&... func_args) {
-                thread_id = ID;
-                thread_customization = Customization;
-                return std::move(func)(std::forward<Args>(func_args)...);
-            }, std::forward<Args>(args)...);
-
-        result.wait();
-
-        if constexpr (std::same_as<std::invoke_result_t<Functor, Args...>, void>)
+        thread_id = ID;
+        thread_customization = Customization;
+        if constexpr (std::same_as<std::invoke_result_t<Functor, Args...>, void>) {
+            std::move(functor)(std::forward<Args>(args)...);
             ::stdexec::set_value(std::move(rcvr));
-        else
-            ::stdexec::set_value(std::move(rcvr), std::move(result.get()));
+        } else {
+            ::stdexec::set_value(std::move(rcvr), std::move(functor)(std::forward<Args>(args)...));
+        }
     }
 
     template <typename Error>
@@ -216,7 +211,10 @@ struct DomainSpecificScheduler
 
         //! @todo Check if the @ref rcvr must be moved or not.
         void start() & noexcept {
-            ::stdexec::set_value(std::move(rcvr));
+            std::jthread(
+                [] (R&& rcvr_) { ::stdexec::set_value(std::move(rcvr_)); },
+                std::move(rcvr)
+            );
         }
     };
 
@@ -238,7 +236,11 @@ struct DomainSpecificScheduler
 
     auto query(::stdexec::get_domain_t) const noexcept { return Domain{}; }
 
-    auto query(::stdexec::get_completion_domain_t<::stdexec::set_value_t>) const noexcept { return Domain{}; }
+    [[nodiscard]] constexpr auto
+    query(::stdexec::get_completion_domain_t<::stdexec::set_value_t>) const noexcept -> Domain { return {}; }
+
+    [[nodiscard]] constexpr auto
+    query(::stdexec::get_completion_scheduler_t<::stdexec::set_value_t>) const noexcept -> DomainSpecificScheduler { return {}; }
 
     friend bool operator==(const DomainSpecificScheduler&, const DomainSpecificScheduler&) noexcept { return true; }
 };
