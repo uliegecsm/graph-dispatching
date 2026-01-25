@@ -105,7 +105,7 @@ struct ThenFunctor
     void operator()() const
     {
         KOKKOS_IF_ON_HOST(Kokkos::abort("Then: This should not happen.");)
-        Kokkos::printf("> %s with id %d: thread (%d,%d,%d)\n", __PRETTY_FUNCTION__, id, threadIdx.x, threadIdx.y, threadIdx.z);
+        Kokkos::printf("> %s with id %d: thread (%d,%d,%d)\n", __PRETTY_FUNCTION__, id, threadIdx.x, threadIdx.y, threadIdx.z); // NOLINT(modernize-use-std-print)
     }
 };
 
