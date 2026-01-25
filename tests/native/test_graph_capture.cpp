@@ -106,7 +106,7 @@ PRAGMA_DIAGNOSTIC_POP
                                                 + ::testing::UnitTest::GetInstance()->current_test_info()->name();
         const auto        file_name = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / (test_name + ".dot");
 
-        printf("> Writing graph as DOT in %s.\n", file_name.c_str());
+        std::printf("> Writing graph as DOT in %s.\n", file_name.c_str()); // NOLINT(modernize-use-std-print)
 
         graph.print(file_name.c_str(), cudaGraphDebugDotFlagsVerbose);
     }
@@ -437,7 +437,7 @@ PRAGMA_DIAGNOSTIC_POP
             [&, buffer = buffer](const Stream& stream) {
                 handle.set_stream(stream);
 
-                printf("> Calling 'cusparseSpVV' with stream capturing(=%s).\n", stream.capturing() ? "true" : "false");
+                std::printf("> Calling 'cusparseSpVV' with stream capturing(=%s).\n", stream.capturing() ? "true" : "false"); // NOLINT(modernize-use-std-print)
 
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-declarations")
