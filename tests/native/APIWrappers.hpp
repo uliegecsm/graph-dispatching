@@ -27,17 +27,14 @@
     #error "You must enable HIP or Cuda."
 #endif
 
-#define CHECK_CALL_IMPL(call, success, get_error)               \
-    {                                                           \
-        const auto error_code = call;                           \
-        if(error_code != success)                               \
-        {                                                       \
-            printf("%s:%d: failure of statement %s: %s (%d)\n", \
-                __FILE__, __LINE__,                             \
-                #call,                                          \
-                get_error(error_code), error_code);             \
-            std::abort();                                       \
-        }                                                       \
+#define CHECK_CALL_IMPL(call, success, get_error)                                                                      \
+    {                                                                                                                  \
+        const auto error_code = call;                                                                                  \
+        if (error_code != success) {                                                                                   \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": failure of statement " #call ": " << get_error(error_code)  \
+                      << " (" << error_code << ')' << std::endl;                                                       \
+            std::abort();                                                                                              \
+        }                                                                                                              \
     }
 
 //! Check the return code of an API call. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

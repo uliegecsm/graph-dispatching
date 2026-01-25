@@ -1,8 +1,6 @@
 #ifndef GRAPH_DISPATCHING_APPS_HEAT_NONLINEAR1DHEATTRANSFER_HPP
 #define GRAPH_DISPATCHING_APPS_HEAT_NONLINEAR1DHEATTRANSFER_HPP
 
-#include "kokkos-utils/concepts/ExecutionSpace.hpp"
-#include "kokkos-utils/concepts/MemorySpace.hpp"
 #include "kokkos-utils/view/slice.hpp"
 
 namespace apps::heat {
