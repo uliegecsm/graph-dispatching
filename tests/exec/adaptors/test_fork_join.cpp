@@ -10,7 +10,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "exec/fork_join.hpp"
-#include "exec/repeat_effect_until.hpp"
+#include "exec/repeat_until.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -112,7 +112,7 @@ TEST_F(ForkJoinTest, copies) {
 }
 
 /**
- * @test Using @c exec::fork_join within a @c exec::repeat_effect_until does not memoize results.
+ * @test Using @c exec::fork_join within a @c exec::repeat_until does not memoize results.
  *
  * As opposed to @c stdexec::split that makes a single execution and memoizes the result, it seems that @c exec::fork_join
  * does not memoize the result in between the repetitions. But it leads to copying the input sender at each iteration.
@@ -126,12 +126,11 @@ TEST_F(ForkJoinTest, fork_join_does_not_memoize_results) {
     unsigned short int irep = 0;
     std::atomic<int> witness = 0;
 
-    auto loop = ::exec::repeat_effect_until(
-        CHAIN(pools.at(index_of_A).get_scheduler()) | ::stdexec::then([&irep]() -> bool {
-            std::cout << "Repetition " << (irep++) << ": copy constructed "
-                      << ::tests::utils::Counter::copy_constructions.load() << "times.\n";
-            return irep >= 5;
-        }));
+    auto loop = ::exec::repeat_until(CHAIN(pools.at(index_of_A).get_scheduler()) | ::stdexec::then([&irep]() -> bool {
+                                         std::cout << "Repetition " << (irep++) << ": copy constructed "
+                                                   << ::tests::utils::Counter::copy_constructions.load() << "times.\n";
+                                         return irep >= 5;
+                                     }));
 
     ::stdexec::sync_wait(std::move(loop));
 

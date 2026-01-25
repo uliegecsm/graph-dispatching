@@ -5,7 +5,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
-#include "exec/repeat_effect_until.hpp"
+#include "exec/repeat_until.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos-utils/callbacks/RecorderListener.hpp"
@@ -33,8 +33,8 @@ PRAGMA_DIAGNOSTIC_POP
  * and instantiation cost.
  *
  * To support this primary use case (submit the same graph many times), and avoid the creation of new sender patterns, it's envisioned to use a combination
- * of @c stdexec::sync_wait and @c exec::repeat_effect_until with an underlying shared state that manages the graph and creates it only once, despite the
- * reconnection induced by @c exec::repeat_effect_until.
+ * of @c stdexec::sync_wait and @c exec::repeat_until with an underlying shared state that manages the graph and creates it only once, despite the
+ * reconnection induced by @c exec::repeat_until.
  *
  * The tests can be found in @ref tests/kokkos_ext/graph/test_resubmit.cpp.
  */
@@ -68,7 +68,7 @@ TEST_F(ResubmitTest, replay) {
         recorder_listener_t::record([&data, &esc, chain = std::move(chain)]() mutable {
             unsigned short int guard = 0;
             ::stdexec::sync_wait(
-                ::exec::repeat_effect_until(
+                ::exec::repeat_until(
                     ::stdexec::starts_on(esc.get_scheduler(), std::move(chain))
                     | ::stdexec::continues_on(::stdexec::inline_scheduler{}) | ::stdexec::then([&]() -> bool {
                           std::cout << "Hi from convergence check. Counter is " << data() << '.' << std::endl;
