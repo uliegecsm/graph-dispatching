@@ -87,6 +87,7 @@ runs:
               cache-to: type=inline
               build-args: |
                   BASE_IMAGE=${{ inputs.base_image }}
+                  BACKEND=${{ inputs.backend }}
                   CLANG_VERSION=${{ env.CLANG_VERSION }}
 
                   CMAKE_PACKAGE_MANAGER_VERSION=${{ env.CMAKE_PACKAGE_MANAGER_VERSION }}

@@ -104,6 +104,14 @@ ADD --checksum=sha256:${CMAKE_PACKAGE_MANAGER_SHA256} \
 
 ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
 
+FROM requirements AS requirements-backend
+
+ARG BACKEND=notset
+
+RUN --mount=target=/docker/backend.py,type=bind,source=docker/backend.py \
+    --mount=target=/version.json,type=bind,source=version.json \
+    python3 /docker/backend.py --backend=${BACKEND} --version-file=version.json
+
 # Compile Google Test.
 FROM requirements AS google-test-compile
 
@@ -352,7 +360,7 @@ RUN --mount=target=/cmake/presets/kokkos-utils.json,type=bind,source=cmake/prese
 EOF
 
 # Build the final image from previous stages.
-FROM requirements AS final
+FROM requirements-backend AS final
 
 ARG DOXYGEN_VERSION
 ARG GOOGLEBENCHMARK_VERSION
