@@ -21,29 +21,24 @@ PRAGMA_DIAGNOSTIC_POP
  * The tests can be found in @ref exec/test_system_context.cpp.
  */
 
-namespace tests::exec
-{
+namespace tests::exec {
 
-struct SystemContextTest : public ::testing::Test
-{
+struct SystemContextTest : public ::testing::Test {
     ::exec::parallel_scheduler schd = ::exec::get_parallel_scheduler();
 };
 
 //! @test Check the forward progress guarantee of the @c exec::system_context scheduler.
-TEST_F(SystemContextTest, forward_progress_guarantee)
-{
+TEST_F(SystemContextTest, forward_progress_guarantee) {
     const auto fpg = ::stdexec::get_forward_progress_guarantee(schd);
     ASSERT_EQ(fpg, ::stdexec::forward_progress_guarantee::parallel);
 }
 
 //! @test Check who's executing the work.
-TEST_F(SystemContextTest, who)
-{
+TEST_F(SystemContextTest, who) {
     const auto main = std::this_thread::get_id();
 
-    auto chain = ::stdexec::schedule(schd) | ::stdexec::then(
-        [] () -> std::thread::id { return std::this_thread::get_id(); }
-    );
+    auto chain = ::stdexec::schedule(schd)
+               | ::stdexec::then([]() -> std::thread::id { return std::this_thread::get_id(); });
 
     const auto [worker] = ::stdexec::sync_wait(std::move(chain)).value();
 

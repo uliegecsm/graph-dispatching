@@ -25,17 +25,16 @@ PRAGMA_DIAGNOSTIC_POP
  *  - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__schedulers.hpp#L72-L77
  */
 
-namespace tests::stdexec
-{
+namespace tests::stdexec {
 
 //! Custom scheduler.
-struct MyScheduler
-{
+struct MyScheduler {
     template <class Scheduler>
-    struct MyEnv
-    {
+    struct MyEnv {
         template <typename CompletionTag>
-        Scheduler query(::stdexec::get_completion_scheduler_t<CompletionTag>) const noexcept { return {}; }
+        Scheduler query(::stdexec::get_completion_scheduler_t<CompletionTag>) const noexcept {
+            return {};
+        }
     };
 
     /**
@@ -44,12 +43,13 @@ struct MyScheduler
      * See also https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#spec-execution.opstate.
      */
     template <class R>
-    struct MyOp
-    {
+    struct MyOp {
         using operation_state_concept = ::stdexec::operation_state_t;
         R rcvr;
 
-        void start() & noexcept { ::stdexec::set_value(std::move(rcvr)); }
+        void start() & noexcept {
+            ::stdexec::set_value(std::move(rcvr));
+        }
     };
 
     /**
@@ -63,8 +63,7 @@ struct MyScheduler
      *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-dispatch.
      *  - https://github.com/cplusplus/sender-receiver/blob/a1790ddda5dcdf70f0658d0b50794649caa6c96f/P2300R9.html#L5928
      */
-    struct MySender
-    {
+    struct MySender {
         using sender_concept = ::stdexec::sender_t;
 
         //! This sender only completes on the value channel. It passes no arguments to @c set_value.
@@ -72,29 +71,35 @@ struct MyScheduler
 
         //! @note @c connect is not needed for fulfilling the @c stdexec::sender concept.
         template <::stdexec::receiver_of<completion_signatures> R>
-        MyOp<std::remove_cvref_t<R>> connect(R&& rcvr) noexcept(std::is_nothrow_move_constructible_v<R>) { return {std::forward<R>(rcvr)}; }
+        MyOp<std::remove_cvref_t<R>> connect(R&& rcvr) noexcept(std::is_nothrow_move_constructible_v<R>) {
+            return {std::forward<R>(rcvr)};
+        }
 
-        MyEnv<MyScheduler> get_env() const noexcept { return {}; }
+        MyEnv<MyScheduler> get_env() const noexcept {
+            return {};
+        }
     };
 
-    MySender schedule() const noexcept { return {}; }
+    MySender schedule() const noexcept {
+        return {};
+    }
 
-    friend bool operator==(const MyScheduler&, const MyScheduler&) noexcept { return true; }
+    friend bool operator==(const MyScheduler&, const MyScheduler&) noexcept {
+        return true;
+    }
 };
 
 //! @test Check @ref MyScheduler traits.
-TEST(stdexec, my_scheduler_traits)
-{
-    static_assert(::stdexec::sender   <MyScheduler::MySender>);
+TEST(stdexec, my_scheduler_traits) {
+    static_assert(::stdexec::sender<MyScheduler::MySender>);
     static_assert(::stdexec::scheduler<MyScheduler>);
 }
 
 //! @test Check that @ref MyScheduler can be used with @c stdexec::then.
-TEST(stdexec, my_scheduler_then)
-{
+TEST(stdexec, my_scheduler_then) {
     unsigned short int counter = 0;
 
-    auto chain = ::stdexec::schedule(MyScheduler{}) | ::stdexec::then([&counter](){ ++counter; });
+    auto chain = ::stdexec::schedule(MyScheduler{}) | ::stdexec::then([&counter]() { ++counter; });
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 

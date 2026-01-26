@@ -23,8 +23,7 @@ PRAGMA_DIAGNOSTIC_POP
  * The tests can be found in @ref tests/stdexec/factories/test_just.cpp.
  */
 
-namespace tests::stdexec::factories
-{
+namespace tests::stdexec::factories {
 
 /**
  * @test Use @c stdexec::just in a @c constexpr expression.
@@ -40,8 +39,7 @@ constexpr auto test_constexpr() noexcept {
 static_assert(test_constexpr() == 6.66);
 
 //! @test Set the value channel with @c stdexec::just and retrieve the value after @c stdexec::sync_wait.
-TEST(just, sync_wait_value)
-{
+TEST(just, sync_wait_value) {
     const auto [value] = ::stdexec::sync_wait(::stdexec::just(double(42.))).value();
 
     static_assert(std::same_as<decltype(value), const double>);

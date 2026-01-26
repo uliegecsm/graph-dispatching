@@ -24,20 +24,21 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref stdexec/adaptors/test_write_env.cpp.
  */
 
-namespace tests::stdexec::adaptors
-{
+namespace tests::stdexec::adaptors {
 
 //! Custom property (forwarding).
-constexpr struct CustomProperty : public ::stdexec::__query<CustomProperty>, ::stdexec::forwarding_query_t {
+constexpr struct CustomProperty
+    : public ::stdexec::__query<CustomProperty>
+    , ::stdexec::forwarding_query_t {
     using ::stdexec::__query<CustomProperty>::operator();
-} my_custom_property {};
+} my_custom_property{};
 
 //! Yet another custom property.
-constexpr struct YetAnotherCustomProperty : public ::stdexec::__query<YetAnotherCustomProperty> {} my_yet_another_custom_property {};
+constexpr struct YetAnotherCustomProperty : public ::stdexec::__query<YetAnotherCustomProperty> {
+} my_yet_another_custom_property{};
 
 /// @test Check that we can build an environment with a custom property and query it at compile time.
-TEST(Environment, build_env_constexpr)
-{
+TEST(Environment, build_env_constexpr) {
     constexpr auto env = ::stdexec::prop{my_custom_property, 123};
 
     using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>;
@@ -52,43 +53,41 @@ TEST(Environment, build_env_constexpr)
 }
 
 /// @test Check that we can build an environment with many properties.
-TEST(Environment, build_env_constexpr_many_props)
-{
+TEST(Environment, build_env_constexpr_many_props) {
     constexpr auto env = ::stdexec::env{
-        ::stdexec::prop{my_custom_property, 123},
+        ::stdexec::prop{            my_custom_property, 123},
         ::stdexec::prop{my_yet_another_custom_property, 456}
     };
 
-    constexpr auto value_cp   = my_custom_property(env);
+    constexpr auto value_cp = my_custom_property(env);
     constexpr auto value_yacp = my_yet_another_custom_property(env);
 
-    static_assert(std::same_as<decltype(value_cp),   const int>);
+    static_assert(std::same_as<decltype(value_cp), const int>);
     static_assert(std::same_as<decltype(value_yacp), const int>);
 
-    static_assert(value_cp   == 123);
+    static_assert(value_cp == 123);
     static_assert(value_yacp == 456);
 }
 
 //! @test This is testing the issue https://github.com/NVIDIA/stdexec/issues/1606.
-TEST(Environment, build_env_constexpr_single_prop)
-{
+TEST(Environment, build_env_constexpr_single_prop) {
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ < 15)
     constexpr auto env = ::stdexec::prop{my_custom_property, 123};
 #else
-    constexpr auto env = ::stdexec::env{::stdexec::prop{my_custom_property, 123}};
+    constexpr auto env = ::stdexec::env{
+        ::stdexec::prop{my_custom_property, 123}
+    };
 #endif
 
     static_assert(my_custom_property(env) == 123);
 }
 
-struct SomeRuntimeState
-{
+struct SomeRuntimeState {
     std::string label;
 };
 
 //! @test Check that we can build an environment with a custom runtime property and query it.
-TEST(Environment, build_env_runtime)
-{
+TEST(Environment, build_env_runtime) {
     const auto env = ::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}};
 
     using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>;
@@ -107,18 +106,15 @@ TEST(Environment, build_env_runtime)
  *
  * Inspired by https://github.com/NVIDIA/stdexec/blob/250f35737790392d666fd157e0af9be16d0c789f/test/nvexec/let_value.cpp#L132-L149.
  */
-TEST(Environment, let_value_read_env)
-{
+TEST(Environment, let_value_read_env) {
     std::ostringstream out;
 
     auto env = ::stdexec::prop{my_custom_property, SomeRuntimeState{"try catch me if you can"}};
 
     ::stdexec::sender auto chain = ::stdexec::just()
-        | ::stdexec::let_value([] { return ::stdexec::read_env(my_custom_property); })
-        | ::stdexec::then([&out](const SomeRuntimeState& state) {
-            out << state.label;
-        });
- 
+                                 | ::stdexec::let_value([] { return ::stdexec::read_env(my_custom_property); })
+                                 | ::stdexec::then([&out](const SomeRuntimeState& state) { out << state.label; });
+
     ::stdexec::sync_wait(std::move(chain) | ::stdexec::write_env(std::move(env))); // NOLINT(performance-move-const-arg)
 
     ASSERT_EQ(out.str(), "try catch me if you can");

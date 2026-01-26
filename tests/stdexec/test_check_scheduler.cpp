@@ -24,23 +24,21 @@ PRAGMA_DIAGNOSTIC_POP
  * The tests can be found in @ref tests/stdexec/test_check_scheduler.cpp.
  */
 
-namespace tests::stdexec
-{
+namespace tests::stdexec {
 
 using static_thread_pool_scheduler_t = ::exec::_pool_::_static_thread_pool::scheduler;
 
 //! @test Default scheduler.
-TEST(check_scheduler, default)
-{
+TEST(check_scheduler, default) {
     ::stdexec::sync_wait(::stdexec::just() | check_scheduler<default_scheduler_t>() | THEN_SHOW_ID);
 }
 
 //! @test @c exec::static_thread_pool scheduler.
-TEST(check_scheduler, static_thread_pool)
-{
+TEST(check_scheduler, static_thread_pool) {
     ::exec::static_thread_pool pool{1};
 
-    auto chain = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>() | THEN_SHOW_ID;
+    auto chain = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
+               | THEN_SHOW_ID;
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 }
@@ -50,19 +48,15 @@ TEST(check_scheduler, static_thread_pool)
  *
  * See also https://github.com/NVIDIA/stdexec/issues/1736#issuecomment-3720622409.
  */
-TEST(check_scheduler, split_when_all_no_forward)
-{
+TEST(check_scheduler, split_when_all_no_forward) {
     ::exec::static_thread_pool pool{1};
 
-    auto fork = ::stdexec::schedule(pool.get_scheduler())
-        | check_scheduler<static_thread_pool_scheduler_t>()
-        | THEN_SHOW_ID
-        | ::stdexec::split();
+    auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
+              | THEN_SHOW_ID | ::stdexec::split();
 
     auto chain = ::stdexec::when_all(
         fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>(),
-        fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>()
-    );
+        fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>());
 
     ::stdexec::sync_wait(std::move(chain) | check_scheduler<default_scheduler_t>());
 }
@@ -72,48 +66,40 @@ TEST(check_scheduler, split_when_all_no_forward)
  *
  * See also https://github.com/NVIDIA/stdexec/issues/1736#issuecomment-3720622409.
  */
-TEST(check_scheduler, split_transfer_when_all_no_forward)
-{
+TEST(check_scheduler, split_transfer_when_all_no_forward) {
     ::exec::static_thread_pool pool{1};
 
-    auto fork = ::stdexec::schedule(pool.get_scheduler())
-        | check_scheduler<static_thread_pool_scheduler_t>()
-        | THEN_SHOW_ID
-        | ::stdexec::split();
+    auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
+              | THEN_SHOW_ID | ::stdexec::split();
 
-    auto chain = ::stdexec::transfer_when_all(pool.get_scheduler(),
+    auto chain = ::stdexec::transfer_when_all(
+        pool.get_scheduler(),
         fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>(),
-        fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>()
-    );
+        fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>());
 
     ::stdexec::sync_wait(std::move(chain) | check_scheduler<static_thread_pool_scheduler_t>());
 }
 
 //! @test Multiple splits.
-TEST(check_scheduler, multiple_splits)
-{
+TEST(check_scheduler, multiple_splits) {
     ::exec::static_thread_pool pool{1};
 
-    auto fork_A = ::stdexec::schedule(pool.get_scheduler())
-        | check_scheduler<static_thread_pool_scheduler_t>()
-        | THEN_SHOW_ID
-        | ::stdexec::split();
+    auto fork_A = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
+                | THEN_SHOW_ID | ::stdexec::split();
 
     auto chain_A_branch_a = fork_A | THEN_SHOW_ID;
-    auto chain_A_branch_b = std::move(fork_A)  | THEN_SHOW_ID;
+    auto chain_A_branch_b = std::move(fork_A) | THEN_SHOW_ID;
 
     auto chain_A = ::stdexec::when_all(std::move(chain_A_branch_a), std::move(chain_A_branch_b)) | THEN_SHOW_ID;
 
-    auto fork_B = std::move(chain_A)
-        | ::stdexec::continues_on(pool.get_scheduler())
-        | check_scheduler<static_thread_pool_scheduler_t>()
-        | ::stdexec::split();
+    auto fork_B = std::move(chain_A) | ::stdexec::continues_on(pool.get_scheduler())
+                | check_scheduler<static_thread_pool_scheduler_t>() | ::stdexec::split();
 
     auto chain_B_branch_a = fork_B | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
     auto chain_B_branch_b = std::move(fork_B) | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
 
-    auto chain_B = ::stdexec::when_all(std::move(chain_B_branch_a), std::move(chain_B_branch_b))
-        | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
+    auto chain_B = ::stdexec::when_all(std::move(chain_B_branch_a), std::move(chain_B_branch_b)) | THEN_SHOW_ID
+                 | check_scheduler<default_scheduler_t>();
 
     ::stdexec::sync_wait(std::move(chain_B) | check_scheduler<default_scheduler_t>());
 }

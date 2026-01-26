@@ -21,15 +21,18 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref tests/stdexec/test_sink_receiver.cpp.
  */
 
-namespace tests::stdexec
-{
+namespace tests::stdexec {
 
 //! @test Check that @ref tests::stdexec::SinkReceiver satisfies the @c ::stdexec::receiver concept.
 constexpr bool test_sink_receiver_traits() {
     static_assert(::stdexec::receiver<SinkReceiver>);
-    
-    static_assert(::stdexec::receiver_of<SinkReceiver, ::stdexec::completion_signatures<::stdexec::set_value_t(int, double)>>);
-    static_assert(::stdexec::receiver_of<SinkReceiver, ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr)>>);
+
+    static_assert(
+        ::stdexec::receiver_of<SinkReceiver, ::stdexec::completion_signatures<::stdexec::set_value_t(int, double)>>);
+    static_assert(::stdexec::receiver_of<
+                  SinkReceiver,
+                  ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr)>
+    >);
     static_assert(::stdexec::receiver_of<SinkReceiver, ::stdexec::completion_signatures<::stdexec::set_stopped_t()>>);
 
     return true;

@@ -6,7 +6,6 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
-int main()
-{
+int main() {
     return 0;
 }
