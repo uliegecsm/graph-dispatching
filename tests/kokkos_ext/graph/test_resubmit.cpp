@@ -37,6 +37,8 @@ PRAGMA_DIAGNOSTIC_POP
  * reconnection induced by @c exec::repeat_until.
  *
  * The tests can be found in @ref tests/kokkos_ext/graph/test_resubmit.cpp.
+ * 
+ * todo redo doc
  */
 
 using execution_space = Kokkos::DefaultExecutionSpace;
@@ -53,8 +55,11 @@ class ResubmitTest
         RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent>;
 };
 
-//! @test Check that @ref Kokkos::Experimental::GraphContext can be resubmitted while creating the graph only the first time.
-TEST_F(ResubmitTest, replay) {
+/**
+ * @test Check that @ref Kokkos::Experimental::GraphContext leads to the graph being created, instantiated and submitted at each iteration
+ *       of @c exec::repeat_effect_until.
+ */
+TEST_F(ResubmitTest, created_instantiated_submitted_at_each_iteration) {
     const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t esc{exec};
@@ -80,9 +85,11 @@ TEST_F(ResubmitTest, replay) {
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from")),
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from")),
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));

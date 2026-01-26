@@ -34,4 +34,11 @@ concept graph_completing_sender = ::stdexec::sender<Sndr>
 
 } // namespace Kokkos::Experimental::details::graph
 
+namespace Kokkos::Experimental {
+
+template <Kokkos::ExecutionSpace Exec>
+struct GraphContext;
+
+}; // namespace Kokkos::Experimental
+
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPHCONTEXT_FWD_HPP

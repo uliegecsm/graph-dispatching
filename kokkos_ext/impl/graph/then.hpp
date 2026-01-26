@@ -27,7 +27,7 @@ struct ThenOpState {
 
     //! In the long term, the user could be able to opt for type erased nodes.
     using node_t = decltype(build_then_node(
-        *std::declval<Schd&>().state_ptr,
+        std::declval<State<typename Schd::execution_space>&>(),
         std::declval<const inner_opstate_t&>(),
         std::declval<Functor>()));
 
@@ -37,6 +37,7 @@ struct ThenOpState {
     Functor functor;
     std::optional<node_t> node = std::nullopt;
     std::exception_ptr error = nullptr;
+    State<typename Schd::execution_space>* state = nullptr;
 
     template <stdexec::scheduler Scheduler, stdexec::sender Sender, stdexec::receiver Rcvr, typename Func>
     ThenOpState(Scheduler&& scheduler, Sender&& sndr, Rcvr&& rcvr, Func&& func)
@@ -49,12 +50,22 @@ struct ThenOpState {
 
     //! Create the node only if the predecessor has one.
     void create_node() {
-        if (proceed(*schd.state_ptr, inner_opstate)) {
-            try {
-                this->node.emplace(build_then_node(*schd.state_ptr, inner_opstate, std::move(functor)));
-            } catch (...) {
-                this->error = std::current_exception();
-            }
+        // set my state as the one of the parent, or raise ? I mean the schedule sender should do soething
+        if constexpr (requires { inner_opstate.get_state(); }) {
+            if (state == nullptr)
+                state = inner_opstate.get_state();
+        } else {
+            state = new State<typename Schd::execution_space>(schd.ctx_ptr->m_exec);
+        }
+        if (state == nullptr) {
+            PLOG_ERROR << Kokkos::Impl::TypeInfo<::stdexec::__demangle_t<Sndr>>::name();
+            throw std::runtime_error("The state is still nullptr.");
+        }
+
+        try {
+            this->node.emplace(build_then_node(*state, inner_opstate, std::move(functor)));
+        } catch (...) {
+            this->error = std::current_exception();
         }
     }
 
@@ -62,7 +73,12 @@ struct ThenOpState {
         return node;
     }
 
+    decltype(auto) get_state() const {
+        return state;
+    }
+
     void start() & noexcept {
+        PLOG_INFO << "schedule_from start";
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
         stdexec::start(inner_opstate);
@@ -92,7 +108,7 @@ struct ThenReceiver {
     opstate_t* opstate;
 
     void set_value() && noexcept {
-        opstate->schd.state_ptr->submit();
+        opstate->state->submit();
         std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }
 
