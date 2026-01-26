@@ -19,7 +19,7 @@ struct ScheduleFromReceiver {
 
     void set_value() && noexcept {
         if (!skip)
-            schd.state_ptr->exec.fence(
+            schd.state_ptr->wait(
                 std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(schd.state_ptr->exec)>::name()));
         ::stdexec::set_value(std::move(rcvr));
     }

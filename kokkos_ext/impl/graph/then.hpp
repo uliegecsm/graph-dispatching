@@ -49,12 +49,7 @@ struct ThenOpState {
 
     //! Create the node only if the predecessor has one.
     void create_node() {
-        const auto proceed = [&]() {
-            if constexpr (requires { inner_opstate.error; })
-                return inner_opstate.error == nullptr;
-            return true;
-        }();
-        if (proceed) {
+        if (proceed(*schd.state_ptr, inner_opstate)) {
             try {
                 this->node.emplace(build_then_node(*schd.state_ptr, inner_opstate, std::move(functor)));
             } catch (...) {

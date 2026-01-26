@@ -71,6 +71,7 @@ TEST_F(InterOpTest, transition_to_inline_scheduler) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));
@@ -102,6 +103,7 @@ TEST_F(InterOpTest, transition_from_inline_scheduler) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
@@ -136,6 +138,7 @@ TEST_F(InterOpTest, transition_from_inline_scheduler_and_back) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));
@@ -169,6 +172,7 @@ TEST_F(InterOpTest, transition_to_static_thread_pool) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));
@@ -202,6 +206,7 @@ TEST_F(InterOpTest, transition_from_static_thread_pool) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
@@ -238,6 +243,7 @@ TEST_F(InterOpTest, transition_from_static_thread_pool_and_back) {
     EXPECT_THAT(
         recorded_events,
         ::testing::ElementsAre(
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));

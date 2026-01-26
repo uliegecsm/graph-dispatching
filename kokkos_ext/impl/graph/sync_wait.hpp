@@ -17,10 +17,8 @@ struct SyncWaitReceiver {
     Kokkos::Experimental::details::impl::State* state;
 
     void set_value() && noexcept {
-        if (schd.state_ptr->is_submitted) {
-            schd.state_ptr->exec
-                .fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.state_ptr->exec)>::name()));
-        }
+        schd.state_ptr
+            ->wait(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<decltype(schd.state_ptr->exec)>::name()));
         state->loop.finish();
     }
 
