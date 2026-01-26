@@ -1,1 +1,2 @@
 add_one_test(NAME stream_context ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+add_one_test(NAME when_all       ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
