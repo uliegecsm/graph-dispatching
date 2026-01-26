@@ -118,7 +118,7 @@ struct ValueReceiver
     ValueType* value;
     Env env_ {};
 
-    void set_value(ValueType value_) noexcept { *value = std::move(value_); }
+    constexpr void set_value(ValueType value_) noexcept { *value = std::move(value_); }
     void set_error(std::exception_ptr) noexcept {} // NOLINT(performance-unnecessary-value-param)
     void set_stopped() noexcept {}
 
