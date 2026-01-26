@@ -32,7 +32,7 @@ def expected_number_of_tests(*, preset : str) -> int:
         case 'rocm-HIP':
             count = 82
         case 'clang-HPX-Cuda' | 'clang-Cuda':
-            count = 88
+            count = 89
         case 'gcc-Cuda':
             count = 39
         case _:
