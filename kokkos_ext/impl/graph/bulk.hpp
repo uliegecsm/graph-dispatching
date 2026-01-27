@@ -8,14 +8,15 @@
 #include "kokkos_ext/impl/completion_signatures.hpp"
 #include "kokkos_ext/impl/env.hpp"
 #include "kokkos_ext/impl/graph/Helpers.hpp"
+#include "kokkos_ext/impl/graph/get_node.hpp"
 
 namespace Kokkos::Experimental::details::graph {
 
 //! Build a @c parallel_for node after the node returned by @ref get_predecessor.
-template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Data>
-auto build_parallel_for_node(State<Exec>& state, const OpstateType& opstate, Data&& data) {
+template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Env, typename Data>
+auto build_parallel_for_node(State<Exec>& state, const OpstateType& opstate, const Env& env, Data&& data) {
     auto [policy, shape, functor] = std::forward<Data>(data);
-    return get_predecessor(opstate, state.get_graph())
+    return get_predecessor(opstate, env, state.get_graph())
         .then_parallel_for(
             std::format("{}: bulk", Kokkos::Impl::TypeInfo<Exec>::name()),
             Kokkos::RangePolicy(state.exec, 0, std::move(shape)),
@@ -69,6 +70,7 @@ struct BulkOpState {
     using node_t = decltype(build_parallel_for_node(
         *std::declval<Schd&>().state_ptr,
         std::declval<const inner_opstate_t&>(),
+        std::declval<const env_t&>(),
         std::declval<Data&&>()));
 
     Schd schd;
@@ -91,7 +93,8 @@ struct BulkOpState {
     void create_node() {
         if (proceed(*schd.state_ptr, inner_opstate)) {
             try {
-                this->node.emplace(build_parallel_for_node(*schd.state_ptr, inner_opstate, std::move(data)));
+                this->node
+                    .emplace(build_parallel_for_node(*schd.state_ptr, inner_opstate, this->get_env(), std::move(data)));
             } catch (...) {
                 this->error = std::current_exception();
             }

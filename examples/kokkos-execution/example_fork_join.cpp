@@ -70,12 +70,11 @@ TEST_F(GraphForkJoinTest, kokkos_vanilla) {
     ASSERT_TRUE(diamond::Values::check(exec, data));
 }
 
-#if HAS_FORK_JOIN_CUSTOMIZED
 //! @test Using @c stdexec customization.
 TEST_F(GraphForkJoinTest, kokkos_execution) {
     const Kokkos::Experimental::GraphContext<execution_space> gctx{exec};
 
-    auto node_A =
+    auto chain =
         stdexec::schedule(gctx.get_scheduler())
         | stdexec::bulk(stdexec::par, size, functor_t{.data = data, .value = diamond::Values::value_A})
         | exec::fork_join(
@@ -89,9 +88,9 @@ TEST_F(GraphForkJoinTest, kokkos_execution) {
                     functor_t{.data = data, .value = diamond::Values::value_C, .offset = size / 2}))
         | stdexec::bulk(stdexec::par, size, functor_t{.data = data, .value = diamond::Values::value_D});
 
-    stdexec::sync_wait(std::move(node_D));
+    stdexec::sync_wait(std::move(chain));
 
     ASSERT_TRUE(diamond::Values::check(exec, data));
 }
-#endif
+
 } // namespace examples::KokkosExecution::fork_join
