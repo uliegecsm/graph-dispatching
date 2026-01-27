@@ -7,6 +7,7 @@
 #include "tests/kokkos_ext/Helpers.hpp"
 #include "tests/kokkos_ext/graph/Helpers.hpp"
 #include "tests/stdexec/Utils.hpp"
+#include "tests/utils/LoadCheckAdd.hpp"
 
 /**
  * @addtogroup unittests
@@ -32,6 +33,10 @@ class WhenAllTest
    public:
     using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
     using variant_t = std::variant<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
+
+    using value_t = typename view_s_t::value_type;
+
+    static constexpr bool on_device = ::tests::utils::on_device<execution_space>();
 };
 
 //! Check basic traits of a @c when_all sender.
@@ -117,6 +122,86 @@ TEST_F(WhenAllTest, three_branches) {
         ::testing::ElementsAreArray(matchers));
 
     ASSERT_EQ(data(), 3);
+}
+
+//! @test The topology is a single node in the single @c when_all branch, and it is followed by a single sender after the @c when_all on the inline scheduler.
+TEST_F(WhenAllTest, one_branch_and_one_after_on_inline_scheduler) {
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const context_t grc{exec};
+
+    auto when_all =
+        ::stdexec::when_all(::stdexec::schedule(grc.get_scheduler()) | ADD_THEN)
+        | ::stdexec::continues_on(::stdexec::inline_scheduler{})
+        | ::stdexec::then(
+            ::tests::utils::LoadCheckAddFunctor<value_t, false>{.prev = 1, .value = 4, .data = data.data()});
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "when_all")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record(
+            [when_all = std::move(when_all)]() mutable { ::stdexec::sync_wait(std::move(when_all)); }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 5);
+}
+
+/**
+ * @test The join topology is a single node in each of the two @c when_all branches, followed by a single node after the @c when_all.
+ *
+ * @verbatim
+ * A   B
+ *  \ /
+ *   C
+ * @endverbatim
+ */
+TEST_F(WhenAllTest, join_topology) {
+    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const context_t grc{exec};
+
+    auto when_all =
+        ::stdexec::when_all(
+            ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN, ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN)
+        | ::stdexec::continues_on(grc.get_scheduler())
+        | ::stdexec::then(
+            ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 2, .value = 4, .data = data.data()});
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record(
+            [when_all = std::move(when_all)]() mutable { ::stdexec::sync_wait(std::move(when_all)); }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 6);
 }
 
 } // namespace tests::kokkos_ext

@@ -34,7 +34,8 @@ namespace details::graph {
 //! The state is moveable, not copyable.
 template <Kokkos::ExecutionSpace Exec>
 struct State {
-    using graph_t = Kokkos::Experimental::Graph<Exec>;
+    using execution_space = Exec;
+    using graph_t = Kokkos::Experimental::Graph<execution_space>;
 
     explicit State(Exec exec_) // NOLINT(performance-unnecessary-value-param)
         : exec{std::move(exec_)} {
@@ -84,12 +85,16 @@ struct State {
     template <typename T>
     void wait(T&& msg) {
         if (is_submitted) {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+            PLOG_DEBUG << "Waiting for the graph at " << std::addressof(*graph) << " on "
+                       << Kokkos::Tools::Experimental::device_id(exec) << " (" << msg << ')';
+#endif
             exec.fence(std::forward<T>(msg));
             is_submitted = false;
         }
     }
 
-    Exec exec;
+    execution_space exec;
     std::optional<graph_t> graph = std::nullopt;
     bool is_instantiated = false;
     bool is_submitted = false;
@@ -116,6 +121,8 @@ template <Kokkos::ExecutionSpace Exec>
 struct Scheduler {
     //! As per https://eel.is/c++draft/exec.sched#1.
     using scheduler_concept = stdexec::scheduler_t;
+
+    using execution_space = Exec;
 
     template <stdexec::receiver Rcvr>
     struct OpState {

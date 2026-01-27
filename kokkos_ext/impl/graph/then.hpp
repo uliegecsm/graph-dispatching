@@ -44,6 +44,10 @@ struct ThenOpState {
         , inner_rcvr(std::forward<Rcvr>(rcvr))
         , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
         , functor(std::forward<Func>(func)) {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+        PLOG_DEBUG << "Adding a then node to graph in state " << schd.state_ptr << " of type "
+                   << Kokkos::Impl::TypeInfo<node_t>::name();
+#endif
         this->create_node();
     }
 
