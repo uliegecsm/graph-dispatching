@@ -91,14 +91,14 @@ struct BulkFunctor {
     template <std::integral T>
     KOKKOS_FUNCTION void operator()(const T index) const {
         KOKKOS_IF_ON_HOST(Kokkos::abort("Bulk: This should not happen.");)
-        Kokkos::printf(
+        Kokkos::printf( // NOLINT(modernize-use-std-print)
             "> %s with id %d: thread (%d,%d,%d): index %d\n",
             __PRETTY_FUNCTION__,
             id,
             threadIdx.x,
             threadIdx.y,
             threadIdx.z,
-            index); // NOLINT(modernize-use-std-print)
+            index);
     }
 };
 
@@ -109,13 +109,13 @@ struct ThenFunctor {
     KOKKOS_FUNCTION
     void operator()() const {
         KOKKOS_IF_ON_HOST(Kokkos::abort("Then: This should not happen.");)
-        Kokkos::printf(
+        Kokkos::printf( // NOLINT(modernize-use-std-print)
             "> %s with id %d: thread (%d,%d,%d)\n",
             __PRETTY_FUNCTION__,
             id,
             threadIdx.x,
             threadIdx.y,
-            threadIdx.z); // NOLINT(modernize-use-std-print)
+            threadIdx.z);
     }
 };
 

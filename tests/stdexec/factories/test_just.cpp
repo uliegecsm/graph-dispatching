@@ -32,8 +32,9 @@ namespace tests::stdexec::factories {
  */
 constexpr auto test_constexpr() noexcept {
     double placeholder = 0.;
-    auto op = ::stdexec::connect(::stdexec::just(6.66), ::tests::stdexec::ValueReceiver{std::addressof(placeholder)});
-    ::stdexec::start(op);
+    auto opstate =
+        ::stdexec::connect(::stdexec::just(6.66), ::tests::stdexec::ValueReceiver{std::addressof(placeholder)});
+    ::stdexec::start(opstate);
     return placeholder;
 }
 static_assert(test_constexpr() == 6.66);
