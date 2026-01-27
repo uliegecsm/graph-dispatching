@@ -7,6 +7,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include <stdexec/execution.hpp>
 PRAGMA_DIAGNOSTIC_POP
 
@@ -24,6 +25,7 @@ PRAGMA_DIAGNOSTIC_POP
 #include "kokkos_ext/impl/graph/schedule_from.hpp"
 #include "kokkos_ext/impl/graph/sync_wait.hpp"
 #include "kokkos_ext/impl/graph/then.hpp"
+#include "kokkos_ext/impl/graph/when_all.hpp"
 
 namespace Kokkos::Experimental {
 
