@@ -5,6 +5,7 @@
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 
 namespace Kokkos::Experimental::details::graph {
 
@@ -29,9 +30,7 @@ struct ContinuesOnReceiver {
         ::stdexec::set_stopped(std::move(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept {
-        return SchedulerEnv{schd.state_ptr};
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state_ptr->exec)
 };
 
 //! Sender for @c continues_on.

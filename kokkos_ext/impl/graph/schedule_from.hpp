@@ -5,6 +5,8 @@
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/env.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 
 namespace Kokkos::Experimental::details::graph {
 
@@ -63,9 +65,7 @@ struct ScheduleFromSender {
             std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip});
     }
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
-        return ::stdexec::get_env(sndr);
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 
     Schd schd;
     Sndr sndr;
@@ -75,17 +75,20 @@ struct ScheduleFromSender {
 template <typename Env>
 struct transform_sender_for<stdexec::schedule_from_t, Env> {
     template <::stdexec::sender Sndr>
+    requires graph_completing_sender<Sndr, Env>
     auto operator()(stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
         static_assert(stdexec::__is_instance_of<decltype(schd), Scheduler>);
 
         const bool skip = [&]() {
-            if constexpr (stdexec::__is_instance_of<std::remove_cvref_t<Env>, SchedulerEnv>) {
+            if constexpr (stdexec::__queryable_with<Env, Kokkos::Experimental::details::execution_space::get_exec_t>) {
                 if constexpr (std::same_as<
-                                  typename std::remove_cvref_t<decltype(env_.state_ptr)>,
-                                  typename std::remove_cvref_t<decltype(schd.state_ptr)>
+                                  std::remove_cvref_t<decltype(Kokkos::Experimental::details::execution_space::get_exec(
+                                                                   env_)
+                                                                   .get())>,
+                                  std::remove_cvref_t<decltype(schd.state_ptr->exec)>
                               >) {
-                    return schd.state_ptr == env_.state_ptr;
+                    return schd.state_ptr->exec == Kokkos::Experimental::details::execution_space::get_exec(env_).get();
                 }
             }
             return false;

@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
+#include "kokkos_ext/impl/execution_space/get_exec.hpp"
 #include "kokkos_ext/impl/sync_wait.hpp"
 
 namespace Kokkos::Experimental::details::graph {
@@ -15,6 +16,8 @@ struct SyncWaitReceiver {
 
     Schd schd;
     Kokkos::Experimental::details::impl::State* state;
+
+    using execution_space = std::remove_cvref_t<decltype(schd.state_ptr->exec)>;
 
     void set_value() && noexcept {
         schd.state_ptr
@@ -32,9 +35,20 @@ struct SyncWaitReceiver {
         state->loop.finish();
     }
 
+    //! Make others aware of which execution space instance it will synchronize.
     [[nodiscard]]
-    auto get_env() const noexcept -> Kokkos::Experimental::details::impl::env {
-        return {state->loop.get_scheduler()};
+    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<
+        stdexec::prop<
+            Kokkos::Experimental::details::execution_space::get_exec_t,
+            Kokkos::Experimental::details::execution_space::ExecutionSpaceRef<execution_space>
+        >,
+        Kokkos::Experimental::details::impl::env
+    > {
+        return stdexec::__env::__join(
+            stdexec::prop{
+                Kokkos::Experimental::details::execution_space::get_exec,
+                Kokkos::Experimental::details::execution_space::ExecutionSpaceRef{schd.state_ptr->exec}},
+            Kokkos::Experimental::details::impl::env{state->loop.get_scheduler()});
     }
 };
 

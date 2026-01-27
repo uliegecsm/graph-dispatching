@@ -77,13 +77,16 @@ struct WhenAllOpState {
     void start() & noexcept {
         stdexec::__apply([](auto&... ops) -> void { (stdexec::start(ops), ...); }, children_opstates);
 
-        //! @todo Find a way to do this conditionally depending on what's next.
-        stdexec::__get<0>(children_opstates)
-            .schd.state_ptr->wait(
-                std::format(
-                    "{}: when_all",
-                    Kokkos::Impl::TypeInfo<decltype(stdexec::__get<0>(children_opstates)
-                                                        .schd.state_ptr->exec)>::name()));
+        //! @todo Find a better way to do this conditionally depending on what's next.
+        constexpr bool skip = stdexec::__queryable_with<stdexec::env_of_t<InnerRcvr>, execution_space::get_exec_t>;
+        if (!skip) {
+            stdexec::__get<0>(children_opstates)
+                .schd.state_ptr->wait(
+                    std::format(
+                        "{}: when_all",
+                        Kokkos::Impl::TypeInfo<decltype(stdexec::__get<0>(children_opstates)
+                                                            .schd.state_ptr->exec)>::name()));
+        }
 
         if (error != nullptr) {
             stdexec::set_error(std::move(inner_rcvr), std::move(error));
