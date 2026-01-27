@@ -23,12 +23,12 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref stdexec/adaptors/test_continues_on.cpp.
  */
 
-namespace tests::stdexec::adaptors
-{
+namespace tests::stdexec::adaptors {
 
-class ContinuesOnTest : public utils::StaticThreadPool<'A', 'B'>, public ::testing::Test
-{
-public:
+class ContinuesOnTest
+    : public utils::StaticThreadPool<'A', 'B'>
+    , public ::testing::Test {
+   public:
     static constexpr size_t index_of_A = index_of<'A'>();
     static constexpr size_t index_of_B = index_of<'B'>();
 };
@@ -41,36 +41,28 @@ public:
  *
  * Inspired by https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/test/execpools/test_taskflow_thread_pool.cpp#L122.
  */
-TEST_F(ContinuesOnTest, continues_on)
-{
+TEST_F(ContinuesOnTest, continues_on) {
     std::array<std::thread::id, 3> thrids;
     size_t counter = 0;
 
-    auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
-        | THEN_STORE_ID(thrids[0], {++counter;})
-        | ::stdexec::continues_on(pools.at(index_of_B).get_scheduler())
-        | THEN_STORE_ID(thrids[1], {++counter;})
-        | THEN_STORE_ID(thrids[2], {++counter;});
+    auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids[0], { ++counter; })
+               | ::stdexec::continues_on(pools.at(index_of_B).get_scheduler())
+               | THEN_STORE_ID(thrids[1], { ++counter; }) | THEN_STORE_ID(thrids[2], { ++counter; });
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 
-    ASSERT_THAT(thrids, ::testing::ElementsAre(
-        threads.at(index_of_A),
-        threads.at(index_of_B),
-        threads.at(index_of_B)));
+    ASSERT_THAT(thrids, ::testing::ElementsAre(threads.at(index_of_A), threads.at(index_of_B), threads.at(index_of_B)));
     ASSERT_EQ(counter, 3);
 }
 
 //! @test Check traits of the sender created by the customized @c continues_on.
-TEST_F(ContinuesOnTest, traits)
-{
+TEST_F(ContinuesOnTest, traits) {
     using scheduler_t = decltype(pools.at(index_of_A).get_scheduler());
     static_assert(::utils::check_continues_on<scheduler_t>());
 }
 
 //! @test This test checks that using @c continues_on persists the scheduler.
-TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
-{
+TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
     auto sch_a = pools.at(index_of_A).get_scheduler();
     auto sch_b = pools.at(index_of_B).get_scheduler();
 
@@ -85,14 +77,24 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
     auto then_1_on_a = ::stdexec::schedule(sch_a) | THEN_STORE_ID(thr_1_on_a);
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_1_on_a)));
 
-    static_assert(has_completion_signatures<decltype(then_1_on_a), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
+    static_assert(has_completion_signatures<
+                  decltype(then_1_on_a),
+                  ::stdexec::set_error_t(std::exception_ptr),
+                  ::stdexec::set_stopped_t(),
+                  ::stdexec::set_value_t()
+    >);
 
     //! Next then, still on scheduler 'a'.
     std::thread::id thr_2_on_a;
     auto then_2_on_a = std::move(then_1_on_a) | THEN_STORE_ID(thr_2_on_a); // NOLINT(performance-move-const-arg)
     ASSERT_EQ(sch_a, ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(then_2_on_a)));
 
-    static_assert(has_completion_signatures<decltype(then_2_on_a), ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
+    static_assert(has_completion_signatures<
+                  decltype(then_2_on_a),
+                  ::stdexec::set_value_t(),
+                  ::stdexec::set_stopped_t(),
+                  ::stdexec::set_error_t(std::exception_ptr)
+    >);
 
     /// Now, we move on scheduler 'b'.
     auto continues_on = std::move(then_2_on_a) | ::stdexec::continues_on(sch_b); // NOLINT(performance-move-const-arg)
@@ -101,19 +103,17 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
     using continues_on_t = decltype(continues_on);
 
     /// @c continues_on advertises the default domain, and completes on the @c exec::static_thread_pool domain.
+    static_assert(
+        std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<continues_on_t>>, ::stdexec::default_domain>);
     static_assert(std::same_as<
-        ::stdexec::__domain_of_t<::stdexec::env_of_t<continues_on_t>>,
-        ::stdexec::default_domain
-    >);
-    static_assert(std::same_as<
-        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, continues_on_t>,
-        ::exec::_pool_::_static_thread_pool::domain
+                  ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, continues_on_t>,
+                  ::exec::_pool_::_static_thread_pool::domain
     >);
 
     //! It also has a completion scheduler for the value channel.
     static_assert(std::same_as<
-        ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t>,
-        exec::_pool_::_static_thread_pool::scheduler
+                  ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t>,
+                  exec::_pool_::_static_thread_pool::scheduler
     >);
 
     //! First then on scheduler 'b'.
@@ -123,16 +123,19 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     using then_1_on_b_t = decltype(then_1_on_b);
 
-    static_assert(has_completion_signatures<then_1_on_b_t, ::stdexec::set_value_t(), ::stdexec::set_stopped_t(), ::stdexec::set_error_t(std::exception_ptr)>);
+    static_assert(has_completion_signatures<
+                  then_1_on_b_t,
+                  ::stdexec::set_value_t(),
+                  ::stdexec::set_stopped_t(),
+                  ::stdexec::set_error_t(std::exception_ptr)
+    >);
 
     //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
+    static_assert(
+        std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<then_1_on_b_t>>, ::stdexec::default_domain>);
     static_assert(std::same_as<
-        ::stdexec::__domain_of_t<::stdexec::env_of_t<then_1_on_b_t>>,
-        ::stdexec::default_domain
-    >);
-    static_assert(std::same_as<
-        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_1_on_b_t>,
-        ::exec::_pool_::_static_thread_pool::domain
+                  ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_1_on_b_t>,
+                  ::exec::_pool_::_static_thread_pool::domain
     >);
 
     //! The second then is still on scheduler 'b'.
@@ -142,23 +145,28 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler)
 
     using then_2_on_b_t = decltype(then_2_on_b);
 
-    static_assert(has_completion_signatures<then_2_on_b_t, ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_stopped_t(), ::stdexec::set_value_t()>);
+    static_assert(has_completion_signatures<
+                  then_2_on_b_t,
+                  ::stdexec::set_error_t(std::exception_ptr),
+                  ::stdexec::set_stopped_t(),
+                  ::stdexec::set_value_t()
+    >);
 
     //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
+    static_assert(
+        std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<then_2_on_b_t>>, ::stdexec::default_domain>);
     static_assert(std::same_as<
-        ::stdexec::__domain_of_t<::stdexec::env_of_t<then_2_on_b_t>>,
-        ::stdexec::default_domain
-    >);
-    static_assert(std::same_as<
-        ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_2_on_b_t>,
-        ::exec::_pool_::_static_thread_pool::domain
+                  ::stdexec::__detail::__completing_domain_t<::stdexec::set_value_t, then_2_on_b_t>,
+                  ::exec::_pool_::_static_thread_pool::domain
     >);
 
     ::stdexec::sync_wait(std::move(then_2_on_b)); // NOLINT(performance-move-const-arg)
 
     //! Check which thread got the work.
-    ASSERT_EQ(threads.at(index_of_A), thr_1_on_a); ASSERT_EQ(threads.at(index_of_B), thr_1_on_b);
-    ASSERT_EQ(threads.at(index_of_A), thr_2_on_a); ASSERT_EQ(threads.at(index_of_B), thr_2_on_b);
+    ASSERT_EQ(threads.at(index_of_A), thr_1_on_a);
+    ASSERT_EQ(threads.at(index_of_B), thr_1_on_b);
+    ASSERT_EQ(threads.at(index_of_A), thr_2_on_a);
+    ASSERT_EQ(threads.at(index_of_B), thr_2_on_b);
 }
 
 } // namespace tests::stdexec::adaptors

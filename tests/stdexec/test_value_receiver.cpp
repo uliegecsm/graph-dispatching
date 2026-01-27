@@ -21,12 +21,10 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref tests/stdexec/test_value_receiver.cpp.
  */
 
-namespace tests::stdexec
-{
+namespace tests::stdexec {
 
 //! @test Check that @ref tests::stdexec::ValueReceiver works as expected for @c int.
-TEST(ValueReceiver, int)
-{
+TEST(ValueReceiver, int) {
     ::stdexec::sender auto sndr = ::stdexec::just(int{42}) | ::stdexec::continues_on(::stdexec::inline_scheduler{});
 
     int placeholder = 0;

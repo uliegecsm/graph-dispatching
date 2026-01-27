@@ -26,20 +26,19 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref tests/stdexec/adaptors/test_starts_on.cpp.
  */
 
-namespace tests::stdexec::adaptors
-{
+namespace tests::stdexec::adaptors {
 
-class StartsOnTest : public utils::StaticThreadPool<'A', 'B'>, public ::testing::Test
-{
-public:
+class StartsOnTest
+    : public utils::StaticThreadPool<'A', 'B'>
+    , public ::testing::Test {
+   public:
     static constexpr size_t index_of_A = index_of<'A'>();
     static constexpr size_t index_of_B = index_of<'B'>();
 };
 
 /// @test Simple @c stdexec::starts_on test, that builds a chain from @c stdexec::just and starts it on two distinct schedulers.
 /// @note We therefore use a @c multi-shot chain (we can consume it several times).
-TEST_F(StartsOnTest, twice_with_just_a_bulk)
-{
+TEST_F(StartsOnTest, twice_with_just_a_bulk) {
     constexpr size_t size = 4;
 
     /// The workload will fill a vector with the thread ID that procecesses the work item.
@@ -47,10 +46,9 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
     /// Also note that @c stdexec::just will decay-copied the received value, and in this case will pass a copy
     /// to the connected receiver.
     ::stdexec::sender auto chain = ::stdexec::just(std::vector<size_t>(size, 0))
-        | ::stdexec::bulk(
-            ::stdexec::par, size, [](const auto index, auto& data) {
-                data[index] = ::utils::get_thread_id();
-    });
+                                 | ::stdexec::bulk(::stdexec::par, size, [](const auto index, auto& data) {
+                                       data[index] = ::utils::get_thread_id();
+                                   });
 
     //! Run on pool A.
     ::stdexec::sender auto moved_to_another_A = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), chain);
@@ -79,15 +77,16 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
     /// Let's check some traits.
     /// The chain completion domain is indeterminate.
     static_assert(std::same_as<
-        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
-        ::stdexec::indeterminate_domain<>
+                  ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
+                  ::stdexec::indeterminate_domain<>
     >);
 
     //! @c starts_on completes on the passed scheduler domain.
-    static_assert(std::same_as<
-        decltype(::stdexec::get_completion_domain<::stdexec::set_value_t>(::stdexec::get_env(moved_to_another_A))),
-        exec::_pool_::_static_thread_pool::domain
-    >);
+    static_assert(
+        std::same_as<
+            decltype(::stdexec::get_completion_domain<::stdexec::set_value_t>(::stdexec::get_env(moved_to_another_A))),
+            exec::_pool_::_static_thread_pool::domain
+        >);
 }
 
 /**
@@ -102,8 +101,7 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk)
  *          resource transition **must** be explicit. This test case might therefore exploit some
  *          undefined behavior.
  */
-TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op)
-{
+TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op) {
     constexpr size_t size = 4;
 
     /// The workload will fill a vector with the thread ID that processes the work item.
@@ -114,32 +112,32 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op)
     std::vector<size_t> data(size, 0);
 
     ::stdexec::sender auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
-        | ::stdexec::bulk(
-            ::stdexec::par, size, [&](const auto index) {
-                data[index] = ::utils::get_thread_id();
-    });
+                                 | ::stdexec::bulk(::stdexec::par, size, [&](const auto index) {
+                                       data[index] = ::utils::get_thread_id();
+                                   });
 
-    ::stdexec::sync_wait(::stdexec::starts_on(pools.at(index_of_B).get_scheduler(), std::move(chain))); // NOLINT(performance-move-const-arg)
+    ::stdexec::sync_wait(
+        ::stdexec::starts_on(
+            pools.at(index_of_B).get_scheduler(), std::move(chain))); // NOLINT(performance-move-const-arg)
 
     ASSERT_THAT(data, ::testing::Each(std::hash<std::thread::id>{}(threads.at(index_of_A))));
 }
 
 //! @test Passing a chain that is still in the default domain is fully started on the scheduler of @c starts_on.
-TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain)
-{
+TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain) {
     std::array<std::thread::id, 3> ids;
 
-    auto chain = ::stdexec::just()
-        | ::stdexec::then([&ids]{ ids[0] = std::this_thread::get_id(); })
-        | ::stdexec::then([&ids]{ ids[1] = std::this_thread::get_id(); });
+    auto chain = ::stdexec::just() | ::stdexec::then([&ids] { ids[0] = std::this_thread::get_id(); })
+               | ::stdexec::then([&ids] { ids[1] = std::this_thread::get_id(); });
 
     static_assert(std::same_as<
-        ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
-        ::stdexec::indeterminate_domain<>
+                  ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
+                  ::stdexec::indeterminate_domain<>
     >);
 
-    auto work = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), std::move(chain)) // NOLINT(performance-move-const-arg)
-        | ::stdexec::then([&ids]{ ids[2] = std::this_thread::get_id(); });
+    auto work = ::stdexec::starts_on(
+                    pools.at(index_of_A).get_scheduler(), std::move(chain)) // NOLINT(performance-move-const-arg)
+              | ::stdexec::then([&ids] { ids[2] = std::this_thread::get_id(); });
 
     ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
@@ -147,28 +145,27 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain)
 }
 
 template <bool MayThrow>
-struct ThenFunctorMayThrow
-{
-    void operator()() const noexcept(!MayThrow) { }
+struct ThenFunctorMayThrow {
+    void operator()() const noexcept(!MayThrow) {
+    }
 };
 
-class StartsOnTraitsTest : public utils::StaticThreadPool<'A'>, public ::testing::Test
-{
-public:
+class StartsOnTraitsTest
+    : public utils::StaticThreadPool<'A'>
+    , public ::testing::Test {
+   public:
     template <bool MayThrow>
     static ::stdexec::sender auto get_chain() {
         return ::stdexec::just() | ::stdexec::then(ThenFunctorMayThrow<MayThrow>{});
     }
 
     template <::stdexec::sender Chain>
-    ::stdexec::sender auto get_starts_on(Chain&& chain)
-    {
+    ::stdexec::sender auto get_starts_on(Chain&& chain) {
         auto starts_on = ::stdexec::starts_on(pools.front().get_scheduler(), std::forward<Chain>(chain));
 
         //! The chain can be queried for its completion scheduler on the value channel.
-        static_assert(requires {
-            ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(starts_on));
-        });
+        static_assert(
+            requires { ::stdexec::get_completion_scheduler<::stdexec::set_value_t>(::stdexec::get_env(starts_on)); });
 
         return starts_on;
     }
@@ -178,11 +175,14 @@ public:
  * @test Check that a chain of @ref ThenFunctorMayThrow without @c noexcept terminated by a @c starts_on
  *       will complete on all channels.
  */
-TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
-{
+TEST_F(StartsOnTraitsTest, starts_on_without_noexcept) {
     auto chain = this->get_chain<true>();
 
-    static_assert(has_completion_signatures<decltype(chain), ::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>);
+    static_assert(has_completion_signatures<
+                  decltype(chain),
+                  ::stdexec::set_error_t(std::exception_ptr),
+                  ::stdexec::set_value_t()
+    >);
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
@@ -190,12 +190,20 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
 
     static_assert(std::same_as<
                   std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
-                  ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
+                  ::stdexec::completion_signatures<
+                      ::stdexec::set_error_t(std::exception_ptr),
+                      ::stdexec::set_value_t(),
+                      ::stdexec::set_stopped_t()
+                  >
     >);
 
-    static_assert(std::same_as<std::invoke_result_t<
-        ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
-        ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
+    static_assert(std::same_as<
+                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
+                  ::stdexec::completion_signatures<
+                      ::stdexec::set_error_t(std::exception_ptr),
+                      ::stdexec::set_value_t(),
+                      ::stdexec::set_stopped_t()
+                  >
     >);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
@@ -205,8 +213,7 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept)
  * @test Check that a chain of @ref ThenFunctorMayThrow with @c noexcept terminated by a @c starts_on
  *       will complete on all but the error channels.
  */
-TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
-{
+TEST_F(StartsOnTraitsTest, starts_on_with_noexcept) {
     auto chain = this->get_chain<false>();
 
     static_assert(has_completion_signatures<decltype(chain), ::stdexec::set_value_t()>);
@@ -215,9 +222,9 @@ TEST_F(StartsOnTraitsTest, starts_on_with_noexcept)
 
     using starts_on_t = decltype(starts_on);
 
-    static_assert(std::same_as<std::invoke_result_t<
-        ::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
-        ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
+    static_assert(std::same_as<
+                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
+                  ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
     >);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)

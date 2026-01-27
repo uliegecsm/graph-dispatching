@@ -26,20 +26,20 @@ PRAGMA_DIAGNOSTIC_POP
  * The test can be found in @ref tests/stdexec/adaptors/test_sync_wait.cpp.
  */
 
-namespace tests::stdexec::adaptors
-{
+namespace tests::stdexec::adaptors {
 
-class SyncWaitTest : public utils::StaticThreadPool<'A'>, public ::testing::Test {};
+class SyncWaitTest
+    : public utils::StaticThreadPool<'A'>
+    , public ::testing::Test { };
 
 /// @test Simple @c stdexec::sync_wait test that blocks the current thread until the result is known.
-TEST_F(SyncWaitTest, block)
-{
+TEST_F(SyncWaitTest, block) {
     ::stdexec::sender auto chain = ::stdexec::schedule(std::get<0>(this->pools).get_scheduler())
-        | ::stdexec::then([this] () -> double {
-            if(std::this_thread::get_id() == this->main)
-                throw std::runtime_error("Unexpected.");
-            return 42.;
-        });
+                                 | ::stdexec::then([this]() -> double {
+                                       if (std::this_thread::get_id() == this->main)
+                                           throw std::runtime_error("Unexpected.");
+                                       return 42.;
+                                   });
 
     const auto [result] = ::stdexec::sync_wait(std::move(chain)).value(); // NOLINT(performance-move-const-arg)
 

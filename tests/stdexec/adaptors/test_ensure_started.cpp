@@ -31,22 +31,21 @@ PRAGMA_DIAGNOSTIC_POP
  * @note In the long term, @c stdexec::ensure_started might be dropped for @c exec::async_scope.
  */
 
-namespace tests::stdexec::adaptors
-{
+namespace tests::stdexec::adaptors {
 
-class EnsureStartedTest : public utils::StaticThreadPool<'A'>, public ::testing::Test {};
+class EnsureStartedTest
+    : public utils::StaticThreadPool<'A'>
+    , public ::testing::Test { };
 
 /// @test Simple @c stdexec::ensure_started test to check that the senders consumer starts to asynchronously consume the chain.
-TEST_F(EnsureStartedTest, asynchronously_consumes)
-{
+TEST_F(EnsureStartedTest, asynchronously_consumes) {
     using duration_t = std::chrono::steady_clock::duration;
 
     const auto start = std::chrono::steady_clock::now();
 
     ::stdexec::sender auto chain_A = ::stdexec::schedule(std::get<0>(this->pools).get_scheduler())
-        | ::stdexec::then([&start] () -> duration_t {
-            return std::chrono::steady_clock::now() - start;
-        });
+                                   | ::stdexec::then(
+                                         [&start]() -> duration_t { return std::chrono::steady_clock::now() - start; });
 
     const auto before_ensure_started = std::chrono::steady_clock::now();
 
@@ -55,9 +54,8 @@ TEST_F(EnsureStartedTest, asynchronously_consumes)
 
     //! We continue adding stuff.
     ::stdexec::sender auto chain_B = std::move(chain_A) // NOLINT(performance-move-const-arg)
-        | ::stdexec::then([&start] (const auto&) {
-            return std::chrono::steady_clock::now() - start;
-        });
+                                   | ::stdexec::then(
+                                         [&start](const auto&) { return std::chrono::steady_clock::now() - start; });
 
     //! But before we wait for the whole chain, let's explicitly wait for the first part.
     const auto [value_A] = ::stdexec::sync_wait(std::move(handle_A)).value();
