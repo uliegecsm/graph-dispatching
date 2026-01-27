@@ -4,6 +4,7 @@
 #include "stdexec/execution.hpp"
 
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/env.hpp"
 
 namespace tests::stdexec
 {
@@ -68,10 +69,7 @@ struct CheckSchedulerSender
 
     Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    [[nodiscard]]
-    constexpr auto get_env() const noexcept -> ::stdexec::__fwd_env_t<::stdexec::env_of_t<Sndr>> {
-        return ::stdexec::__fwd_env(::stdexec::get_env(sndr));
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 };
 
 template <::stdexec::scheduler Scheduler, typename Tag>

@@ -49,11 +49,17 @@ struct ExecutionSpaceRef {
 #define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(_type_, _value_)                                                        \
     [[nodiscard]]                                                                                                      \
     constexpr auto get_env() const noexcept -> stdexec::__join_env_t<                                                  \
-        stdexec::prop<get_exec_t, ExecutionSpaceRef<_type_>>,                                                          \
+        stdexec::prop<                                                                                                 \
+            Kokkos::Experimental::details::execution_space::get_exec_t,                                                \
+            Kokkos::Experimental::details::execution_space::ExecutionSpaceRef<_type_>                                  \
+        >,                                                                                                             \
         stdexec::__fwd_env_t<stdexec::env_of_t<Rcvr>>                                                                  \
     > {                                                                                                                \
         return stdexec::__env::__join(                                                                                 \
-            stdexec::prop{get_exec, ExecutionSpaceRef{_value_}}, stdexec::__fwd_env(stdexec::get_env(rcvr)));          \
+            stdexec::prop{                                                                                             \
+                Kokkos::Experimental::details::execution_space::get_exec,                                              \
+                Kokkos::Experimental::details::execution_space::ExecutionSpaceRef{_value_}},                           \
+            stdexec::__fwd_env(stdexec::get_env(rcvr)));                                                               \
     }
 
 } // namespace Kokkos::Experimental::details::execution_space
