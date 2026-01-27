@@ -197,3 +197,8 @@ stdexec::sync_wait(exec::repeat_until(
 ### Key insights
 
 1. Create a unique graph-oriented context per graph.
+
+
+        A
+       /  \
+      B    C

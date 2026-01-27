@@ -20,6 +20,7 @@ struct ScheduleFromOpState {
         ScheduleFromOpState* opstate;
 
         void set_value() && noexcept {
+            PLOG_INFO << "schedule_from set_value";
             if (!opstate->skip)
                 opstate->schd.ctx_ptr->m_exec.fence(
                     std::format(

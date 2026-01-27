@@ -90,7 +90,7 @@ struct BulkOpState {
     }
 
     void start() & noexcept {
-        PLOG_INFO << "schedule_from start";
+        PLOG_INFO << "bulk start";
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
         stdexec::start(inner_opstate);
@@ -126,6 +126,7 @@ struct BulkReceiver {
     opstate_t* opstate;
 
     void set_value() && noexcept {
+        PLOG_INFO << "bulk sset_value";
         opstate->state->submit();
         std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }

@@ -17,6 +17,7 @@ struct ContinuesOnOpState {
         ContinuesOnOpState* opstate;
 
         void set_value() && noexcept {
+            PLOG_INFO << "continues_on set_value";
             ::stdexec::set_value(std::move(opstate->inner_rcvr));
         }
 
@@ -44,6 +45,7 @@ struct ContinuesOnOpState {
         : schd(std::move(schd_))
         , inner_rcvr(std::move(rcvr_))
         , inner_opstate(stdexec::connect(std::move(sndr), ContinuesOnReceiver{this})) {
+        PLOG_INFO << "then opstate body";
     }
 
     void start() & noexcept {

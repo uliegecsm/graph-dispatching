@@ -45,6 +45,7 @@ struct ThenOpState {
         , inner_rcvr(std::forward<Rcvr>(rcvr))
         , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
         , functor(std::forward<Func>(func)) {
+        PLOG_INFO << "then opstate body";
         this->create_node();
     }
 
@@ -78,7 +79,7 @@ struct ThenOpState {
     }
 
     void start() & noexcept {
-        PLOG_INFO << "schedule_from start";
+        PLOG_INFO << "then start";
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
         stdexec::start(inner_opstate);
@@ -108,6 +109,7 @@ struct ThenReceiver {
     opstate_t* opstate;
 
     void set_value() && noexcept {
+        PLOG_INFO << "then set_value";
         opstate->state->submit();
         std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }

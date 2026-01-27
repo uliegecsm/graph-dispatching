@@ -5,6 +5,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
+#include "exec/fork_join.hpp"
 #include "exec/repeat_until.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -62,19 +63,20 @@ class ResubmitTest
 TEST_F(ResubmitTest, created_instantiated_submitted_at_each_iteration) {
     const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
-    const context_t esc{exec};
+    const context_t gsc{exec};
 
+    // too easy
     auto chain = ::stdexec::just() | ADD_THEN | ADD_THEN
                | ::stdexec::bulk(::stdexec::par, 3, BulkFunctor{.data = data});
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
     ASSERT_THAT(
-        recorder_listener_t::record([&data, &esc, chain = std::move(chain)]() mutable {
+        recorder_listener_t::record([&data, &gsc, chain = std::move(chain)]() mutable {
             unsigned short int guard = 0;
             ::stdexec::sync_wait(
                 ::exec::repeat_until(
-                    ::stdexec::starts_on(esc.get_scheduler(), std::move(chain))
+                    ::stdexec::on(gsc.get_scheduler(), std::move(chain))
                     | ::stdexec::continues_on(::stdexec::inline_scheduler{}) | ::stdexec::then([&]() -> bool {
                           std::cout << "Hi from convergence check. Counter is " << data() << '.' << std::endl;
                           return (++guard) >= 3;
