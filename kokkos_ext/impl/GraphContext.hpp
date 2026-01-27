@@ -17,6 +17,8 @@ PRAGMA_DIAGNOSTIC_POP
 #    include "plog/Log.h"
 #endif
 
+#include "kokkos_ext/impl/graph/domain.hpp"
+
 #include "kokkos_ext/impl/graph/bulk.hpp"
 #include "kokkos_ext/impl/graph/continues_on.hpp"
 #include "kokkos_ext/impl/graph/schedule_from.hpp"
@@ -26,29 +28,6 @@ PRAGMA_DIAGNOSTIC_POP
 namespace Kokkos::Experimental {
 
 namespace details::graph {
-
-struct Domain : public stdexec::default_domain {
-    template <typename Tag, ::stdexec::sender Sndr, typename... Args>
-    requires stdexec::__callable<apply_sender_for<Tag>, Sndr, Args...>
-    static auto apply_sender(Tag, Sndr&& sndr, Args&&... args) {
-#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
-        PLOG_DEBUG << Kokkos::Impl::TypeInfo<Domain>::name() << ": apply_sender for tag "
-                   << Kokkos::Impl::TypeInfo<Tag>::name();
-#endif
-        return apply_sender_for<Tag>{}(std::forward<Sndr>(sndr), std::forward<Args>(args)...);
-    }
-
-    template <stdexec::sender Sndr, typename Env>
-    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>, Env>, Sndr>
-    static auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env_) {
-#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
-        PLOG_DEBUG << Kokkos::Impl::TypeInfo<Domain>::name() << ": transform_sender for tag "
-                   << Kokkos::Impl::TypeInfo<stdexec::tag_of_t<Sndr>>::name();
-#endif
-        return stdexec::__apply(
-            transform_sender_for<stdexec::tag_of_t<Sndr>, Env>{.env_ = env_}, std::forward<Sndr>(sndr));
-    }
-};
 
 //! The state is moveable, not copyable.
 template <Kokkos::ExecutionSpace Exec>
