@@ -6,6 +6,7 @@
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 #include "kokkos_ext/impl/bulk.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/env.hpp"
 #include "kokkos_ext/impl/execution_space/receiver.hpp"
 
 namespace Kokkos::Experimental::details::execution_space {
@@ -103,10 +104,7 @@ struct BulkSender {
     Data data;
     Schd schd;
 
-    [[nodiscard]]
-    constexpr auto get_env() const noexcept -> stdexec::__fwd_env_t<stdexec::env_of_t<Sndr>> {
-        return stdexec::__fwd_env(stdexec::get_env(sndr));
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 };
 
 template <typename Env>
