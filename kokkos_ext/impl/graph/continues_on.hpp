@@ -9,28 +9,48 @@
 namespace Kokkos::Experimental::details::graph {
 
 //! Receiver for @c continues_on.
-template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
-struct ContinuesOnReceiver {
-    using receiver_concept = stdexec::receiver_t;
+template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr>
+struct ContinuesOnOpState {
+    struct ContinuesOnReceiver {
+        using receiver_concept = stdexec::receiver_t;
+
+        ContinuesOnOpState* opstate;
+
+        void set_value() && noexcept {
+            PLOG_INFO << "continues_on set_value";
+            ::stdexec::set_value(std::move(opstate->inner_rcvr));
+        }
+
+        template <class Error>
+        void set_error(Error&& err) && noexcept {
+            ::stdexec::set_error(std::move(opstate->inner_rcvr), std::forward<Error>(err));
+        }
+
+        void set_stopped() && noexcept {
+            ::stdexec::set_stopped(std::move(opstate->inner_rcvr));
+        }
+
+        auto get_env() const noexcept -> SchedulerEnv<typename Schd::execution_space> {
+            return SchedulerEnv{opstate->schd.ctx_ptr};
+        }
+    };
+
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, ContinuesOnReceiver>;
 
     Schd schd;
-    Rcvr rcvr;
+    InnerRcvr inner_rcvr;
+    inner_opstate_t inner_opstate;
 
-    void set_value() && noexcept {
-        ::stdexec::set_value(std::move(rcvr));
+    ContinuesOnOpState(Schd&& schd_, Sndr&& sndr, InnerRcvr&& rcvr_)
+        : schd(std::move(schd_))
+        , inner_rcvr(std::move(rcvr_))
+        , inner_opstate(stdexec::connect(std::move(sndr), ContinuesOnReceiver{this})) {
+        PLOG_INFO << "then opstate body";
     }
 
-    template <class Error>
-    void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
-    }
-
-    void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(rcvr));
-    }
-
-    decltype(auto) get_env() const noexcept {
-        return SchedulerEnv{schd.state_ptr};
+    void start() & noexcept {
+        PLOG_INFO << "continues_on start";
+        ::stdexec::start(inner_opstate);
     }
 };
 
@@ -53,13 +73,11 @@ struct ContinuesOnSender {
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>;
-
-        return ::stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
+        return ContinuesOnOpState<Schd, Sndr, Rcvr>(std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr));
     }
 
     decltype(auto) get_env() const noexcept {
-        return SchedulerEnv{schd.state_ptr};
+        return SchedulerEnv{schd.ctx_ptr};
     }
 
     Schd schd;

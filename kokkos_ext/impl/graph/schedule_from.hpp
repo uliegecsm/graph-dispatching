@@ -8,33 +8,58 @@
 
 namespace Kokkos::Experimental::details::graph {
 
-//! Receiver for @c schedule_from.
-template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
-struct ScheduleFromReceiver {
-    using receiver_concept = stdexec::receiver_t;
+
+//! Operation state for @c schedule_from.
+template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr>
+struct ScheduleFromOpState {
+    using operation_state_concept = stdexec::operation_state_t;
+    //! Receiver for @c schedule_from.
+    struct ScheduleFromReceiver {
+        using receiver_concept = stdexec::receiver_t;
+
+        ScheduleFromOpState* opstate;
+
+        void set_value() && noexcept {
+            PLOG_INFO << "schedule_from set_value";
+            if (!opstate->skip)
+                opstate->schd.ctx_ptr->m_exec.fence(
+                    std::format(
+                        "{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(opstate->schd.ctx_ptr->m_exec)>::name()));
+            ::stdexec::set_value(std::move(opstate->inner_rcvr));
+        }
+
+        template <class Error>
+        void set_error(Error&& err) && noexcept {
+            ::stdexec::set_error(std::move(opstate->inner_rcvr), std::forward<Error>(err));
+        }
+
+        void set_stopped() && noexcept {
+            ::stdexec::set_stopped(std::move(opstate->inner_rcvr));
+        }
+
+        auto get_env() const noexcept -> SchedulerEnv<typename Schd::execution_space> {
+            return SchedulerEnv{opstate->schd.ctx_ptr};
+        }
+    };
+
+    // using rcvr_t = ScheduleFromReceiver<Schd, Sndr, InnerRcvr>;
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, ScheduleFromReceiver>;
 
     Schd schd;
-    Rcvr rcvr;
+    InnerRcvr inner_rcvr;
     bool skip;
+    inner_opstate_t inner_opstate;
 
-    void set_value() && noexcept {
-        if (!skip)
-            schd.state_ptr->wait(
-                std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<decltype(schd.state_ptr->exec)>::name()));
-        ::stdexec::set_value(std::move(rcvr));
+    ScheduleFromOpState(Schd&& schd_, Sndr&& sndr, bool skip_, InnerRcvr&& rcvr_)
+        : schd(std::move(schd_))
+        , inner_rcvr(std::move(rcvr_))
+        , skip(skip_)
+        , inner_opstate(stdexec::connect(std::move(sndr), ScheduleFromReceiver{this})) {
     }
 
-    template <class Error>
-    void set_error(Error&& err) && noexcept {
-        ::stdexec::set_error(std::move(rcvr), std::forward<Error>(err));
-    }
-
-    void set_stopped() && noexcept {
-        ::stdexec::set_stopped(std::move(rcvr));
-    }
-
-    decltype(auto) get_env() const noexcept {
-        return SchedulerEnv{schd.state_ptr};
+    void start() & noexcept {
+        PLOG_INFO << "schedule_from start";
+        ::stdexec::start(inner_opstate);
     }
 };
 
@@ -57,10 +82,8 @@ struct ScheduleFromSender {
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = ScheduleFromReceiver<Schd, std::remove_cvref_t<Rcvr>>;
-
-        return ::stdexec::connect(
-            std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip});
+        return ScheduleFromOpState<Schd, Sndr, std::remove_cvref_t<Rcvr>>(
+            std::move(schd), std::move(sndr), skip, std::forward<Rcvr>(rcvr));
     }
 
     auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {

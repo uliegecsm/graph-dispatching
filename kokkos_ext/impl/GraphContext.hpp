@@ -98,7 +98,7 @@ template <Kokkos::ExecutionSpace Exec>
 struct SchedulerEnv {
     [[nodiscard]]
     constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec> {
-        return {state_ptr};
+        return {ctx_ptr};
     }
 
     [[nodiscard]]
@@ -106,7 +106,7 @@ struct SchedulerEnv {
         return {};
     }
 
-    State<Exec>* state_ptr = nullptr;
+    GraphContext<Exec>* ctx_ptr = nullptr;
 };
 
 //! Scheduler for a @c Kokkos::Experimental::Graph.
@@ -114,6 +114,8 @@ template <Kokkos::ExecutionSpace Exec>
 struct Scheduler {
     //! As per https://eel.is/c++draft/exec.sched#1.
     using scheduler_concept = stdexec::scheduler_t;
+
+    using execution_space = Exec;
 
     template <stdexec::receiver Rcvr>
     struct OpState {
@@ -148,7 +150,7 @@ struct Scheduler {
 
     [[nodiscard]]
     auto schedule() const noexcept -> Sender {
-        return {state_ptr};
+        return {ctx_ptr};
     }
 
     [[nodiscard]]
@@ -158,12 +160,12 @@ struct Scheduler {
 
     [[nodiscard]]
     constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler {
-        return {state_ptr};
+        return {ctx_ptr};
     }
 
     friend bool operator==(const Scheduler&, const Scheduler&) noexcept = default;
 
-    State<Exec>* state_ptr = nullptr;
+    GraphContext<Exec>* ctx_ptr = nullptr;
 };
 
 } // namespace details::graph
@@ -171,16 +173,14 @@ struct Scheduler {
 //! Graph context using a @c Kokkos::Experimental::Graph under the hood.
 template <Kokkos::ExecutionSpace Exec>
 struct GraphContext {
-    using state_t = details::graph::State<Exec>;
-
-    state_t m_state;
+    Exec m_exec;
 
     explicit GraphContext(Exec exec) // NOLINT(performance-unnecessary-value-param)
-        : m_state{std::move(exec)} {
+        : m_exec{std::move(exec)} {
     }
 
     auto get_scheduler() const noexcept -> details::graph::Scheduler<Exec> {
-        return {const_cast<state_t*>(&m_state)};
+        return {const_cast<GraphContext*>(this)};
     }
 };
 

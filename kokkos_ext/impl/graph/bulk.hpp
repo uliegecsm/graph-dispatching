@@ -43,7 +43,7 @@ struct BulkOpState {
 
     //! In the long term, the user could be able to opt for type erased nodes.
     using node_t = decltype(build_parallel_for_node(
-        *std::declval<Schd&>().state_ptr,
+        std::declval<State<typename Schd::execution_space>&>(),
         std::declval<const inner_opstate_t&>(),
         std::declval<Data&&>()));
 
@@ -53,6 +53,7 @@ struct BulkOpState {
     Data data;
     std::optional<node_t> node = std::nullopt;
     std::exception_ptr error = nullptr;
+    State<typename Schd::execution_space>* state = nullptr;
 
     template <stdexec::scheduler Scheduler, stdexec::sender Sender, stdexec::receiver Rcvr>
     BulkOpState(Scheduler&& scheduler, Sender&& sndr, Rcvr&& rcvr, Data&& data_)
@@ -65,12 +66,18 @@ struct BulkOpState {
 
     //! Create the node only if the predecessor has one.
     void create_node() {
-        if (proceed(*schd.state_ptr, inner_opstate)) {
-            try {
-                this->node.emplace(build_parallel_for_node(*schd.state_ptr, inner_opstate, std::move(data)));
-            } catch (...) {
-                this->error = std::current_exception();
-            }
+        // set my state as the one of the parent, or raise ? I mean the schedule sender should do soething
+        if constexpr (requires { inner_opstate.get_state(); }) {
+            if (state == nullptr)
+                state = inner_opstate.get_state();
+        }
+        if (state == nullptr)
+            throw std::runtime_error("The state is still nullptr.");
+
+        try {
+            this->node.emplace(build_parallel_for_node(*state, inner_opstate, std::move(data)));
+        } catch (...) {
+            this->error = std::current_exception();
         }
     }
 
@@ -78,7 +85,12 @@ struct BulkOpState {
         return node;
     }
 
+    decltype(auto) get_state() const {
+        return state;
+    }
+
     void start() & noexcept {
+        PLOG_INFO << "bulk start";
         if (error)
             stdexec::set_error(std::move(inner_rcvr), error);
         stdexec::start(inner_opstate);
@@ -114,7 +126,8 @@ struct BulkReceiver {
     opstate_t* opstate;
 
     void set_value() && noexcept {
-        opstate->schd.state_ptr->submit();
+        PLOG_INFO << "bulk sset_value";
+        opstate->state->submit();
         std::move(*opstate).propagate_completion_signal(stdexec::set_value);
     }
 

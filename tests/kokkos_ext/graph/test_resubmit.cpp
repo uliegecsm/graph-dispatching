@@ -5,6 +5,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
+#include "exec/fork_join.hpp"
 #include "exec/repeat_until.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -37,6 +38,8 @@ PRAGMA_DIAGNOSTIC_POP
  * reconnection induced by @c exec::repeat_until.
  *
  * The tests can be found in @ref tests/kokkos_ext/graph/test_resubmit.cpp.
+ * 
+ * todo redo doc
  */
 
 using execution_space = Kokkos::DefaultExecutionSpace;
@@ -53,23 +56,27 @@ class ResubmitTest
         RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent>;
 };
 
-//! @test Check that @ref Kokkos::Experimental::GraphContext can be resubmitted while creating the graph only the first time.
-TEST_F(ResubmitTest, replay) {
+/**
+ * @test Check that @ref Kokkos::Experimental::GraphContext leads to the graph being created, instantiated and submitted at each iteration
+ *       of @c exec::repeat_effect_until.
+ */
+TEST_F(ResubmitTest, created_instantiated_submitted_at_each_iteration) {
     const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
-    const context_t esc{exec};
+    const context_t gsc{exec};
 
+    // too easy
     auto chain = ::stdexec::just() | ADD_THEN | ADD_THEN
                | ::stdexec::bulk(::stdexec::par, 3, BulkFunctor{.data = data});
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
     ASSERT_THAT(
-        recorder_listener_t::record([&data, &esc, chain = std::move(chain)]() mutable {
+        recorder_listener_t::record([&data, &gsc, chain = std::move(chain)]() mutable {
             unsigned short int guard = 0;
             ::stdexec::sync_wait(
                 ::exec::repeat_until(
-                    ::stdexec::starts_on(esc.get_scheduler(), std::move(chain))
+                    ::stdexec::on(gsc.get_scheduler(), std::move(chain))
                     | ::stdexec::continues_on(::stdexec::inline_scheduler{}) | ::stdexec::then([&]() -> bool {
                           std::cout << "Hi from convergence check. Counter is " << data() << '.' << std::endl;
                           return (++guard) >= 3;
@@ -80,9 +87,11 @@ TEST_F(ResubmitTest, replay) {
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from")),
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from")),
+            MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
             MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
             KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)
                 MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "schedule_from"))));
