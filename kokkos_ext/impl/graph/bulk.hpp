@@ -10,15 +10,6 @@
 
 namespace Kokkos::Experimental::details::graph {
 
-template <
-    stdexec::__is_instance_of<Scheduler> Schd,
-    stdexec::sender Sndr,
-    stdexec::receiver Rcvr,
-    stdexec::__is_instance_of<stdexec::__bulk::__data> Data
->
-requires Kokkos::Experimental::details::impl::parallel_policy<Data>
-struct BulkReceiver;
-
 //! Build a @c parallel_for node after the node returned by @ref get_predecessor.
 template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Data>
 auto build_parallel_for_node(State<Exec>& state, const OpstateType& opstate, Data&& data) {
@@ -38,8 +29,36 @@ template <
 >
 requires Kokkos::Experimental::details::impl::parallel_policy<Data>
 struct BulkOpState {
-    using rcvr_t = BulkReceiver<Schd, Sndr, InnerRcvr, Data>;
-    using inner_opstate_t = stdexec::connect_result_t<Sndr, rcvr_t>;
+    /**
+     * @brief Receiver for @c bulk.
+     *
+     * @note It must be nothrow moveable, see @cite P3383R3.
+     */
+    struct BulkReceiver {
+        using receiver_concept = stdexec::receiver_t;
+
+        BulkOpState* opstate;
+
+        void set_value() && noexcept {
+            opstate->schd.state_ptr->submit();
+            std::move(*opstate).propagate_completion_signal(stdexec::set_value);
+        }
+
+        template <typename Error>
+        void set_error(Error&& err) && noexcept {
+            std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
+        }
+
+        void set_stopped() && noexcept {
+            std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
+        }
+
+        auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
+            return opstate->get_env();
+        }
+    };
+
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, BulkReceiver>;
 
     //! In the long term, the user could be able to opt for type erased nodes.
     using node_t = decltype(build_parallel_for_node(
@@ -58,7 +77,7 @@ struct BulkOpState {
     BulkOpState(Scheduler&& scheduler, Sender&& sndr, Rcvr&& rcvr, Data&& data_)
         : schd(std::forward<Scheduler>(scheduler))
         , inner_rcvr(std::forward<Rcvr>(rcvr))
-        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
+        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), BulkReceiver{this}))
         , data(std::move(data_)) {
         this->create_node();
     }
@@ -91,44 +110,6 @@ struct BulkOpState {
 
     auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
         return ::stdexec::get_env(inner_rcvr);
-    }
-};
-
-/**
- * @brief Receiver for @c bulk.
- *
- * @note It must be nothrow moveable, see @cite P3383R3.
- */
-template <
-    stdexec::__is_instance_of<Scheduler> Schd,
-    stdexec::sender Sndr,
-    stdexec::receiver Rcvr,
-    stdexec::__is_instance_of<stdexec::__bulk::__data> Data
->
-requires Kokkos::Experimental::details::impl::parallel_policy<Data>
-struct BulkReceiver {
-    using receiver_concept = stdexec::receiver_t;
-
-    using opstate_t = BulkOpState<Schd, Sndr, Rcvr, Data>;
-
-    opstate_t* opstate;
-
-    void set_value() && noexcept {
-        opstate->schd.state_ptr->submit();
-        std::move(*opstate).propagate_completion_signal(stdexec::set_value);
-    }
-
-    template <typename Error>
-    void set_error(Error&& err) && noexcept {
-        std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
-    }
-
-    void set_stopped() && noexcept {
-        std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
-    }
-
-    auto get_env() const noexcept -> stdexec::env_of_t<Rcvr> {
-        return opstate->get_env();
     }
 };
 

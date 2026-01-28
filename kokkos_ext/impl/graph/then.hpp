@@ -9,9 +9,6 @@
 
 namespace Kokkos::Experimental::details::graph {
 
-template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor>
-struct ThenReceiver;
-
 //! Build a @c then node after the node returned by @ref get_predecessor.
 template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Functor>
 auto build_then_node(State<Exec>& state, const OpstateType& opstate, Functor&& functor) {
@@ -22,8 +19,36 @@ auto build_then_node(State<Exec>& state, const OpstateType& opstate, Functor&& f
 
 template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr, typename Functor>
 struct ThenOpState {
-    using rcvr_t = ThenReceiver<Schd, Sndr, InnerRcvr, Functor>;
-    using inner_opstate_t = stdexec::connect_result_t<Sndr, rcvr_t>;
+    /**
+     * @brief Receiver for @c then.
+     *
+     * @note It must be nothrow moveable, see @cite P3383R3.
+     */
+    struct ThenReceiver {
+        using receiver_concept = stdexec::receiver_t;
+
+        ThenOpState* opstate;
+
+        void set_value() && noexcept {
+            opstate->schd.state_ptr->submit();
+            std::move(*opstate).propagate_completion_signal(stdexec::set_value);
+        }
+
+        template <typename Error>
+        void set_error(Error&& err) && noexcept {
+            std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
+        }
+
+        void set_stopped() && noexcept {
+            std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
+        }
+
+        auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
+            return opstate->get_env();
+        }
+    };
+
+    using inner_opstate_t = stdexec::connect_result_t<Sndr, ThenReceiver>;
 
     //! In the long term, the user could be able to opt for type erased nodes.
     using node_t = decltype(build_then_node(
@@ -42,7 +67,7 @@ struct ThenOpState {
     ThenOpState(Scheduler&& scheduler, Sender&& sndr, Rcvr&& rcvr, Func&& func)
         : schd(std::forward<Scheduler>(scheduler))
         , inner_rcvr(std::forward<Rcvr>(rcvr))
-        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), rcvr_t{this}))
+        , inner_opstate(stdexec::connect(std::forward<Sender>(sndr), ThenReceiver{this}))
         , functor(std::forward<Func>(func)) {
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
         PLOG_DEBUG << "Adding a then node to graph in state " << schd.state_ptr << " of type "
@@ -79,38 +104,6 @@ struct ThenOpState {
 
     auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
         return ::stdexec::get_env(inner_rcvr);
-    }
-};
-
-/**
- * @brief Receiver for @c then.
- *
- * @note It must be nothrow moveable, see @cite P3383R3.
- */
-template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr, stdexec::receiver Rcvr, typename Functor>
-struct ThenReceiver {
-    using receiver_concept = stdexec::receiver_t;
-
-    using opstate_t = ThenOpState<Schd, Sndr, Rcvr, Functor>;
-
-    opstate_t* opstate;
-
-    void set_value() && noexcept {
-        opstate->schd.state_ptr->submit();
-        std::move(*opstate).propagate_completion_signal(stdexec::set_value);
-    }
-
-    template <typename Error>
-    void set_error(Error&& err) && noexcept {
-        std::move(*opstate).propagate_completion_signal(::stdexec::set_error, std::forward<Error>(err));
-    }
-
-    void set_stopped() && noexcept {
-        std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
-    }
-
-    auto get_env() const noexcept -> stdexec::env_of_t<Rcvr> {
-        return opstate->get_env();
     }
 };
 
