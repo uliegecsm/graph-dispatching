@@ -1,4 +1,5 @@
 # Add helper files to the documentation.
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/inline_scheduler_with_domain.hpp)
 set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/Utils.hpp)
 
 add_subdirectory(adaptors)
