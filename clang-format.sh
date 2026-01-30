@@ -30,6 +30,7 @@ PATTERNS=(
     'tests/newton/*.hpp'
     'tests/nvexec/**.cpp'
     'tests/stdexec/**.cpp'
+    'tests/stdexec/**.hpp'
     'tests/utils/*'
     'tests/CallbackMatchers.hpp'
     'tests/Functors.hpp'
