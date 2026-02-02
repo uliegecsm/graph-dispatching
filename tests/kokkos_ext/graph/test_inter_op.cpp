@@ -56,8 +56,7 @@ TEST_F(InterOpTest, transition_to_inline_scheduler) {
     auto chain = ::stdexec::schedule(esc.get_scheduler())
                | ::stdexec::then(
                      tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 0, .value = 4, .data = data.data()})
-               | ::stdexec::bulk(::stdexec::par, 3, BulkFunctor{.data = data})
-               | ::stdexec::continues_on(::stdexec::inline_scheduler{})
+               | ADD_BULK(3) | ::stdexec::continues_on(::stdexec::inline_scheduler{})
                | ::stdexec::then(
                      tests::utils::LoadCheckAddFunctor<value_t, false>{.prev = 7, .value = 4, .data = data.data()});
 

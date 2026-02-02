@@ -59,8 +59,7 @@ TEST_F(ResubmitTest, replay) {
 
     const context_t esc{exec};
 
-    auto chain = ::stdexec::just() | ADD_THEN | ADD_THEN
-               | ::stdexec::bulk(::stdexec::par, 3, BulkFunctor{.data = data});
+    auto chain = ::stdexec::just() | ADD_THEN | ADD_THEN | ADD_BULK(3);
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
