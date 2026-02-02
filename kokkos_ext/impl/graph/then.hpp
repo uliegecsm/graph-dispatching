@@ -5,6 +5,7 @@
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/env.hpp"
 #include "kokkos_ext/impl/graph/Helpers.hpp"
 
 namespace Kokkos::Experimental::details::graph {
@@ -19,6 +20,10 @@ auto build_then_node(State<Exec>& state, const OpstateType& opstate, Functor&& f
 
 template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr, typename Functor>
 struct ThenOpState {
+    using operation_state_concept = stdexec::operation_state_t;
+
+    using env_t = stdexec::__fwd_env_t<stdexec::env_of_t<InnerRcvr>>;
+
     /**
      * @brief Receiver for @c then.
      *
@@ -43,7 +48,7 @@ struct ThenOpState {
             std::move(*opstate).propagate_completion_signal(::stdexec::set_stopped);
         }
 
-        auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
+        auto get_env() const noexcept -> env_t {
             return opstate->get_env();
         }
     };
@@ -102,9 +107,7 @@ struct ThenOpState {
         Tag()(std::move(inner_rcvr), std::forward<Args>(args)...);
     }
 
-    auto get_env() const noexcept -> stdexec::env_of_t<InnerRcvr> {
-        return ::stdexec::get_env(inner_rcvr);
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(InnerRcvr, inner_rcvr)
 };
 
 //! Sender for @c then.
