@@ -28,6 +28,6 @@ if(Kokkos_CXX_COMPILER_ID STREQUAL NVIDIA)
     set_tests_properties(
         tests_stdexec_nvcc_failure
         PROPERTIES
-            PASS_REGULAR_EXPRESSION "include/stdexec/__detail/__meta\.hpp\\([0-9]+\\): error: no instance of constructor \"stdexec::__mstring\" matches the argument list"
+            PASS_REGULAR_EXPRESSION "include/stdexec/__detail/__meta\.hpp\\([0-9]+\\): error: static assertion failed\n[ ]+static_assert\\(__mnameof<void> == \"void\"\\);"
     )
 endif()
