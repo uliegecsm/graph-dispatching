@@ -13,6 +13,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
 /**
@@ -53,19 +54,19 @@ TEST(graph, diamond_stdexec)
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         ::stdexec::par, size,
-        AddValueOffset{.data = data, .value = Values::value_A})
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_A})
         | ::stdexec::split();
 
     ::stdexec::sender auto node_B = node_A | ::stdexec::bulk(
         ::stdexec::par, size / 2,
-        AddValueOffset{.data = data, .value = Values::value_B});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_B});
     ::stdexec::sender auto node_C = node_A | ::stdexec::bulk(
         ::stdexec::par, size / 2,
-        AddValueOffset{.data = data, .value = Values::value_C, .offset = size / 2});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_C, .offset = size / 2});
 
     ::stdexec::sender auto node_D = ::stdexec::when_all(node_B, node_C) | ::stdexec::bulk(
         ::stdexec::par, size,
-        AddValueOffset{.data = data, .value = Values::value_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_D});
 
     //! Execute the graph and check results.
     ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), node_D));

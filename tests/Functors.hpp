@@ -1,17 +1,34 @@
 #ifndef GRAPH_DISPATCHING_TESTS_FUNCTORS_HPP
 #define GRAPH_DISPATCHING_TESTS_FUNCTORS_HPP
 
-namespace tests {
-template <typename ViewType, bool MayThrow = true>
-struct ThenFunctor {
-    ViewType data;
+#include "kokkos-utils/concepts/View.hpp"
 
-    //! @warning The @c noexcept might change how sender's completion signatures are computed. Without the @c noexcept, it might also complete on the error channel.
+namespace tests {
+
+//! Increment @ref data.
+template <Kokkos::utils::concepts::ViewOfRank<0> ViewType, bool MayThrow = true>
+struct ThenFunctor {
+    typename ViewType::non_const_type data;
+
     KOKKOS_FUNCTION
     void operator()() const noexcept(MayThrow == false) {
         ++data();
     }
 };
+
+//! Add @ref value to @ref data.
+template <Kokkos::utils::concepts::ViewOfRank<1> ViewType, bool MayThrow = true>
+struct AddValueOffset {
+    typename ViewType::non_const_type data;
+    typename ViewType::value_type value;
+    typename ViewType::size_type offset = 0;
+
+    template <std::integral T>
+    KOKKOS_FUNCTION void operator()(const T index) const noexcept(MayThrow == false) {
+        data(offset + index) += value;
+    }
+};
+
 } // namespace tests
 
 #endif // GRAPH_DISPATCHING_TESTS_FUNCTORS_HPP

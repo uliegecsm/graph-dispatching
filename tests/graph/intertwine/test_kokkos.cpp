@@ -3,6 +3,7 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
 /**
@@ -26,18 +27,18 @@ namespace tests::graph::intertwine
  * joined and returned.
  */
 template <typename Sender, typename ViewType>
-decltype(auto) library(const Sender& input, ViewType data)
+decltype(auto) library(const Sender& input, ViewType data) // NOLINT(performance-unnecessary-value-param)
 {
     using policy_t = Kokkos::RangePolicy<typename ViewType::execution_space>;
 
     auto one = input.then_parallel_for(
         policy_t(0, data.size() / 2),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
+        tests::AddValueOffset<ViewType>{.data = data, .value = diamond::Values::value_B});
 
     policy_t policy(data.size() / 2, data.size());
     auto two = input.then_parallel_for(
         std::move(policy),
-        diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C});
+        tests::AddValueOffset<ViewType>{.data = std::move(data), .value = diamond::Values::value_C});
 
     return Kokkos::Experimental::when_all(std::move(one), std::move(two));
 }
@@ -68,13 +69,13 @@ TEST(graph, intertwine_kokkos)
 
     auto node_A = graph.root_node().then_parallel_for(
         policy_t(0, size),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A});
 
     auto from_library = library(node_A, data);
 
     auto node_D = from_library.then_parallel_for(
         policy_t(0, size),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_D});
 
     //! Execute the graph and check results.
     graph.submit(exec);

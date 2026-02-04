@@ -2,6 +2,7 @@
 
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
 /**
@@ -25,7 +26,7 @@ namespace tests::graph::intertwine
  * joined and returned.
  */
 template <typename Sender, typename ViewType>
-decltype(auto) library(Sender&& input, ViewType data)
+decltype(auto) library(Sender&& input, ViewType data) // NOLINT(performance-unnecessary-value-param)
 {
     //! @todo We need to expose our @c operator|, otherwise the compiler can't find a match.
     using Kokkos::Experimental::graph::details::operator|;
@@ -36,12 +37,12 @@ decltype(auto) library(Sender&& input, ViewType data)
 
     auto one = input | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, data.size() / 2),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
+        tests::AddValueOffset<ViewType>{.data = data, .value = diamond::Values::value_B});
 
     policy_t policy(data.size() / 2, data.size());
     auto two = input | Kokkos::Experimental::graph::parallel_for(
         std::move(policy),
-        diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C});
+        tests::AddValueOffset<ViewType>{.data = std::move(data), .value = diamond::Values::value_C});
 
     return Kokkos::Experimental::when_all(std::move(one), std::move(two));
 }
@@ -72,13 +73,13 @@ TEST(graph, intertwine_outlook)
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A});
 
     auto from_library = library(node_A, data);
 
     auto node_D = from_library | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_D});
 
     //! Execute the graph and check results.
     Kokkos::Experimental::graph::submit(exec, node_D);

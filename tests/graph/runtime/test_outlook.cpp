@@ -2,6 +2,7 @@
 
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 #include "tests/graph/runtime/Helpers.hpp"
 
@@ -59,7 +60,7 @@ TEST_P(GraphTest, runtime_outlook)
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A})
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A, .offset = index_A})
         | Kokkos::Experimental::graph::split();
 
     //! Define a type-erased sender type.
@@ -72,7 +73,7 @@ TEST_P(GraphTest, runtime_outlook)
     if(add_B) {
         for_B = node_A | Kokkos::Experimental::graph::parallel_for(
             policy_t(0, 1),
-            diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B, .offset = index_B});
+            tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_B, .offset = index_B});
     } else {
         for_B = node_A;
     }
@@ -80,14 +81,14 @@ TEST_P(GraphTest, runtime_outlook)
     if(add_C) {
         for_C = node_A | Kokkos::Experimental::graph::parallel_for(
             policy_t(0, 1),
-            diamond::AddValueOffset{.data = data, .value = diamond::Values::value_C, .offset = index_C});
+            tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_C, .offset = index_C});
     } else {
         for_C = node_A;
     }
 
     auto node_D = Kokkos::Experimental::when_all(for_B, for_C) | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, 1),
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D, .offset = index_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_D, .offset = index_D});
 
     //! Execute the graph and check results.
     Kokkos::Experimental::graph::submit(exec, node_D);
