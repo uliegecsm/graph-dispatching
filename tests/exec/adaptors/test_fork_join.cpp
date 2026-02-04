@@ -138,4 +138,27 @@ TEST_F(ForkJoinTest, fork_join_does_not_memoize_results) {
     ASSERT_EQ(::tests::utils::Counter::copy_constructions.load(), 5);
 }
 
+//! @test Nest @c exec::fork_join.
+TEST_F(ForkJoinTest, nested) {
+    auto scheduler = pools.at(index_of_A).get_scheduler();
+
+    std::atomic<int> witness = 0;
+
+    auto add_then = [&witness]() {
+        return ::stdexec::then([&witness]() noexcept { ++witness; });
+    };
+
+    auto sndr = ::stdexec::schedule(scheduler) | add_then()
+              | ::exec::fork_join(
+                    ::exec::fork_join(
+                        ::stdexec::continues_on(scheduler) | add_then(),
+                        ::stdexec::continues_on(scheduler) | add_then()),
+                    ::stdexec::continues_on(scheduler) | add_then())
+              | add_then();
+
+    ::stdexec::sync_wait(std::move(sndr)); // NOLINT(performance-move-const-arg)
+
+    ASSERT_EQ(witness, 5);
+}
+
 } // namespace tests::exec::adaptors
