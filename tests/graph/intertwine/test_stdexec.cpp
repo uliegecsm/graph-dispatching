@@ -13,6 +13,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
 /**
@@ -36,7 +37,7 @@ namespace tests::graph::intertwine
  * joined and returned.
  */
 template <typename Sender, typename ViewType>
-decltype(auto) library(Sender&& input, ViewType data)
+decltype(auto) library(Sender&& input, ViewType data) // NOLINT(performance-unnecessary-value-param)
 {
     auto continued = std::forward<Sender>(input) | ::stdexec::split();
 
@@ -44,11 +45,11 @@ decltype(auto) library(Sender&& input, ViewType data)
 
     ::stdexec::sender auto one = continued | ::stdexec::bulk(
         ::stdexec::par, half,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B});
+        tests::AddValueOffset<ViewType>{.data = data, .value = diamond::Values::value_B});
 
     ::stdexec::sender auto two = continued | ::stdexec::bulk(
         ::stdexec::par, half,
-        diamond::AddValueOffset{.data = std::move(data), .value = diamond::Values::value_C, .offset = half});
+        tests::AddValueOffset<ViewType>{.data = std::move(data), .value = diamond::Values::value_C, .offset = half});
 
     return ::stdexec::when_all(std::move(one), std::move(two));
 }
@@ -77,13 +78,13 @@ TEST(graph, intertwine_stdexec)
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         ::stdexec::par, size,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A});
 
     ::stdexec::sender auto from_library = library(node_A, data);
 
     ::stdexec::sender auto node_D = from_library | ::stdexec::bulk(
         ::stdexec::par, size,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_D});
 
     //! Execute the graph and check results.
     ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), node_D));

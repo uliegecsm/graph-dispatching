@@ -2,6 +2,7 @@
 
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 
 /**
@@ -47,19 +48,19 @@ TEST(graph, diamond_outlook)
 
     auto node_A = root | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
-        AddValueOffset{.data = data, .value = Values::value_A})
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_A})
         | Kokkos::Experimental::graph::split();
 
     auto node_B = node_A | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size / 2),
-        AddValueOffset{.data = data, .value = Values::value_B});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_B});
     auto node_C = node_A | Kokkos::Experimental::graph::parallel_for(
         policy_t(size / 2, size),
-        AddValueOffset{.data = data, .value = Values::value_C});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_C});
 
     auto node_D = Kokkos::Experimental::when_all(node_B, node_C) | Kokkos::Experimental::graph::parallel_for(
         policy_t(0, size),
-        AddValueOffset{.data = data, .value = Values::value_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = Values::value_D});
 
     //! Execute the graph and check results.
     Kokkos::Experimental::graph::submit(exec, node_D);

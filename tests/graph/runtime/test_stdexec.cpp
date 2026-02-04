@@ -14,6 +14,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "tests/Functors.hpp"
 #include "tests/graph/diamond/Helpers.hpp"
 #include "tests/graph/runtime/Helpers.hpp"
 
@@ -83,7 +84,7 @@ TEST_P(GraphTest, runtime_stdexec)
 
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         ::stdexec::par, 1,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_A, .offset = index_A})
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A, .offset = index_A})
         | ::stdexec::split();
 
     //! Define a type-erased sender type. See also https://github.com/NVIDIA/stdexec/issues/1411.
@@ -96,7 +97,7 @@ TEST_P(GraphTest, runtime_stdexec)
     if(add_B) {
         for_B = node_A | ::stdexec::bulk(
             ::stdexec::par, 1,
-            diamond::AddValueOffset{.data = data, .value = diamond::Values::value_B, .offset = index_B});
+            tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_B, .offset = index_B});
     } else {
         for_B = node_A;
     }
@@ -104,14 +105,14 @@ TEST_P(GraphTest, runtime_stdexec)
     if(add_C) {
         for_C = node_A | ::stdexec::bulk(
             ::stdexec::par, 1,
-            diamond::AddValueOffset{.data = data, .value = diamond::Values::value_C, .offset = index_C});
+            tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_C, .offset = index_C});
     } else {
         for_C = node_A;
     }
 
     ::stdexec::sender auto node_D = ::stdexec::when_all(std::move(*for_B), std::move(*for_C)) | ::stdexec::bulk(
         ::stdexec::par, 1,
-        diamond::AddValueOffset{.data = data, .value = diamond::Values::value_D, .offset = index_D});
+        tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_D, .offset = index_D});
 
     //! Execute the graph and check results.
     ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), std::move(node_D)));
