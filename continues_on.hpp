@@ -31,7 +31,7 @@ struct ContinuesOnReceiver {
         stdexec::set_stopped(std::move(rcvr));
     }
 
-    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec)
+    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec, Rcvr, rcvr)
 };
 
 //! Sender for @c continues_on.
