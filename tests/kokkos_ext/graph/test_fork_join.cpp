@@ -265,4 +265,60 @@ TEST_F(ForkJoinTest, continues_on) {
     ASSERT_EQ(data(), 3);
 }
 
+//! @test Nest @c exec::fork_join.
+TEST_F(ForkJoinTest, nested) {
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const context_t grc{exec};
+
+    using functor_t = ::tests::utils::LoadCheckAddFunctor<value_t, on_device>;
+
+    auto scheduler = grc.get_scheduler();
+
+    auto sndr = ::stdexec::schedule(scheduler) | ::stdexec::then(functor_t{.prev = 0, .value = 4, .data = data.data()})
+              | ::exec::fork_join(
+                    ::stdexec::continues_on(scheduler)
+                        | ::exec::fork_join(
+                            ::stdexec::continues_on(scheduler) | ADD_THEN_ATOMIC,
+                            ::stdexec::continues_on(scheduler) | ADD_THEN_ATOMIC),
+                    ::stdexec::continues_on(scheduler) | ADD_THEN_ATOMIC)
+              | ::stdexec::then(functor_t{.prev = 7, .value = 5, .data = data.data()});
+
+    using outer_0 = ::stdexec::connect_result_t<decltype(sndr), ::tests::stdexec::SinkReceiver>;
+    static_assert(::stdexec::__is_instance_of<outer_0, Kokkos::Experimental::details::graph::ThenOpState>);
+
+    static_assert(impl::check_node_type<
+                  outer_0,
+                  const impl::then_node_t<execution_space, functor_t, impl::aggregate_node_t<execution_space>>&
+    >());
+
+    using outer_1 = typename outer_0::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_1, Kokkos::Experimental::details::graph::ForkJoinOpState>);
+
+    static_assert(impl::check_node_type<outer_1, const impl::aggregate_node_t<execution_space>&>());
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record([sndr = std::move(sndr)]() mutable { ::stdexec::sync_wait(std::move(sndr)); }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 12);
+}
+
 } // namespace tests::kokkos_ext::graph
