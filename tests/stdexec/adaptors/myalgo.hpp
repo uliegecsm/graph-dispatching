@@ -18,11 +18,6 @@ namespace myalgo_namespace {
 namespace details {
 
 //! The tag for the new algorithm.
-struct myalgo_t;
-
-template <typename Sndr, typename... Env>
-using _completion_signatures_t = stdexec::completion_signatures_of_t<Sndr, Env...>;
-
 struct myalgo_t {
     //! Allows the @c stdexec::transform_sender machinery (sender adaptor).
     template <stdexec::sender Sndr, typename Obj>
@@ -43,6 +38,9 @@ struct myalgo_impl : stdexec::__sexpr_defaults {
             //! @todo Create our own sender attributes structure.
             return stdexec::__sync_attrs{sndr};
         };
+
+    template <typename Sndr, typename... Env>
+    using _completion_signatures_t = stdexec::completion_signatures_of_t<Sndr, Env...>;
 
     template <typename Sndr, typename... Env>
     static consteval auto get_completion_signatures() -> _completion_signatures_t<stdexec::__child_of<Sndr>, Env...> {
