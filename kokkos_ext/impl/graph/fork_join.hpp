@@ -52,7 +52,7 @@ struct CacheSender {
         return {std::forward<Rcvr>(rcvr)};
     }
 
-    static constexpr auto get_env() noexcept -> impl::domain_queryable_env_t<Domain> {
+    static constexpr auto get_env() noexcept -> Kokkos::Experimental::details::impl::domain_queryable_env_t<Domain> {
         return {};
     }
 };

@@ -9,6 +9,57 @@
 #include "kokkos_ext/impl/graph/Helpers.hpp"
 
 namespace Kokkos::Experimental::details::graph {
+namespace impl {
+/**
+ * In case of a @c when_all that is followed by a @c continues_on, both in our domain, @c stdexec will insert an intermediate
+ * operation state related to a @c schedule_from since @c when_all does not have a completion scheduler.
+ * Yet, we want to optimize the underlying graph by ensuring that we don't create 2 graphs (since no intermediate work was inserted).
+ *
+ * According to https://cplusplus.github.io/sender-receiver/execution.html#environments-and-attributes, operation states
+ * could feature forwarding queries.
+ *
+ * But for now, we have to manually "go through" one intermediate operation state layer to introspect more inner operation states.
+ *
+ * See also @ref tests::kokkos_ext::WhenAllTest_join_topology_Test.
+ */
+template <typename InnerOpstate, typename Env, typename Schd>
+struct query_node;
+
+//! Specialization for @c scheduler_from.
+template <typename InnerOpstate, typename Env, typename Schd>
+requires(
+    stdexec::__is_instance_of<InnerOpstate, stdexec::__opstate>
+    && std::same_as<typename InnerOpstate::__tag_t, stdexec::schedule_from_t>
+    && stdexec::__is_instance_of<typename InnerOpstate::__child_ops_t, stdexec::__tuple>
+    && (stdexec::__tuple_size_v<typename InnerOpstate::__child_ops_t> == 1)
+    && stdexec::__queryable_with<stdexec::__tuple_element_t<0, typename InnerOpstate::__child_ops_t>, get_node_t>)
+struct query_node<InnerOpstate, Env, Schd> {
+    using type =
+        stdexec::__query_result_t<stdexec::__tuple_element_t<0, typename InnerOpstate::__child_ops_t>, get_node_t>;
+
+    constexpr static auto get(const InnerOpstate& inner_opstate, const Env&, const Schd&) -> type {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+        PLOG_INFO << "The 'get_node' query goes through the 'schedule_from'.";
+#endif
+        return stdexec::__get<0>(inner_opstate.__child_ops_).query(get_node_t{});
+    };
+};
+
+template <typename InnerOpstate, typename Env, typename Schd>
+struct query_node {
+    using type = get_predecessor_t<InnerOpstate, Env, typename Schd::execution_space>;
+
+    constexpr static auto get(const InnerOpstate& inner_opstate, const Env& env, const Schd& schd) -> type {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+        PLOG_INFO
+            << "The 'get_node' query uses 'get_predecessor' that will return a node of type "
+            << Kokkos::Impl::TypeInfo<get_predecessor_t<InnerOpstate, Env, typename Schd::execution_space>>::name()
+            << '.';
+#endif
+        return get_predecessor(inner_opstate, env, schd.state_ptr->get_graph());
+    }
+};
+} // namespace impl
 
 //! Operation state for @c continues_on.
 template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr>
@@ -41,6 +92,8 @@ struct ContinuesOnOpState {
     };
 
     using inner_opstate_t = stdexec::connect_result_t<Sndr, ContinuesOnReceiver>;
+    using query_node_t = impl::query_node<inner_opstate_t, env_t, Schd>;
+    using node_t = typename query_node_t::type;
 
     Schd schd;
     InnerRcvr inner_rcvr;
@@ -52,43 +105,8 @@ struct ContinuesOnOpState {
         , inner_opstate(stdexec::connect(std::move(sndr), ContinuesOnReceiver{this})) {
     }
 
-    /**
-     * In case of a @c when_all that is followed by a @c continues_on, both in our domain, @c stdexec will insert an intermediate
-     * operation state related to a @c schedule_from since @c when_all does not have a completion scheduler.
-     * Yet, we want to optimize the underlying graph by ensuring that we don't create 2 graphs (since no intermediate work was inserted).
-     *
-     * According to https://cplusplus.github.io/sender-receiver/execution.html#environments-and-attributes, operation states
-     * could feature forwarding queries.
-     *
-     * But for now, we have to manually "go through" one intermediate operation state layer to introspect more inner operation states.
-     *
-     * See also @ref tests::kokkos_ext::WhenAllTest_join_topology_Test.
-     */
-    decltype(auto) query(get_node_t) const noexcept {
-        if constexpr (requires {
-                          requires stdexec::__is_instance_of<inner_opstate_t, stdexec::__opstate>;
-                          requires std::same_as<typename inner_opstate_t::__tag_t, stdexec::schedule_from_t>;
-                          requires stdexec::__is_instance_of<typename inner_opstate_t::__child_ops_t, stdexec::__tuple>;
-                          requires stdexec::__tuple_size_v<typename inner_opstate_t::__child_ops_t> == 1;
-                          requires stdexec::__queryable_with<
-                              stdexec::__tuple_element_t<0, typename inner_opstate_t::__child_ops_t>,
-                              get_node_t
-                          >;
-                      }) {
-#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
-            PLOG_INFO << "The 'get_node' query goes through the 'schedule_from'.";
-#endif
-            return stdexec::__get<0>(inner_opstate.__child_ops_).query(get_node);
-        } else {
-#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
-            PLOG_INFO << "The 'get_node' query uses 'get_predecessor' that will return a node of type "
-                      << Kokkos::Impl::TypeInfo<
-                             get_predecessor_t<inner_opstate_t, env_t, typename Schd::execution_space>
-                         >::name()
-                      << '.';
-#endif
-            return get_predecessor(inner_opstate, this->get_env(), schd.state_ptr->get_graph());
-        }
+    auto query(get_node_t) const noexcept -> node_t {
+        return query_node_t::get(inner_opstate, this->get_env(), schd);
     }
 
     void start() & noexcept {
@@ -111,7 +129,7 @@ struct ContinuesOnSender {
             std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr));
     }
 
-    decltype(auto) get_env() const noexcept {
+    auto get_env() const noexcept -> SchedulerEnv<typename Schd::execution_space> {
         return SchedulerEnv{schd.state_ptr};
     }
 
