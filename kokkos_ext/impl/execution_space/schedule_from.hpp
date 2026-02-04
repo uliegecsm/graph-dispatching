@@ -35,7 +35,7 @@ struct ScheduleFromReceiver {
     }
 
     //! Make others aware of which execution space instance it may synchronize.
-    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec)
+    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec, Rcvr, rcvr)
 };
 
 //! Sender for @c schedule_from.
