@@ -3,8 +3,8 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "examples/kokkos-execution/diamond.hpp"
 #include "tests/Functors.hpp"
-#include "tests/graph/diamond/Helpers.hpp"
 #include "tests/graph/runtime/Helpers.hpp"
 
 /**
@@ -13,7 +13,7 @@
  * Runtime graph with @c Kokkos
  * ----------------------------
  *
- * Create an runtime graph with @c Kokkos, inspired by the diamond case (see @ref diamond/test_kokkos.cpp).
+ * Create an runtime graph with @c Kokkos.
  * By runtime graph, it is meant that some nodes might actually be removed (or rather not added)
  * from the graph at runtime based on some random heuristic, and the graph is therefore not fully
  * known at compile time.
@@ -23,6 +23,8 @@
 
 namespace tests::graph::runtime
 {
+
+namespace diamond = examples::KokkosExecution::diamond;
 
 DEFINE_TEST_SUITE
 

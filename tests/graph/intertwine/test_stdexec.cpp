@@ -13,8 +13,8 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "examples/kokkos-execution/diamond.hpp"
 #include "tests/Functors.hpp"
-#include "tests/graph/diamond/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -22,13 +22,15 @@ PRAGMA_DIAGNOSTIC_POP
  * Intertwining with @c stdexec
  * ----------------------------
  *
- * Create an intertwining graph with @c stdexec, inspired by the diamond case (see @ref diamond/test_stdexec.cpp).
+ * Create an intertwining graph with @c stdexec.
  *
  * The test can be found in @ref intertwine/test_stdexec.cpp.
  */
 
 namespace tests::graph::intertwine
 {
+
+namespace diamond = examples::KokkosExecution::diamond;
 
 /**
  * @brief Faking an external library call that adds its workloads to the chain.
@@ -89,7 +91,7 @@ TEST(graph, intertwine_stdexec)
     //! Execute the graph and check results.
     ::stdexec::sync_wait(::stdexec::starts_on(pool.get_scheduler(), node_D));
 
-    ASSERT_TRUE(diamond::check_data(execution_space{}, data));
+    ASSERT_TRUE(diamond::Values::check(execution_space{}, data));
 }
 
 } // namespace tests::graph::intertwine

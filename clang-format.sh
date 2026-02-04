@@ -14,6 +14,7 @@ PATTERNS=(
     'apps/**.hpp'
     'benchmarks/newton/benchmark_compare.cpp'
     'examples/**.cpp'
+    'examples/**.hpp'
     'kokkos_ext/impl/execution_space/*.hpp'
     'kokkos_ext/impl/graph/*.hpp'
     'kokkos_ext/impl/GraphContext_fwd.hpp'

@@ -46,4 +46,8 @@ function(add_one_example NAME)
     add_test(NAME ${EXECUTABLE_NAME} COMMAND $<TARGET_FILE:${EXECUTABLE_NAME}> --gtest_fail_if_no_test_linked)
 endfunction()
 
-add_one_example(then ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+set_property(GLOBAL APPEND PROPERTY GraphDispatching_FILES_FOR_DOC ${CMAKE_CURRENT_SOURCE_DIR}/diamond.hpp)
+
+add_one_example(bulk      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+add_one_example(fork_join ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
+add_one_example(then      ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
