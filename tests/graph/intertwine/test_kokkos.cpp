@@ -3,8 +3,8 @@
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Graph.hpp"
 
+#include "examples/kokkos-execution/diamond.hpp"
 #include "tests/Functors.hpp"
-#include "tests/graph/diamond/Helpers.hpp"
 
 /**
  * @addtogroup unittests
@@ -12,13 +12,15 @@
  * Intertwining with @c Kokkos
  * ---------------------------
  *
- * Create an intertwining graph with @c Kokkos, inspired by the diamond case (see @ref diamond/test_kokkos.cpp).
+ * Create an intertwining graph with @c Kokkos.
  *
  * The test can be found in @ref intertwine/test_kokkos.cpp.
  */
 
 namespace tests::graph::intertwine
 {
+
+namespace diamond = examples::KokkosExecution::diamond;
 
 /**
  * @brief Faking an external library call that adds its workloads to the chain.
@@ -80,7 +82,7 @@ TEST(graph, intertwine_kokkos)
     //! Execute the graph and check results.
     graph.submit(exec);
 
-    ASSERT_TRUE(diamond::check_data(exec, data));
+    ASSERT_TRUE(diamond::Values::check(exec, data));
 }
 
 } // namespace tests::graph::intertwine

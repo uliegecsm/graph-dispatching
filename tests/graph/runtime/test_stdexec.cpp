@@ -14,8 +14,8 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "Kokkos_Core.hpp"
 
+#include "examples/kokkos-execution/diamond.hpp"
 #include "tests/Functors.hpp"
-#include "tests/graph/diamond/Helpers.hpp"
 #include "tests/graph/runtime/Helpers.hpp"
 
 /**
@@ -24,7 +24,7 @@ PRAGMA_DIAGNOSTIC_POP
  * Runtime graph with @c stdexec
  * -----------------------------
  *
- * Create an runtime graph with @c stdexec, inspired by the diamond case (see @ref diamond/test_stdexec.cpp).
+ * Create an runtime graph with @c stdexec.
  * By runtime graph, it is meant that some nodes might actually be removed (or rather not added)
  * from the graph at runtime based on some random heuristic, and the graph is therefore not fully
  * known at compile time.
@@ -34,6 +34,8 @@ PRAGMA_DIAGNOSTIC_POP
 
 namespace tests::graph::runtime
 {
+
+namespace diamond = examples::KokkosExecution::diamond;
 
 DEFINE_TEST_SUITE
 

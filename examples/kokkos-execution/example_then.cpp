@@ -55,7 +55,7 @@ TEST_F(GraphThenTest, kokkos_vanilla) {
     ASSERT_EQ(data(), 3);
 }
 
-//! @test Customization of @c stdexec::then.
+//! @test Using @c stdexec customization.
 TEST_F(GraphThenTest, kokkos_execution) {
     const Kokkos::Experimental::GraphContext<execution_space> gctx{exec};
 

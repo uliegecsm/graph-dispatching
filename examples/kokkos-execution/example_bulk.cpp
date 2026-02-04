@@ -1,0 +1,86 @@
+
+#include "gtest/gtest.h"
+
+#include "Kokkos_Core.hpp"
+#include "Kokkos_Graph.hpp"
+
+#include "kokkos-utils/tests/scoped/ExecutionSpace.hpp"
+
+#include "kokkos_ext/impl/GraphContext.hpp"
+
+#include "examples/kokkos-execution/diamond.hpp"
+#include "tests/Functors.hpp"
+
+/**
+ * @addtogroup examples
+ *
+ * A @c bulk node with @c Kokkos
+ * -----------------------------
+ *
+ * Create a graph with @c bulk nodes either using @c Kokkos directly
+ * or *via* @c stdexec customization.
+ *
+ * The examples can be found in @ref examples/kokkos-execution/example_bulk.cpp.
+ */
+
+using execution_space = Kokkos::DefaultExecutionSpace;
+
+namespace examples::KokkosExecution::bulk {
+
+struct GraphBulkTest
+    : public ::testing::Test
+    , public Kokkos::utils::tests::scoped::ExecutionSpace<execution_space> {
+   public:
+    using memory_space = typename execution_space::memory_space;
+
+    static constexpr size_t size = 10;
+    static_assert(size % 2 == 0);
+
+    using view_t = Kokkos::View<int[size], memory_space>;
+
+    using functor_t = tests::AddValueOffset<view_t, false>;
+
+   public:
+    void SetUp() override {
+        this->data = view_t(Kokkos::view_alloc(exec, "data"));
+    }
+
+   protected:
+    view_t data;
+};
+
+//! @test Vanilla @c Kokkos.
+TEST_F(GraphBulkTest, kokkos_vanilla) {
+    using policy_t = Kokkos::RangePolicy<execution_space>;
+
+    auto graph = Kokkos::Experimental::create_graph(exec, [&](const auto& root) {
+        root.then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_A})
+            .then_parallel_for(policy_t(0, size / 2), functor_t{.data = data, .value = diamond::Values::value_B})
+            .then_parallel_for(policy_t(size / 2, size), functor_t{.data = data, .value = diamond::Values::value_C})
+            .then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_D});
+    });
+
+    graph.submit(exec);
+
+    ASSERT_TRUE(diamond::Values::check(exec, data));
+}
+
+//! @test Using @c stdexec customization.
+TEST_F(GraphBulkTest, kokkos_execution) {
+    const Kokkos::Experimental::GraphContext<execution_space> gctx{exec};
+
+    auto chain = stdexec::schedule(gctx.get_scheduler())
+               | stdexec::bulk(stdexec::par, size, functor_t{.data = data, .value = diamond::Values::value_A})
+               | stdexec::bulk(stdexec::par, size / 2, functor_t{.data = data, .value = diamond::Values::value_B})
+               | stdexec::bulk(
+                     stdexec::par,
+                     size / 2,
+                     functor_t{.data = data, .value = diamond::Values::value_C, .offset = size / 2})
+               | stdexec::bulk(stdexec::par, size, functor_t{.data = data, .value = diamond::Values::value_D});
+
+    stdexec::sync_wait(std::move(chain));
+
+    ASSERT_TRUE(diamond::Values::check(exec, data));
+}
+
+} // namespace examples::KokkosExecution::bulk
