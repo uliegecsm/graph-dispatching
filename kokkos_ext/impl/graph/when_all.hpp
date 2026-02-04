@@ -73,6 +73,10 @@ struct WhenAllOpState {
             [](auto&... ops) { return Kokkos::Experimental::when_all(*ops.get_node()...); }, children_opstates);
     }
 
+    decltype(auto) get_node() const {
+        return node;
+    }
+
     //! Children will start and most probably complete very quickly, before the corresponding graph nodes are done.
     void start() & noexcept {
         stdexec::__apply([](auto&... ops) -> void { (stdexec::start(ops), ...); }, children_opstates);

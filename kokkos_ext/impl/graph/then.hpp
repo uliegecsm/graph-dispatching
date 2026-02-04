@@ -11,9 +11,9 @@
 namespace Kokkos::Experimental::details::graph {
 
 //! Build a @c then node after the node returned by @ref get_predecessor.
-template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Functor>
-auto build_then_node(State<Exec>& state, const OpstateType& opstate, Functor&& functor) {
-    return get_predecessor(opstate, state.get_graph())
+template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Env, typename Functor>
+auto build_then_node(State<Exec>& state, const OpstateType& opstate, const Env& env, Functor&& functor) {
+    return get_predecessor(opstate, env, state.get_graph())
         .then(
             std::format("{}: then", Kokkos::Impl::TypeInfo<Exec>::name()), state.exec, std::forward<Functor>(functor));
 }
@@ -59,6 +59,7 @@ struct ThenOpState {
     using node_t = decltype(build_then_node(
         *std::declval<Schd&>().state_ptr,
         std::declval<const inner_opstate_t&>(),
+        std::declval<const env_t&>(),
         std::declval<Functor>()));
 
     Schd schd;
@@ -85,7 +86,8 @@ struct ThenOpState {
     void create_node() {
         if (proceed(*schd.state_ptr, inner_opstate)) {
             try {
-                this->node.emplace(build_then_node(*schd.state_ptr, inner_opstate, std::move(functor)));
+                this->node
+                    .emplace(build_then_node(*schd.state_ptr, inner_opstate, this->get_env(), std::move(functor)));
             } catch (...) {
                 this->error = std::current_exception();
             }

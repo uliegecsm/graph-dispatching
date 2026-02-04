@@ -3,14 +3,28 @@
 
 #include "Kokkos_Core.hpp"
 
+#include "kokkos_ext/impl/graph/get_node.hpp"
+
 namespace Kokkos::Experimental::details::graph {
 
-//! If @c opstate is queryable for node, use it. Otherwise, return the root node of @c graph.
-template <typename OpstateType, Kokkos::ExecutionSpace Exec>
-auto get_predecessor(const OpstateType& opstate, const Kokkos::Experimental::Graph<Exec>& graph) {
+/**
+ * If @c opstate is queryable for node, use it.
+ * Otherwise, if @c env is queryable for @ref Kokkos::Experimental::details::graph::get_node_t, use it.
+ * Otherwise, return the root node of @c graph.
+ */
+template <typename OpstateType, typename Env, Kokkos::ExecutionSpace Exec>
+auto get_predecessor(const OpstateType& opstate, const Env& env, const Kokkos::Experimental::Graph<Exec>& graph) {
     if constexpr (requires { opstate.get_node(); }) {
         return *opstate.get_node();
+    } else if constexpr (stdexec::__queryable_with<Env, get_node_t>) {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+        PLOG_WARNING << "Returning the node from the environment.";
+#endif
+        return env.query(get_node);
     } else {
+#if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
+        PLOG_WARNING << "Could not find a predecessor, returning the root node.";
+#endif
         return graph.root_node();
     }
 }

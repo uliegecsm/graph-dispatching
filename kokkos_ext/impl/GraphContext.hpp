@@ -22,6 +22,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos_ext/impl/graph/bulk.hpp"
 #include "kokkos_ext/impl/graph/continues_on.hpp"
+#include "kokkos_ext/impl/graph/fork_join.hpp"
 #include "kokkos_ext/impl/graph/schedule_from.hpp"
 #include "kokkos_ext/impl/graph/sync_wait.hpp"
 #include "kokkos_ext/impl/graph/then.hpp"

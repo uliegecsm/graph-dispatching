@@ -86,6 +86,42 @@ TEST_F(WhenAllTest, one_branch) {
     ASSERT_EQ(data(), 1);
 }
 
+//! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with a two-branches @c when_all.
+TEST_F(WhenAllTest, two_branches) {
+    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const context_t grc{exec};
+
+    auto branch_a = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
+    auto branch_b = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
+    auto when_all = ::stdexec::when_all(std::move(branch_a), std::move(branch_b));
+
+    static_assert(check_traits(when_all));
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "when_all")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record(
+            [when_all = std::move(when_all)]() mutable { ::stdexec::sync_wait(std::move(when_all)); }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 2);
+}
+
 //! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with a three-branches @c when_all.
 TEST_F(WhenAllTest, three_branches) {
     const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
