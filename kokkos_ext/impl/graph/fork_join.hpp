@@ -13,6 +13,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
 #include "kokkos_ext/impl/env.hpp"
+#include "kokkos_ext/impl/graph/Helpers.hpp"
 #include "kokkos_ext/impl/graph/get_node.hpp"
 
 namespace Kokkos::Experimental::details::graph {
@@ -57,7 +58,7 @@ struct CacheSender {
 };
 
 //! Sender for @c exec::fork_join.
-template <stdexec::sender Sndr, typename PackedClosures>
+template <stdexec::scheduler Schd, stdexec::sender Sndr, typename PackedClosures>
 struct ForkJoinSender {
     using sender_concept = stdexec::sender_t;
 
@@ -92,11 +93,7 @@ struct ForkJoinSender {
                 stdexec::set_error(std::move(inner_rcvr), std::forward<Error>(error));
             }
 
-            GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(
-                InnerRcvr,
-                inner_rcvr,
-                NodeType,
-                opstate->fork_opstate.query(get_node))
+            GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(InnerRcvr, inner_rcvr, NodeType, opstate->fork_node)
         };
 
         using env_t = stdexec::__fwd_env_t<stdexec::env_of_t<InnerRcvr>>;
@@ -104,17 +101,22 @@ struct ForkJoinSender {
         using fork_completions_t = stdexec::completion_signatures_of_t<Sndr, env_t>;
         using when_all_sndr_t = get_when_all_sndr_t<domain_t>;
         using fork_opstate_t = stdexec::connect_result_t<Sndr, stdexec::__rcvr_ref_t<ForkJoinOpState, env_t>>;
-        using fork_node_t = std::remove_cvref_t<stdexec::__query_result_t<fork_opstate_t, get_node_t>>;
+        using fork_node_t =
+            std::remove_cvref_t<get_predecessor_t<fork_opstate_t, env_t, typename Schd::execution_space>>;
         using join_opstate_t = stdexec::connect_result_t<when_all_sndr_t, ForkJoinReceiver<fork_node_t>>;
         using cache_sndr_t = CacheSender<domain_t>;
 
+        Schd schd;
         InnerRcvr inner_rcvr;
         fork_opstate_t fork_opstate;
+        fork_node_t fork_node;
         join_opstate_t join_opstate;
 
-        ForkJoinOpState(Sndr&& sndr, PackedClosures&& packed_closures, InnerRcvr&& inner_rcvr_)
-            : inner_rcvr(std::move(inner_rcvr_))
+        ForkJoinOpState(Schd&& schd_, Sndr&& sndr, PackedClosures&& packed_closures, InnerRcvr&& inner_rcvr_)
+            : schd(std::move(schd_))
+            , inner_rcvr(std::move(inner_rcvr_))
             , fork_opstate(stdexec::connect(std::move(sndr), stdexec::__ref_rcvr(*this)))
+            , fork_node(get_predecessor(fork_opstate, this->get_env(), schd.state_ptr->get_graph()))
             , join_opstate(
                   stdexec::connect(
                       stdexec::__apply(make_when_all_fn{}, std::move(packed_closures), cache_sndr_t{}),
@@ -158,11 +160,12 @@ struct ForkJoinSender {
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         return ForkJoinOpState<std::remove_cvref_t<Rcvr>>(
-            std::move(sndr), std::move(packed_closures), std::forward<Rcvr>(rcvr));
+            std::move(schd), std::move(sndr), std::move(packed_closures), std::forward<Rcvr>(rcvr));
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 
+    Schd schd;
     Sndr sndr;
     PackedClosures packed_closures;
 };
@@ -172,8 +175,14 @@ struct transform_sender_for<exec::fork_join_t, Env> {
     template <typename PackedClosures, stdexec::sender Sndr>
     auto operator()(exec::fork_join_t, PackedClosures&& closures, Sndr&& sndr) && noexcept {
         static_assert(stdexec::__is_instance_of<PackedClosures, stdexec::__tuple>);
-        return ForkJoinSender<Sndr, PackedClosures>{
-            .sndr = std::forward<Sndr>(sndr), .packed_closures = std::forward<PackedClosures>(closures)};
+
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        static_assert(stdexec::__is_instance_of<decltype(schd), Scheduler>);
+
+        return ForkJoinSender<decltype(schd), Sndr, PackedClosures>{
+            .schd = std::move(schd),
+            .sndr = std::forward<Sndr>(sndr),
+            .packed_closures = std::forward<PackedClosures>(closures)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
