@@ -75,12 +75,7 @@ template <Kind kind, stdexec::sender Sndr>
 struct RegionSender {
     using sender_concept = stdexec::sender_t;
 
-    template <typename Self, typename... Env>
-    using _completion_signatures = stdexec::transform_completion_signatures<
-        stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>
-    >;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(RegionSender)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(RegionSender)
 
     template <stdexec::receiver Rcvr>
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
