@@ -29,11 +29,11 @@ PRAGMA_DIAGNOSTIC_POP
 namespace some_other_namespace {
 
 //! Custom implementation of @ref myalgo_namespace::myalgo_t for @ref iswd::domain.
-template <::stdexec::sender UpstreamSndr, typename Obj>
+template <::stdexec::sender Sndr, typename Obj>
 struct custom_printf_sender {
     using sender_concept = ::stdexec::sender_t;
 
-    UpstreamSndr upstream_sndr;
+    Sndr sndr;
     Obj obj;
 
     template <::stdexec::receiver DownstreamRcvr>
@@ -51,16 +51,12 @@ struct custom_printf_sender {
     };
 
     //! Keep the same completion signatures as the upstream sender, because it will forward anything.
-    template <typename Self, typename... Env>
-    using _completion_signatures =
-        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, UpstreamSndr>, Env...>;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(custom_printf_sender)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(custom_printf_sender)
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         return ::stdexec::connect(
-            std::move(upstream_sndr),
+            std::move(sndr),
             receiver<std::remove_cvref_t<Rcvr>>{.downstream_rcvr = std::forward<Rcvr>(rcvr), .obj = std::move(obj)});
     }
 };
@@ -74,7 +70,7 @@ struct transform_sender_for<myalgo_namespace::myalgo_t, Env> {
     template <typename Obj, ::stdexec::sender Sndr>
     auto operator()(myalgo_namespace::myalgo_t, Obj&& obj, Sndr&& sndr) && noexcept {
         return some_other_namespace::custom_printf_sender<std::remove_cvref_t<Sndr>, std::remove_cvref_t<Obj>>{
-            .upstream_sndr = std::forward<Sndr>(sndr), .obj = std::forward<Obj>(obj)};
+            .sndr = std::forward<Sndr>(sndr), .obj = std::forward<Obj>(obj)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

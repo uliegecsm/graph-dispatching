@@ -82,16 +82,7 @@ struct BulkSender {
     using sender_concept = stdexec::sender_t;
 
     //! @c Kokkos may throw while launching the kernel.
-    using with_error_invoke_t =
-        stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>;
-
-    template <typename Self, typename... Env>
-    using _completion_signatures = stdexec::transform_completion_signatures<
-        stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
-        with_error_invoke_t
-    >;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(BulkSender)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_ADD(BulkSender, stdexec::set_error_t(std::exception_ptr))
 
     template <stdexec::receiver Rcvr>
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {

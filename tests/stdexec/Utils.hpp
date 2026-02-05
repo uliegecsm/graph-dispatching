@@ -26,10 +26,7 @@ template <::stdexec::scheduler Scheduler, typename Tag, ::stdexec::sender Sndr>
 struct CheckSchedulerSender {
     using sender_concept = ::stdexec::sender_t;
 
-    template <typename Self, typename... Env>
-    using _completion_signatures = ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(CheckSchedulerSender)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(CheckSchedulerSender)
 
     template <::stdexec::receiver Rcvr>
     constexpr ::stdexec::operation_state auto
