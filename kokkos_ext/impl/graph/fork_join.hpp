@@ -157,6 +157,8 @@ struct ForkJoinSender {
             std::move(sndr), std::move(packed_closures), std::forward<Rcvr>(rcvr));
     }
 
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
+
     Sndr sndr;
     PackedClosures packed_closures;
 };
