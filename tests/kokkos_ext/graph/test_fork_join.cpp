@@ -52,7 +52,7 @@ class ForkJoinTest
 
 //! @test Use @c exec::fork_join with a diamond topology.
 TEST_F(ForkJoinTest, diamond) {
-    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t grc{exec};
 
@@ -61,8 +61,8 @@ TEST_F(ForkJoinTest, diamond) {
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 0, .value = 4, .data = data.data()})
         | ::exec::fork_join(
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN,
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN)
+            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC)
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 6, .value = 3, .data = data.data()});
 
@@ -91,7 +91,7 @@ TEST_F(ForkJoinTest, diamond) {
 
 //! @test Use @c exec::fork_join with a double diamond topology.
 TEST_F(ForkJoinTest, double_diamond) {
-    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t grc{exec};
 
@@ -100,8 +100,8 @@ TEST_F(ForkJoinTest, double_diamond) {
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 0, .value = 4, .data = data.data()})
         | ::exec::fork_join(
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN,
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN)
+            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC)
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 6, .value = 3, .data = data.data()})
         | ::exec::fork_join(
