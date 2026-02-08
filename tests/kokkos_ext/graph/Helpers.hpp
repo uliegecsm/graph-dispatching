@@ -66,6 +66,51 @@ struct GraphIsDefaulted<Kokkos::DefaultExecutionSpace> : std::false_type { };
 template <Kokkos::ExecutionSpace Exec>
 constexpr bool is_graph_defaulted = GraphIsDefaulted<Exec>::value;
 
+//! Get the @c then node type.
+template <Kokkos::ExecutionSpace Exec, typename Functor, typename Predecessor>
+using then_node_t = Kokkos::Experimental::GraphNodeRef<
+    Exec,
+    Kokkos::Impl::GraphNodeThenImpl<Exec, Kokkos::Experimental::ThenPolicy<>, Functor>,
+    Predecessor
+>;
+
+//! Check the node type.
+template <typename ObjType, typename NodeType>
+constexpr bool check_node_type() {
+    static_assert(std::same_as<
+                  ::stdexec::__query_result_t<const ObjType&, Kokkos::Experimental::details::graph::get_node_t>,
+                  NodeType
+    >);
+    return true;
+}
+
+//! Type of the @c Kokkos graph root node.
+template <Kokkos::ExecutionSpace Exec>
+using root_node_t = Kokkos::Experimental::GraphNodeRef<Exec>;
+
+template <Kokkos::ExecutionSpace Exec>
+struct AggregateNode {
+    using type = Kokkos::Impl::GraphNodeAggregateDefaultImpl<Exec>;
+};
+
+#if defined(KOKKOS_ENABLE_CUDA)
+template <>
+struct AggregateNode<Kokkos::Cuda> {
+    using type = Kokkos::Impl::CudaGraphNodeAggregate;
+};
+#endif
+
+#if defined(KOKKOS_ENABLE_HIP)
+template <>
+struct AggregateNode<Kokkos::HIP> {
+    using type = Kokkos::Impl::HIPGraphNodeAggregate;
+};
+#endif
+
+//! Type of the @c Kokkos aggregate node.
+template <Kokkos::ExecutionSpace Exec>
+using aggregate_node_t = Kokkos::Experimental::GraphNodeRef<Exec, typename AggregateNode<Exec>::type>;
+
 } // namespace tests::kokkos_ext::impl
 
 #endif // GRAPH_DISPATCHING_TESTS_KOKKOS_EXT_GRAPH_HELPERS_HPP
