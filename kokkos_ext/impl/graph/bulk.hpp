@@ -25,7 +25,7 @@ auto build_parallel_for_node(State<Exec>& state, const OpstateType& opstate, con
 
 template <
     stdexec::scheduler Schd,
-    stdexec::sender Sndr,
+    typename Sndr,
     stdexec::receiver InnerRcvr,
     stdexec::__is_instance_of<stdexec::__bulk::__data> Data
 >
@@ -156,5 +156,13 @@ struct transform_sender_for<stdexec::bulk_t, Env> {
 };
 
 } // namespace Kokkos::Experimental::details::graph
+
+// NOLINTBEGIN(bugprone-reserved-identifier)
+namespace stdexec::__detail {
+template <stdexec::scheduler Schd, typename Sndr, stdexec::receiver InnerRcvr, typename Data>
+extern __declfn_t<Kokkos::Experimental::details::graph::BulkOpState<Schd, __demangle_t<Sndr>, InnerRcvr, Data>>
+    __demangle_v<Kokkos::Experimental::details::graph::BulkOpState<Schd, Sndr, InnerRcvr, Data>>;
+} // namespace stdexec::__detail
+// NOLINTEND(bugprone-reserved-identifier)
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_BULK_HPP

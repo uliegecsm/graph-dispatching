@@ -8,8 +8,11 @@
 namespace Kokkos::Experimental::details::graph {
 
 template <typename T>
-concept has_node = requires (const T& obj) {
-    requires stdexec::__is_instance_of<std::remove_cvref_t<decltype(*obj.get_node())>, Kokkos::Experimental::GraphNodeRef>;
+concept has_node = requires(const T& obj) {
+    requires stdexec::__is_instance_of<
+        std::remove_cvref_t<decltype(*obj.get_node())>,
+        Kokkos::Experimental::GraphNodeRef
+    >;
 };
 
 /**
