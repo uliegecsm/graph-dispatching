@@ -320,7 +320,7 @@ FROM requirements AS nvidia-stdexec
 
 ARG NVIDIA_STDEXEC_REF
 
-RUN --mount=target=/docker/stdexec-fork-join.patch,type=bind,source=docker/stdexec-fork-join.patch <<EOF
+RUN <<EOF
     set -ex
 
     git clone --branch main --shallow-since=2024-06-01 https://github.com/NVIDIA/stdexec /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
@@ -328,8 +328,6 @@ RUN --mount=target=/docker/stdexec-fork-join.patch,type=bind,source=docker/stdex
     cd /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
     git checkout ${NVIDIA_STDEXEC_REF}
-
-    patch -p1 < /docker/stdexec-fork-join.patch
 EOF
 
 # Fetch https://github.com/uliegecsm/kokkos-utils sources and install.
