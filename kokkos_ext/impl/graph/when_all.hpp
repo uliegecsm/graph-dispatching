@@ -134,10 +134,9 @@ struct WhenAllSender {
 
     //! @todo Make it much more robust as per https://github.com/NVIDIA/stdexec/blob/0f8338ab55b03d63f5fef111cefed7ab4002e78d/include/stdexec/__detail/__when_all.hpp#L341.
     template <typename Self, typename... Env>
-    using _completion_signatures =
-        stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(WhenAllSender)
+    static consteval auto get_completion_signatures() {
+        return stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>{};
+    }
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {

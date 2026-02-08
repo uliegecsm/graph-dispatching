@@ -43,17 +43,7 @@ template <stdexec::scheduler Schd, stdexec::sender Sndr>
 struct ScheduleFromSender {
     using sender_concept = stdexec::sender_t;
 
-    //! The transition may throw or forwards the error channel.
-    using with_error_invoke_t =
-        stdexec::completion_signatures<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr)>;
-
-    template <typename Self, typename... Env_>
-    using _completion_signatures = stdexec::transform_completion_signatures<
-        stdexec::completion_signatures_of_t<stdexec::__copy_cvref_t<Self, Sndr>, Env_...>,
-        with_error_invoke_t
-    >;
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ScheduleFromSender)
+    GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ScheduleFromSender)
 
     template <stdexec::receiver Rcvr>
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {

@@ -127,16 +127,13 @@ struct ThenSender {
         ::stdexec::completion_signatures<>,
         ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr)>
     >;
-
-    template <class Self, typename... Env>
-    using _completion_signatures = ::stdexec::transform_completion_signatures<
-        ::stdexec::completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>,
-        with_error_invoke_t,
-        set_value_t
-    >;
+    template <::stdexec::__decays_to<ThenSender> Self, typename... Env>
+    static consteval auto get_completion_signatures() {
+        using child_completions_t =
+            ::stdexec::__completion_signatures_of_t<::stdexec::__copy_cvref_t<Self, Sndr>, Env...>;
+        return ::stdexec::transform_completion_signatures<child_completions_t, with_error_invoke_t, set_value_t>{};
+    }
     ///@}
-
-    GRAPH_DISPATCHING_KOKKOS_EXT_COMPLETION_SIGNATURES(ThenSender)
 
     template <::stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
