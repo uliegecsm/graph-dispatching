@@ -53,6 +53,19 @@ TEST_F(OnTest, on) {
     ASSERT_EQ(counter, 3);
 }
 
+//! @test Completion signatures after @c stdexec::on derive from @c stdexec::dependent_sender_error.
+TEST_F(OnTest, completion_signatures) {
+    auto chain = ::stdexec::just() | ::stdexec::on(::stdexec::inline_scheduler{}, ::stdexec::then([] { }));
+
+    using chain_t = decltype(chain);
+
+    static_assert(requires {
+        {
+            ::stdexec::get_completion_signatures(std::declval<chain_t>())
+        } -> std::derived_from<::stdexec::dependent_sender_error>;
+    });
+}
+
 //! @test @c stdexec::on can be used nested, and the inner most one wins.
 TEST_F(OnTest, on_nested) {
     ::stdexec::scheduler auto scheduler_A = this->pools.at(index_of_A).get_scheduler();
