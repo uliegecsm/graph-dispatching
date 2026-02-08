@@ -53,17 +53,36 @@ TEST_F(OnTest, on) {
     ASSERT_EQ(counter, 3);
 }
 
+template <::stdexec::scheduler Schd = ::stdexec::inline_scheduler>
+struct env_with_scheduler {
+    constexpr auto query(::stdexec::get_scheduler_t) const noexcept {
+        return Schd{};
+    }
+};
+
 //! @test Completion signatures after @c stdexec::on derive from @c stdexec::dependent_sender_error.
 TEST_F(OnTest, completion_signatures) {
     auto chain = ::stdexec::just() | ::stdexec::on(::stdexec::inline_scheduler{}, ::stdexec::then([] { }));
 
     using chain_t = decltype(chain);
 
+    /**
+     * The @c stdexec::on algorithm needs to restore execution back to
+     * the original scheduler afterward.
+     * Therefore, since the sender starts with @c stdexec::just,
+     * trying to retrieve the completion signatures without providing an environment
+     * containing a scheduler will return @c stdexec::dependent_sender_error.
+     */
     static_assert(requires {
         {
             ::stdexec::get_completion_signatures(std::declval<chain_t>())
         } -> std::derived_from<::stdexec::dependent_sender_error>;
     });
+
+    static_assert(std::same_as<
+                  ::stdexec::__completion_signatures_of_t<chain_t, env_with_scheduler<>>,
+                  ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>
+    >);
 }
 
 //! @test @c stdexec::on can be used nested, and the inner most one wins.
