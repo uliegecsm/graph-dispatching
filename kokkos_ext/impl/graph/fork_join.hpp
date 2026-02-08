@@ -92,7 +92,11 @@ struct ForkJoinSender {
                 stdexec::set_error(std::move(inner_rcvr), std::forward<Error>(error));
             }
 
-            GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(InnerRcvr, inner_rcvr, NodeType, *opstate->fork_opstate.get_node())
+            GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(
+                InnerRcvr,
+                inner_rcvr,
+                NodeType,
+                opstate->fork_opstate.query(get_node))
         };
 
         using env_t = stdexec::__fwd_env_t<stdexec::env_of_t<InnerRcvr>>;
@@ -100,7 +104,7 @@ struct ForkJoinSender {
         using fork_completions_t = stdexec::completion_signatures_of_t<Sndr, env_t>;
         using when_all_sndr_t = get_when_all_sndr_t<domain_t>;
         using fork_opstate_t = stdexec::connect_result_t<Sndr, stdexec::__rcvr_ref_t<ForkJoinOpState, env_t>>;
-        using fork_node_t = std::remove_cvref_t<decltype(*std::declval<const fork_opstate_t&>().get_node())>;
+        using fork_node_t = std::remove_cvref_t<stdexec::__query_result_t<fork_opstate_t, get_node_t>>;
         using join_opstate_t = stdexec::connect_result_t<when_all_sndr_t, ForkJoinReceiver<fork_node_t>>;
         using cache_sndr_t = CacheSender<domain_t>;
 
@@ -117,8 +121,8 @@ struct ForkJoinSender {
                       ForkJoinReceiver<fork_node_t>{this, stdexec::__ref_rcvr(inner_rcvr)})) {
         }
 
-        decltype(auto) get_node() const {
-            return join_opstate.get_node();
+        decltype(auto) query(get_node_t) const noexcept {
+            return join_opstate.query(get_node);
         }
 
         void start() & noexcept {
