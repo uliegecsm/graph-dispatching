@@ -18,7 +18,7 @@ auto build_then_node(State<Exec>& state, const OpstateType& opstate, const Env& 
             std::format("{}: then", Kokkos::Impl::TypeInfo<Exec>::name()), state.exec, std::forward<Functor>(functor));
 }
 
-template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver InnerRcvr, typename Functor>
+template <stdexec::scheduler Schd, typename Sndr, stdexec::receiver InnerRcvr, typename Functor>
 struct ThenOpState {
     using operation_state_concept = stdexec::operation_state_t;
 
@@ -150,5 +150,13 @@ struct transform_sender_for<stdexec::then_t, Env> {
 };
 
 } // namespace Kokkos::Experimental::details::graph
+
+// NOLINTBEGIN(bugprone-reserved-identifier)
+namespace stdexec::__detail {
+template <stdexec::scheduler Schd, typename Sndr, stdexec::receiver InnerRcvr, typename Functor>
+extern __declfn_t<Kokkos::Experimental::details::graph::ThenOpState<Schd, __demangle_t<Sndr>, InnerRcvr, Functor>>
+    __demangle_v<Kokkos::Experimental::details::graph::ThenOpState<Schd, Sndr, InnerRcvr, Functor>>;
+} // namespace stdexec::__detail
+// NOLINTEND(bugprone-reserved-identifier)
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_THEN_HPP

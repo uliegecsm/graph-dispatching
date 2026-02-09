@@ -56,6 +56,20 @@ TEST_F(ThenTest, then_schedule) {
 
     using chain_t = decltype(chain);
 
+    static_assert(std::same_as<
+                  ::stdexec::__demangle_t<::stdexec::connect_result_t<chain_t, ::tests::stdexec::SinkReceiver>>,
+                  Kokkos::Experimental::details::graph::ThenOpState<
+                      Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                      ::stdexec::__basic_sender<
+                          ::stdexec::then_t,
+                          ::tests::utils::LoadCheckAddFunctor<int, on_device>,
+                          Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
+                      >,
+                      ::tests::stdexec::SinkReceiver,
+                      ::tests::utils::LoadCheckAddFunctor<int, on_device>
+                  >
+    >);
+
     //! The chain environment advertises the default domain, and completes on the @ref Kokkos::Experimental::details::graph::Domain domain.
     static_assert(std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<chain_t>>, ::stdexec::default_domain>);
     static_assert(std::same_as<

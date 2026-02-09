@@ -39,9 +39,35 @@ TEST_F(BulkTest, bulk) {
 
     const context_t esc{exec};
 
-    auto chain = ::stdexec::schedule(esc.get_scheduler()) | ADD_BULK(size) | ADD_BULK(size) | ADD_THEN;
+    auto chain = ::stdexec::schedule(esc.get_scheduler()) | ADD_BULK(size) | ADD_THEN | ADD_BULK(size);
 
     using chain_t = decltype(chain);
+
+    static_assert(std::same_as<
+                  ::stdexec::__demangle_t<::stdexec::connect_result_t<chain_t, ::tests::stdexec::SinkReceiver>>,
+                  Kokkos::Experimental::details::graph::BulkOpState<
+                      Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                      ::stdexec::__basic_sender<
+                          ::stdexec::then_t,
+                          tests::ThenFunctor<view_s_t>,
+                          ::stdexec::__basic_sender<
+                              ::stdexec::bulk_t,
+                              ::stdexec::__bulk::__data<
+                                  __pstl::execution::parallel_policy,
+                                  unsigned long,
+                                  ::tests::kokkos_ext::BulkFunctor<view_s_t>
+                              >,
+                              Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
+                          >
+                      >,
+                      tests::stdexec::SinkReceiver,
+                      ::stdexec::__bulk::__data<
+                          __pstl::execution::parallel_policy,
+                          unsigned long,
+                          ::tests::kokkos_ext::BulkFunctor<view_s_t>
+                      >
+                  >
+    >);
 
     //! The chain environment advertises the default domain, and completes on the @ref Kokkos::Experimental::details::graph::Domain domain.
     static_assert(std::same_as<::stdexec::__domain_of_t<::stdexec::env_of_t<chain_t>>, ::stdexec::default_domain>);

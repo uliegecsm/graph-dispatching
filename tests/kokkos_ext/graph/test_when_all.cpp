@@ -216,6 +216,38 @@ TEST_F(WhenAllTest, join_topology) {
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 2, .value = 4, .data = data.data()});
 
+    static_assert(
+        std::same_as<
+            ::stdexec::__demangle_t<::stdexec::connect_result_t<decltype(when_all), ::tests::stdexec::SinkReceiver>>,
+            Kokkos::Experimental::details::graph::ThenOpState<
+                Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                ::stdexec::__basic_sender<
+                    ::stdexec::continues_on_t,
+                    Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                    ::stdexec::__basic_sender<
+                        ::stdexec::schedule_from_t,
+                        ::stdexec::__,
+                        ::stdexec::__basic_sender<
+                            ::stdexec::when_all_t,
+                            ::stdexec::__,
+                            ::stdexec::__basic_sender<
+                                ::stdexec::then_t,
+                                ::tests::ThenFunctor<view_sa_t>,
+                                Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
+                            >,
+                            ::stdexec::__basic_sender<
+                                ::stdexec::then_t,
+                                ::tests::ThenFunctor<view_sa_t>,
+                                Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
+                            >
+                        >
+                    >
+                >,
+                ::tests::stdexec::SinkReceiver,
+                ::tests::utils::LoadCheckAddFunctor<int, on_device>
+            >
+        >);
+
     std::vector<::testing::Matcher<variant_t>> matchers{
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
