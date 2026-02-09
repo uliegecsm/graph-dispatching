@@ -83,6 +83,20 @@ TEST_F(ContinuesOnTest, transition_to_same_graph) {
                | ::stdexec::then(
                      tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 3, .value = 3, .data = data.data()});
 
+    /// Since all operation states that create a node are instances of @ref Kokkos::Experimental::details::graph::ThenOpState,
+    /// they are able to retrieve the node from their inner operation state and the resulting @c Kokkos graph is correct.
+    using outer_0 = ::stdexec::connect_result_t<decltype(chain), ::tests::stdexec::SinkReceiver>;
+    static_assert(::stdexec::__is_instance_of<outer_0, Kokkos::Experimental::details::graph::ThenOpState>);
+
+    using outer_1 = typename outer_0::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_1, Kokkos::Experimental::details::graph::ThenOpState>);
+
+    using outer_2 = typename outer_1::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_2, Kokkos::Experimental::details::graph::ThenOpState>);
+
+    using outer_3 = typename outer_2::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_3, ::stdexec::__opstate>);
+
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
     ASSERT_THAT(
