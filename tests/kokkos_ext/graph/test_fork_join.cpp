@@ -50,6 +50,49 @@ class ForkJoinTest
     static constexpr bool on_device = ::tests::utils::on_device<execution_space>();
 };
 
+//! @test A @c exec::fork_join with 3 branches and no sender before or after the fork.
+TEST_F(ForkJoinTest, three_branches) {
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
+
+    const context_t grc{exec};
+
+    auto sndr = ::stdexec::schedule(grc.get_scheduler())
+              | ::exec::fork_join(
+                    ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+                    ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+                    ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC);
+
+    using sndr_t = decltype(sndr);
+
+    static_assert(std::same_as<
+                  std::invoke_result_t<::stdexec::get_completion_signatures_t, sndr_t>,
+                  ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>
+    >);
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record([sndr = std::move(sndr)]() mutable { ::stdexec::sync_wait(std::move(sndr)); }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 3);
+}
+
 //! @test Use @c exec::fork_join with a diamond topology.
 TEST_F(ForkJoinTest, diamond) {
     const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
