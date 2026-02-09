@@ -73,29 +73,49 @@ TEST_F(ContinuesOnTest, transition_to_same_graph) {
 
     const context_t esc{exec};
 
-    auto chain = ::stdexec::just() | ::stdexec::continues_on(esc.get_scheduler())
-               | ::stdexec::then(
-                     tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 0, .value = 1, .data = data.data()})
-               | ::stdexec::continues_on(esc.get_scheduler())
-               | ::stdexec::then(
-                     tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 1, .value = 2, .data = data.data()})
-               | ::stdexec::continues_on(esc.get_scheduler())
-               | ::stdexec::then(
-                     tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 3, .value = 3, .data = data.data()});
+    using functor_t = tests::utils::LoadCheckAddFunctor<value_t, on_device>;
 
-    /// Since all operation states that create a node are instances of @ref Kokkos::Experimental::details::graph::ThenOpState,
+    auto chain = ::stdexec::just() | ::stdexec::continues_on(esc.get_scheduler())
+               | ::stdexec::then(functor_t{.prev = 0, .value = 1, .data = data.data()})
+               | ::stdexec::continues_on(esc.get_scheduler())
+               | ::stdexec::then(functor_t{.prev = 1, .value = 2, .data = data.data()})
+               | ::stdexec::continues_on(esc.get_scheduler())
+               | ::stdexec::then(functor_t{.prev = 3, .value = 3, .data = data.data()});
+
+    /// Since all operation states that create a node are instances of @ref Kokkos::Experimental::details::graph::ThenOpState
+    /// or @ref Kokkos::Experimental::details::graph::ContinuesOnOpState,
     /// they are able to retrieve the node from their inner operation state and the resulting @c Kokkos graph is correct.
     using outer_0 = ::stdexec::connect_result_t<decltype(chain), ::tests::stdexec::SinkReceiver>;
     static_assert(::stdexec::__is_instance_of<outer_0, Kokkos::Experimental::details::graph::ThenOpState>);
 
     using outer_1 = typename outer_0::inner_opstate_t;
-    static_assert(::stdexec::__is_instance_of<outer_1, Kokkos::Experimental::details::graph::ThenOpState>);
+    static_assert(::stdexec::__is_instance_of<outer_1, Kokkos::Experimental::details::graph::ContinuesOnOpState>);
 
     using outer_2 = typename outer_1::inner_opstate_t;
     static_assert(::stdexec::__is_instance_of<outer_2, Kokkos::Experimental::details::graph::ThenOpState>);
 
     using outer_3 = typename outer_2::inner_opstate_t;
-    static_assert(::stdexec::__is_instance_of<outer_3, ::stdexec::__opstate>);
+    static_assert(::stdexec::__is_instance_of<outer_3, Kokkos::Experimental::details::graph::ContinuesOnOpState>);
+
+    using outer_4 = typename outer_3::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_4, Kokkos::Experimental::details::graph::ThenOpState>);
+
+    using outer_5 = typename outer_4::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_5, Kokkos::Experimental::details::graph::ContinuesOnOpState>);
+
+    using outer_6 = typename outer_5::inner_opstate_t;
+    static_assert(::stdexec::__is_instance_of<outer_6, ::stdexec::__opstate>);
+
+    using then_a_t = impl::then_node_t<execution_space, functor_t, impl::root_node_t<execution_space>>;
+    using then_b_t = impl::then_node_t<execution_space, functor_t, then_a_t>;
+    using then_c_t = impl::then_node_t<execution_space, functor_t, then_b_t>;
+
+    static_assert(impl::check_node_type<outer_5, impl::root_node_t<execution_space>>());
+    static_assert(impl::check_node_type<outer_4, const then_a_t&>());
+    static_assert(impl::check_node_type<outer_3, const then_a_t&>());
+    static_assert(impl::check_node_type<outer_2, const then_b_t&>());
+    static_assert(impl::check_node_type<outer_1, const then_b_t&>());
+    static_assert(impl::check_node_type<outer_0, const then_c_t&>());
 
     ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
 
