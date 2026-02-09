@@ -88,12 +88,12 @@ TEST_F(WhenAllTest, one_branch) {
 
 //! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with a two-branches @c when_all.
 TEST_F(WhenAllTest, two_branches) {
-    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t grc{exec};
 
-    auto branch_a = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
-    auto branch_b = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
+    auto branch_a = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC;
+    auto branch_b = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC;
     auto when_all = ::stdexec::when_all(std::move(branch_a), std::move(branch_b));
 
     static_assert(check_traits(when_all));
@@ -124,13 +124,13 @@ TEST_F(WhenAllTest, two_branches) {
 
 //! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with a three-branches @c when_all.
 TEST_F(WhenAllTest, three_branches) {
-    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t grc{exec};
 
-    auto branch_a = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
-    auto branch_b = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
-    auto branch_c = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN;
+    auto branch_a = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC;
+    auto branch_b = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC;
+    auto branch_c = ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC;
     auto when_all = ::stdexec::when_all(std::move(branch_a), std::move(branch_b), std::move(branch_c));
 
     static_assert(check_traits(when_all));
@@ -205,13 +205,14 @@ TEST_F(WhenAllTest, one_branch_and_one_after_on_inline_scheduler) {
  * @endverbatim
  */
 TEST_F(WhenAllTest, join_topology) {
-    const view_sa_t data(Kokkos::view_alloc(exec, "data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t grc{exec};
 
     auto when_all =
         ::stdexec::when_all(
-            ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN, ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN)
+            ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+            ::stdexec::schedule(grc.get_scheduler()) | ADD_THEN_ATOMIC)
         | ::stdexec::continues_on(grc.get_scheduler())
         | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 2, .value = 4, .data = data.data()});
@@ -232,12 +233,12 @@ TEST_F(WhenAllTest, join_topology) {
                             ::stdexec::__,
                             ::stdexec::__basic_sender<
                                 ::stdexec::then_t,
-                                ::tests::ThenFunctor<view_sa_t>,
+                                ::tests::ThenFunctor<atomic<view_s_t>>,
                                 Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
                             >,
                             ::stdexec::__basic_sender<
                                 ::stdexec::then_t,
-                                ::tests::ThenFunctor<view_sa_t>,
+                                ::tests::ThenFunctor<atomic<view_s_t>>,
                                 Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
                             >
                         >
