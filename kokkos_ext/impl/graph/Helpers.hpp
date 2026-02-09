@@ -7,14 +7,6 @@
 
 namespace Kokkos::Experimental::details::graph {
 
-template <typename T>
-concept has_node = requires(const T& obj) {
-    requires stdexec::__is_instance_of<
-        std::remove_cvref_t<decltype(*obj.get_node())>,
-        Kokkos::Experimental::GraphNodeRef
-    >;
-};
-
 /**
  * If @c opstate is queryable for node, use it.
  * Otherwise, if @c env is queryable for @ref Kokkos::Experimental::details::graph::get_node_t, use it.
@@ -22,8 +14,8 @@ concept has_node = requires(const T& obj) {
  */
 template <typename OpstateType, typename Env, Kokkos::ExecutionSpace Exec>
 auto get_predecessor(const OpstateType& opstate, const Env& env, const Kokkos::Experimental::Graph<Exec>& graph) {
-    if constexpr (has_node<OpstateType>) {
-        return *opstate.get_node();
+    if constexpr (stdexec::__queryable_with<OpstateType, get_node_t>) {
+        return opstate.query(get_node);
     } else if constexpr (stdexec::__queryable_with<Env, get_node_t>) {
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
         PLOG_WARNING << "Returning the node from the environment.";

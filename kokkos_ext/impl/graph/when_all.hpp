@@ -5,6 +5,7 @@
 
 #include "kokkos_ext/impl/GraphContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/graph/get_node.hpp"
 
 namespace Kokkos::Experimental::details::graph {
 
@@ -45,10 +46,10 @@ struct WhenAllOpState {
     std::exception_ptr error = nullptr;
 
     using node_t = decltype(stdexec::__apply(
-        [](auto&... ops) { return Kokkos::Experimental::when_all(*ops.get_node()...); },
+        [](auto&... ops) { return Kokkos::Experimental::when_all(ops.query(get_node)...); },
         std::declval<children_opstates_t&>()));
 
-    std::optional<node_t> node = std::nullopt;
+    node_t node;
 
     WhenAllOpState(stdexec::__tuple<Sndrs...>&& sndrs_, InnerRcvr&& inner_rcvr_)
         : inner_rcvr(std::move(inner_rcvr_))
@@ -70,10 +71,10 @@ struct WhenAllOpState {
 
     auto create_node() {
         return stdexec::__apply(
-            [](auto&... ops) { return Kokkos::Experimental::when_all(*ops.get_node()...); }, children_opstates);
+            [](auto&... ops) { return Kokkos::Experimental::when_all(ops.query(get_node)...); }, children_opstates);
     }
 
-    decltype(auto) get_node() const {
+    auto query(get_node_t) const noexcept -> const node_t& {
         return node;
     }
 

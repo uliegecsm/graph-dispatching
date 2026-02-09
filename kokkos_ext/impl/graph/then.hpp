@@ -94,8 +94,10 @@ struct ThenOpState {
         }
     }
 
-    decltype(auto) get_node() const {
-        return node;
+    auto query(get_node_t) const noexcept -> const node_t& {
+        if (!node.has_value())
+            Kokkos::abort("Invalid node.");
+        return *node;
     }
 
     void start() & noexcept {
