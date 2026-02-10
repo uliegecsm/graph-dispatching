@@ -45,15 +45,19 @@ struct NodeRef {
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(_rcvr_type_, _rcvr_obj_, _node_type_, _node_obj_)                       \
-    [[nodiscard]]                                                                                                      \
-    constexpr auto get_env() const noexcept -> stdexec::__join_env_t<                                                  \
+#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE_TYPE(_rcvr_type_, _node_type_)                                          \
+    stdexec::__join_env_t<                                                                                             \
         stdexec::prop<                                                                                                 \
             Kokkos::Experimental::details::graph::get_node_t,                                                          \
             Kokkos::Experimental::details::graph::NodeRef<_node_type_>                                                 \
         >,                                                                                                             \
         stdexec::__fwd_env_t<stdexec::env_of_t<_rcvr_type_>>                                                           \
-    > {                                                                                                                \
+    >
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(_rcvr_type_, _rcvr_obj_, _node_type_, _node_obj_)                       \
+    [[nodiscard]]                                                                                                      \
+    constexpr auto get_env() const noexcept -> GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE_TYPE(_rcvr_type_, _node_type_) { \
         return stdexec::__env::__join(                                                                                 \
             stdexec::prop{                                                                                             \
                 Kokkos::Experimental::details::graph::get_node,                                                        \
