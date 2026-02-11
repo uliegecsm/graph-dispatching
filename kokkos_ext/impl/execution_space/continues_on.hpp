@@ -45,7 +45,8 @@ struct ContinuesOnSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
     template <stdexec::receiver Rcvr>
-    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+    auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
+        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>> {
         using recv_t = ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>;
 
         return stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
