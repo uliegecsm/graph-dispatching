@@ -16,9 +16,22 @@ struct ScheduleFromReceiver {
 
     Schd schd;
     Rcvr rcvr;
-    bool skip;
 
     void set_value() && noexcept {
+        //! If the downstream receiver is our customization of @c continues_on and it shares the same execution space instance, skip the fence.
+        const bool skip = [&]() {
+            if constexpr (stdexec::__is_instance_of<Rcvr, ContinuesOnReceiver>) {
+                if constexpr (stdexec::__queryable_with<stdexec::env_of_t<Rcvr>, get_exec_t>) {
+                    if constexpr (std::same_as<
+                                      std::remove_cvref_t<decltype(get_exec(stdexec::get_env(rcvr)).get())>,
+                                      typename Schd::execution_space
+                                  >) {
+                        return schd.state->exec == get_exec(stdexec::get_env(rcvr)).get();
+                    }
+                }
+            }
+            return false;
+        }();
         if (!skip)
             schd.state->exec.fence(
                 std::format("{}: schedule_from", Kokkos::Impl::TypeInfo<typename Schd::execution_space>::name()));
@@ -49,15 +62,13 @@ struct ScheduleFromSender {
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         using recv_t = ScheduleFromReceiver<Schd, std::remove_cvref_t<Rcvr>>;
 
-        return stdexec::connect(
-            std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip});
+        return stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 
     Schd schd;
     Sndr sndr;
-    bool skip;
 };
 
 template <typename Env>
@@ -65,21 +76,8 @@ struct transform_sender_for<stdexec::schedule_from_t, Env> {
     template <execution_space_completing_sender<Env> Sndr>
     auto operator()(stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
-        static_assert(stdexec::__is_instance_of<decltype(schd), Scheduler>);
 
-        const bool skip = [&]() {
-            if constexpr (stdexec::__queryable_with<Env, get_exec_t>) {
-                if constexpr (std::same_as<
-                                  std::remove_cvref_t<decltype(get_exec(env_).get())>,
-                                  std::remove_cvref_t<decltype(schd.state->exec)>
-                              >) {
-                    return schd.state->exec == get_exec(env_).get();
-                }
-            }
-            return false;
-        }();
-
-        return ScheduleFromSender{.schd = std::move(schd), .sndr = std::forward<Sndr>(sndr), .skip = skip};
+        return ScheduleFromSender{.schd = std::move(schd), .sndr = std::forward<Sndr>(sndr)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
