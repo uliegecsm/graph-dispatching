@@ -33,6 +33,13 @@ struct ExecutionSpaceRef {
         : m_exec_ptr(&exec) {
     }
 
+    ExecutionSpaceRef() = delete;
+    ExecutionSpaceRef(const ExecutionSpaceRef&) noexcept = default;
+    ExecutionSpaceRef& operator=(const ExecutionSpaceRef&) noexcept = default;
+    ExecutionSpaceRef(ExecutionSpaceRef&&) noexcept = default;
+    ExecutionSpaceRef& operator=(ExecutionSpaceRef&&) noexcept = default;
+    ~ExecutionSpaceRef() noexcept = default;
+
     const Exec& get() const noexcept {
         return *m_exec_ptr;
     }
