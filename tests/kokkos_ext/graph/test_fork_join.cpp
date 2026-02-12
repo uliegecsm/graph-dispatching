@@ -224,4 +224,45 @@ TEST_F(ForkJoinTest, double_diamond) {
     ASSERT_EQ(data(), 20);
 }
 
+/**
+ * @test Use @c exec::fork_join after a @c stdexec::continues_on.
+ *
+ * Inspired by https://github.com/NVIDIA/stdexec/issues/1823.
+ */
+TEST_F(ForkJoinTest, continues_on) {
+    const view_s_t data(Kokkos::view_alloc("data - shared space"));
+
+    const context_t gctx{exec};
+
+    auto sndr =
+        ::stdexec::just() | ::stdexec::continues_on(gctx.get_scheduler())
+        | ::exec::fork_join(
+            ::stdexec::continues_on(gctx.get_scheduler())
+            | ::stdexec::then(
+                ::tests::utils::LoadCheckAddFunctor<int, on_device>{.prev = 0, .value = 3, .data = data.data()}));
+
+    std::vector<::testing::Matcher<variant_t>> matchers{
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
+        MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
+        KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
+
+    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+        if (execution_space{} != exec) {
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
+            matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
+        }
+    }
+    matchers.push_back(MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait")));
+
+    ASSERT_EQ(data(), 0) << "Eager execution is not allowed.";
+
+    ASSERT_THAT(
+        recorder_listener_t::record([sndr = std::move(sndr)]() mutable { // NOLINT(performance-move-const-arg)
+            ::stdexec::sync_wait(std::move(sndr));                       // NOLINT(performance-move-const-arg)
+        }),
+        ::testing::ElementsAreArray(matchers));
+
+    ASSERT_EQ(data(), 3);
+}
+
 } // namespace tests::kokkos_ext::graph
