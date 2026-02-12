@@ -11,11 +11,10 @@
 namespace Kokkos::Experimental::details::execution_space {
 
 //! Receiver for @c continues_on.
-template <stdexec::scheduler Schd, stdexec::receiver Rcvr>
+template <stdexec::receiver Rcvr>
 struct ContinuesOnReceiver {
     using receiver_concept = stdexec::receiver_t;
 
-    Schd schd;
     Rcvr rcvr;
 
     void set_value() && noexcept {
@@ -31,25 +30,24 @@ struct ContinuesOnReceiver {
         stdexec::set_stopped(std::move(rcvr));
     }
 
-    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec, Rcvr, rcvr)
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Rcvr, rcvr)
 };
 
 //! Sender for @c continues_on.
-template <stdexec::scheduler Schd, stdexec::sender Sndr>
+template <stdexec::sender Sndr>
 struct ContinuesOnSender {
     using sender_concept = stdexec::sender_t;
 
-    Schd schd;
     Sndr sndr;
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
     template <stdexec::receiver Rcvr>
     auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>> {
-        using recv_t = ContinuesOnReceiver<Schd, std::remove_cvref_t<Rcvr>>;
+        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>> {
+        using recv_t = ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>;
 
-        return stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
+        return stdexec::connect(std::move(sndr), recv_t{.rcvr = std::forward<Rcvr>(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
@@ -58,8 +56,8 @@ struct ContinuesOnSender {
 template <typename Env>
 struct transform_sender_for<stdexec::continues_on_t, Env> {
     template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr>
-    auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
-        return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
+    auto operator()(stdexec::continues_on_t, Schd&&, Sndr&& sndr) && noexcept {
+        return ContinuesOnSender{.sndr = std::forward<Sndr>(sndr)};
     }
 
     const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
