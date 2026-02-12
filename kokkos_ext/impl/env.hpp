@@ -80,10 +80,28 @@ struct upsert_in_env_fn {
         };
     }
 
-    //! Unwrap forwarding environment and delegate to the appropriate overload.
+    //! Catch-all for any @c stdexec::env that doesn't match specific patterns above.
     template <typename Tag, typename Env, typename Value>
-    constexpr auto operator()(Tag tag, stdexec::__env::__fwd<Env> env, Value&& value) const noexcept {
-        return stdexec::__env::__fwd{this->operator()(tag, env.__env_, std::forward<Value>(value))};
+    requires stdexec::__is_instance_of<std::remove_cvref_t<Env>, stdexec::env>
+    constexpr auto operator()(Tag tag, Env&& env, Value&& value) const noexcept {
+        return stdexec::__env::__join(std::forward<Env>(env), stdexec::prop{tag, std::forward<Value>(value)});
+    }
+
+    //! Unwrap forwarding environment and delegate to the appropriate overload.
+    template <typename Tag, typename FwdEnv, typename Value>
+    requires stdexec::__is_instance_of<std::remove_cvref_t<FwdEnv>, stdexec::__env::__fwd>
+    constexpr auto operator()(Tag tag, FwdEnv&& fwd_env, Value&& value) const noexcept {
+        return stdexec::__env::__fwd{
+            this->operator()(tag, std::forward<decltype(fwd_env.__env_)>(fwd_env.__env_), std::forward<Value>(value))};
+    }
+
+    //! When it's neither @c stdexec::env nor @c stdexec::__env::__fwd, fallback to join.
+    template <typename Tag, typename Env, typename Value>
+    requires(
+        !stdexec::__is_instance_of<std::remove_cvref_t<Env>, stdexec::env>
+        && !stdexec::__is_instance_of<std::remove_cvref_t<Env>, stdexec::__env::__fwd>)
+    constexpr auto operator()(Tag tag, Env&& env, Value&& value) const noexcept {
+        return stdexec::__env::__join(stdexec::prop{tag, std::forward<Value>(value)}, std::forward<Env>(env));
     }
 };
 } // namespace impl
