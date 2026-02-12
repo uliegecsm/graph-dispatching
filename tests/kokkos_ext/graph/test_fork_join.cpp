@@ -69,6 +69,25 @@ TEST_F(ForkJoinTest, three_branches) {
                   ::stdexec::completion_signatures<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>
     >);
 
+    using clsr_t = ::stdexec::__clsur::__compose<
+        ::stdexec::__clsur::__closure<
+            ::stdexec::continues_on_t,
+            Kokkos::Experimental::details::graph::Scheduler<execution_space>
+        >,
+        ::stdexec::__clsur::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
+    >;
+
+    using outer_0 = ::stdexec::connect_result_t<sndr_t, ::tests::stdexec::SinkReceiver>;
+    static_assert(std::same_as<
+                  ::stdexec::__demangle_t<outer_0>,
+                  Kokkos::Experimental::details::graph::ForkJoinOpState<
+                      Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                      Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender,
+                      ::stdexec::__tuple<clsr_t, clsr_t, clsr_t>,
+                      tests::stdexec::SinkReceiver
+                  >
+    >);
+
     std::vector<::testing::Matcher<variant_t>> matchers{
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
@@ -99,15 +118,41 @@ TEST_F(ForkJoinTest, diamond) {
 
     const context_t grc{exec};
 
-    auto sndr =
-        ::stdexec::schedule(grc.get_scheduler())
-        | ::stdexec::then(
-            ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 0, .value = 4, .data = data.data()})
-        | ::exec::fork_join(
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
-            ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC)
-        | ::stdexec::then(
-            ::tests::utils::LoadCheckAddFunctor<value_t, on_device>{.prev = 6, .value = 3, .data = data.data()});
+    using functor_t = ::tests::utils::LoadCheckAddFunctor<value_t, on_device>;
+
+    auto sndr = ::stdexec::schedule(grc.get_scheduler())
+              | ::stdexec::then(functor_t{.prev = 0, .value = 4, .data = data.data()})
+              | ::exec::fork_join(
+                    ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC,
+                    ::stdexec::continues_on(grc.get_scheduler()) | ADD_THEN_ATOMIC)
+              | ::stdexec::then(functor_t{.prev = 6, .value = 3, .data = data.data()});
+
+    using clsr_t = ::stdexec::__clsur::__compose<
+        ::stdexec::__clsur::__closure<
+            ::stdexec::continues_on_t,
+            Kokkos::Experimental::details::graph::Scheduler<execution_space>
+        >,
+        ::stdexec::__clsur::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
+    >;
+
+    using outer_0 = ::stdexec::connect_result_t<decltype(sndr), ::tests::stdexec::SinkReceiver>;
+    static_assert(std::same_as<
+                  ::stdexec::__demangle_t<outer_0>,
+                  Kokkos::Experimental::details::graph::ThenOpState<
+                      Kokkos::Experimental::details::graph::Scheduler<execution_space>,
+                      ::stdexec::__basic_sender<
+                          ::exec::fork_join_t,
+                          ::stdexec::__tuple<clsr_t, clsr_t>,
+                          ::stdexec::__basic_sender<
+                              ::stdexec::then_t,
+                              functor_t,
+                              Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
+                          >
+                      >,
+                      tests::stdexec::SinkReceiver,
+                      functor_t
+                  >
+    >);
 
     std::vector<::testing::Matcher<variant_t>> matchers{
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),

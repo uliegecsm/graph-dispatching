@@ -57,109 +57,109 @@ struct CacheSender {
     }
 };
 
+//! Transform the closures to a proper @c stdexec::when_all.
+struct make_when_all_fn {
+    template <typename CacheSndr, typename... Closures>
+    constexpr auto operator()(CacheSndr cache_sndr, Closures&&... closures) const {
+        return stdexec::when_all(std::forward<Closures>(closures)(cache_sndr)...);
+    }
+};
+
+template <typename Domain, typename PackedClosures>
+using get_when_all_sndr_t = stdexec::__apply_result_t<make_when_all_fn, PackedClosures, CacheSender<Domain>>;
+
+//! Operation state for @c exec::fork_join.
+template <stdexec::scheduler Schd, typename Sndr, typename PackedClosures, typename InnerRcvr>
+struct ForkJoinOpState {
+    using operation_state_concept = stdexec::operation_state_t;
+
+    template <typename NodeType>
+    struct ForkJoinReceiver {
+        using receiver_concept = stdexec::receiver_t;
+
+        ForkJoinOpState* opstate;
+        stdexec::__rcvr_ref_t<InnerRcvr> inner_rcvr;
+
+        void set_value() && noexcept {
+            stdexec::set_value(std::move(inner_rcvr));
+        }
+
+        template <typename Error>
+        void set_error(Error&& error) && noexcept {
+            stdexec::set_error(std::move(inner_rcvr), std::forward<Error>(error));
+        }
+
+        GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(InnerRcvr, inner_rcvr, NodeType, opstate->fork_node)
+    };
+
+    using env_t = stdexec::__fwd_env_t<stdexec::env_of_t<InnerRcvr>>;
+    using domain_t = stdexec::__completion_domain_of_t<stdexec::set_value_t, Sndr, env_t>;
+    using fork_completions_t = stdexec::completion_signatures_of_t<Sndr, env_t>;
+    using when_all_sndr_t = get_when_all_sndr_t<domain_t, PackedClosures>;
+    using fork_opstate_t = stdexec::connect_result_t<Sndr, stdexec::__rcvr_ref_t<ForkJoinOpState, env_t>>;
+    using fork_node_t = std::remove_cvref_t<get_predecessor_t<fork_opstate_t, env_t, typename Schd::execution_space>>;
+    using join_opstate_t = stdexec::connect_result_t<when_all_sndr_t, ForkJoinReceiver<fork_node_t>>;
+    using cache_sndr_t = CacheSender<domain_t>;
+
+    Schd schd;
+    InnerRcvr inner_rcvr;
+    fork_opstate_t fork_opstate;
+    fork_node_t fork_node;
+    join_opstate_t join_opstate;
+
+    ForkJoinOpState(Schd&& schd_, Sndr&& sndr, PackedClosures&& packed_closures, InnerRcvr&& inner_rcvr_)
+        : schd(std::move(schd_))
+        , inner_rcvr(std::move(inner_rcvr_))
+        , fork_opstate(stdexec::connect(std::move(sndr), stdexec::__ref_rcvr(*this)))
+        , fork_node(get_predecessor(fork_opstate, this->get_env(), schd.state_ptr->get_graph()))
+        , join_opstate(
+              stdexec::connect(
+                  stdexec::__apply(make_when_all_fn{}, std::move(packed_closures), cache_sndr_t{}),
+                  ForkJoinReceiver<fork_node_t>{this, stdexec::__ref_rcvr(inner_rcvr)})) {
+    }
+
+    decltype(auto) query(get_node_t) const noexcept {
+        return join_opstate.query(get_node);
+    }
+
+    void start() & noexcept {
+        stdexec::start(fork_opstate);
+    }
+
+    //! @todo Properly deal with the error channel by setting the error value in the cache sender.
+    template <typename Tag, typename... Args>
+    constexpr void _complete(Tag, Args&&...) noexcept {
+        stdexec::start(join_opstate);
+    }
+
+    constexpr void set_value() noexcept {
+        this->_complete(stdexec::set_value);
+    }
+
+    template <class Error>
+    constexpr void set_error(Error&& error) noexcept {
+        this->_complete(stdexec::set_error, std::forward<Error>(error));
+    }
+
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(InnerRcvr, inner_rcvr)
+};
+
 //! Sender for @c exec::fork_join.
-template <stdexec::scheduler Schd, stdexec::sender Sndr, typename PackedClosures>
+template <stdexec::scheduler Schd, typename Sndr, typename PackedClosures>
 struct ForkJoinSender {
     using sender_concept = stdexec::sender_t;
-
-    //! Transform the closures to a proper @c stdexec::when_all.
-    struct make_when_all_fn {
-        template <typename CacheSndr, typename... Closures>
-        constexpr auto operator()(CacheSndr cache_sndr, Closures&&... closures) const {
-            return stdexec::when_all(std::forward<Closures>(closures)(cache_sndr)...);
-        }
-    };
-
-    template <typename Domain>
-    using get_when_all_sndr_t = stdexec::__apply_result_t<make_when_all_fn, PackedClosures, CacheSender<Domain>>;
-
-    template <stdexec::receiver InnerRcvr>
-    struct ForkJoinOpState {
-        using operation_state_concept = stdexec::operation_state_t;
-
-        template <typename NodeType>
-        struct ForkJoinReceiver {
-            using receiver_concept = stdexec::receiver_t;
-
-            ForkJoinOpState* opstate;
-            stdexec::__rcvr_ref_t<InnerRcvr> inner_rcvr;
-
-            void set_value() && noexcept {
-                stdexec::set_value(std::move(inner_rcvr));
-            }
-
-            template <typename Error>
-            void set_error(Error&& error) && noexcept {
-                stdexec::set_error(std::move(inner_rcvr), std::forward<Error>(error));
-            }
-
-            GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_NODE(InnerRcvr, inner_rcvr, NodeType, opstate->fork_node)
-        };
-
-        using env_t = stdexec::__fwd_env_t<stdexec::env_of_t<InnerRcvr>>;
-        using domain_t = stdexec::__completion_domain_of_t<stdexec::set_value_t, Sndr, env_t>;
-        using fork_completions_t = stdexec::completion_signatures_of_t<Sndr, env_t>;
-        using when_all_sndr_t = get_when_all_sndr_t<domain_t>;
-        using fork_opstate_t = stdexec::connect_result_t<Sndr, stdexec::__rcvr_ref_t<ForkJoinOpState, env_t>>;
-        using fork_node_t =
-            std::remove_cvref_t<get_predecessor_t<fork_opstate_t, env_t, typename Schd::execution_space>>;
-        using join_opstate_t = stdexec::connect_result_t<when_all_sndr_t, ForkJoinReceiver<fork_node_t>>;
-        using cache_sndr_t = CacheSender<domain_t>;
-
-        Schd schd;
-        InnerRcvr inner_rcvr;
-        fork_opstate_t fork_opstate;
-        fork_node_t fork_node;
-        join_opstate_t join_opstate;
-
-        ForkJoinOpState(Schd&& schd_, Sndr&& sndr, PackedClosures&& packed_closures, InnerRcvr&& inner_rcvr_)
-            : schd(std::move(schd_))
-            , inner_rcvr(std::move(inner_rcvr_))
-            , fork_opstate(stdexec::connect(std::move(sndr), stdexec::__ref_rcvr(*this)))
-            , fork_node(get_predecessor(fork_opstate, this->get_env(), schd.state_ptr->get_graph()))
-            , join_opstate(
-                  stdexec::connect(
-                      stdexec::__apply(make_when_all_fn{}, std::move(packed_closures), cache_sndr_t{}),
-                      ForkJoinReceiver<fork_node_t>{this, stdexec::__ref_rcvr(inner_rcvr)})) {
-        }
-
-        decltype(auto) query(get_node_t) const noexcept {
-            return join_opstate.query(get_node);
-        }
-
-        void start() & noexcept {
-            stdexec::start(fork_opstate);
-        }
-
-        //! @todo Properly deal with the error channel by setting the error value in the cache sender.
-        template <typename Tag, typename... Args>
-        constexpr void _complete(Tag, Args&&...) noexcept {
-            stdexec::start(join_opstate);
-        }
-
-        constexpr void set_value() noexcept {
-            this->_complete(stdexec::set_value);
-        }
-
-        template <class Error>
-        constexpr void set_error(Error&& error) noexcept {
-            this->_complete(stdexec::set_error, std::forward<Error>(error));
-        }
-
-        GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(InnerRcvr, inner_rcvr)
-    };
 
     template <class Self, class... Env>
     static consteval auto get_completion_signatures() {
         using sndr_t = stdexec::__copy_cvref_t<Self, Sndr>;
         using sndr_completions_t = stdexec::completion_signatures_of_t<sndr_t, stdexec::__fwd_env_t<Env>...>;
-        using when_all_sndr_t = get_when_all_sndr_t<sndr_completions_t>;
+        using when_all_sndr_t = get_when_all_sndr_t<sndr_completions_t, PackedClosures>;
         return stdexec::completion_signatures_of_t<when_all_sndr_t, stdexec::__fwd_env_t<Env>...>{};
     }
 
     template <::stdexec::receiver Rcvr>
     ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return ForkJoinOpState<std::remove_cvref_t<Rcvr>>(
+        return ForkJoinOpState<Schd, Sndr, PackedClosures, std::remove_cvref_t<Rcvr>>(
             std::move(schd), std::move(sndr), std::move(packed_closures), std::forward<Rcvr>(rcvr));
     }
 
@@ -189,5 +189,18 @@ struct transform_sender_for<exec::fork_join_t, Env> {
 };
 
 } // namespace Kokkos::Experimental::details::graph
+
+// NOLINTBEGIN(bugprone-reserved-identifier)
+namespace stdexec::__detail {
+template <stdexec::scheduler Schd, typename Sndr, typename PackedClosures, typename InnerRcvr>
+extern __declfn_t<Kokkos::Experimental::details::graph::ForkJoinOpState<
+    Schd,
+    __demangle_t<Sndr>,
+    PackedClosures,
+    __demangle_t<InnerRcvr>
+>>
+    __demangle_v<Kokkos::Experimental::details::graph::ForkJoinOpState<Schd, Sndr, PackedClosures, InnerRcvr>>;
+} // namespace stdexec::__detail
+// NOLINTEND(bugprone-reserved-identifier)
 
 #endif // GRAPH_DISPATCHING_KOKKOS_EXT_IMPL_GRAPH_FORK_JOIN_HPP
