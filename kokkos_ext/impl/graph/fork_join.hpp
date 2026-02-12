@@ -172,12 +172,11 @@ struct ForkJoinSender {
 
 template <typename Env>
 struct transform_sender_for<exec::fork_join_t, Env> {
-    template <typename PackedClosures, stdexec::sender Sndr>
+    template <typename PackedClosures, graph_completing_sender<Env> Sndr>
     auto operator()(exec::fork_join_t, PackedClosures&& closures, Sndr&& sndr) && noexcept {
         static_assert(stdexec::__is_instance_of<PackedClosures, stdexec::__tuple>);
 
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
-        static_assert(stdexec::__is_instance_of<decltype(schd), Scheduler>);
 
         return ForkJoinSender<decltype(schd), Sndr, PackedClosures>{
             .schd = std::move(schd),

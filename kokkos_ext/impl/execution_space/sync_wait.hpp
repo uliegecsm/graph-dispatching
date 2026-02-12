@@ -14,7 +14,7 @@ template <Kokkos::ExecutionSpace Exec>
 struct SyncWaitReceiver {
     using receiver_concept = stdexec::receiver_t;
 
-    State<Exec>* state;
+    State<Exec> const * state;
     Kokkos::Experimental::details::impl::State* runloop_state;
 
     void set_value() && noexcept {

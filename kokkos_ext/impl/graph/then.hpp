@@ -140,8 +140,7 @@ struct ThenSender {
 
 template <typename Env>
 struct transform_sender_for<stdexec::then_t, Env> {
-    template <typename Functor, typename Sndr>
-    requires graph_completing_sender<Sndr, Env>
+    template <typename Functor, graph_completing_sender<Env> Sndr>
     auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
         return ThenSender{
