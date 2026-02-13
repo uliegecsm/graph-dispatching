@@ -37,7 +37,8 @@ struct myalgo_impl : stdexec::__sexpr_defaults {
     using _completion_signatures_t = stdexec::completion_signatures_of_t<Sndr, Env...>;
 
     template <typename Sndr, typename... Env>
-    static consteval auto __get_completion_signatures() -> _completion_signatures_t<stdexec::__child_of<Sndr>, Env...> {
+    static consteval auto __get_completion_signatures() // NOLINT(bugprone-reserved-identifier)
+        -> _completion_signatures_t<stdexec::__child_of<Sndr>, Env...> {
         static_assert(stdexec::sender_expr_for<Sndr, myalgo_t>);
         return {};
     };
@@ -57,7 +58,7 @@ struct myalgo_impl : stdexec::__sexpr_defaults {
         }
     };
 
-    static constexpr auto __complete = _complete_fn{};
+    static constexpr auto __complete = _complete_fn{}; // NOLINT(bugprone-reserved-identifier)
 };
 } // namespace details
 
