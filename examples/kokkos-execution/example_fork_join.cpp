@@ -50,19 +50,20 @@ struct GraphForkJoinTest
 
 //! @test Vanilla @c Kokkos.
 TEST_F(GraphForkJoinTest, kokkos_vanilla) {
-    auto graph = Kokkos::Experimental::create_graph(exec, [&](const auto& root) {
-        const auto node_A =
-            root.then_parallel_for("node A", size, functor_t{.data = data, .value = diamond::Values::value_A});
+    auto graph =
+        Kokkos::Experimental::create_graph(Kokkos::Experimental::get_device_handle(exec), [&](const auto& root) {
+            const auto node_A =
+                root.then_parallel_for("node A", size, functor_t{.data = data, .value = diamond::Values::value_A});
 
-        const auto node_B = node_A.then_parallel_for(
-            "node B", size / 2, functor_t{.data = data, .value = diamond::Values::value_B, .offset = 0});
-        const auto node_C = node_A.then_parallel_for(
-            "node C", size / 2, functor_t{.data = data, .value = diamond::Values::value_C, .offset = size / 2});
+            const auto node_B = node_A.then_parallel_for(
+                "node B", size / 2, functor_t{.data = data, .value = diamond::Values::value_B, .offset = 0});
+            const auto node_C = node_A.then_parallel_for(
+                "node C", size / 2, functor_t{.data = data, .value = diamond::Values::value_C, .offset = size / 2});
 
-        const auto node_D =
-            Kokkos::Experimental::when_all(node_B, node_C)
-                .then_parallel_for("node D", size, functor_t{.data = data, .value = diamond::Values::value_D});
-    });
+            const auto node_D =
+                Kokkos::Experimental::when_all(node_B, node_C)
+                    .then_parallel_for("node D", size, functor_t{.data = data, .value = diamond::Values::value_D});
+        });
 
     graph.submit(exec);
     exec.fence();

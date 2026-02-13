@@ -21,7 +21,7 @@ struct ChainHandler
     root_t  root;
 
     ChainHandler(const Exec& exec)
-        : graph(exec),
+        : graph(Kokkos::Experimental::get_device_handle(exec)),
           root (graph.root_node())
     {}
 

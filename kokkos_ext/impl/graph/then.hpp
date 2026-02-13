@@ -15,7 +15,10 @@ template <Kokkos::ExecutionSpace Exec, typename OpstateType, typename Env, typen
 auto build_then_node(State<Exec>& state, const OpstateType& opstate, const Env& env, Functor&& functor) {
     return get_predecessor(opstate, env, state.get_graph())
         .then(
-            std::format("{}: then", Kokkos::Impl::TypeInfo<Exec>::name()), state.exec, std::forward<Functor>(functor));
+            Kokkos::Experimental::node_props(
+                std::format("{}: then", Kokkos::Impl::TypeInfo<Exec>::name()),
+                Kokkos::Experimental::get_device_handle(state.exec)),
+            std::forward<Functor>(functor));
 }
 
 template <stdexec::scheduler Schd, typename Sndr, stdexec::receiver InnerRcvr, typename Functor>

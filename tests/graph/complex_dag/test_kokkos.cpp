@@ -43,7 +43,7 @@ TEST(graph, complex_dag_kokkos)
     DEFINE_VALUES
     DEFINE_INDICES
 
-    const Kokkos::Experimental::Graph<execution_space> graph(exec);
+    const Kokkos::Experimental::Graph<execution_space> graph(Kokkos::Experimental::get_device_handle(exec));
 
     auto root = graph.root_node();
 

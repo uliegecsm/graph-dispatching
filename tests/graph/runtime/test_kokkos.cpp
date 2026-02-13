@@ -56,7 +56,7 @@ TEST_P(GraphTest, runtime_kokkos)
     //! Define the graph. Use a simple syntax.
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    const Kokkos::Experimental::Graph<execution_space> graph(exec);
+    const Kokkos::Experimental::Graph<execution_space> graph(Kokkos::Experimental::get_device_handle(exec));
 
     auto node_A = graph.root_node().then_parallel_for(
         policy_t(0, 1),

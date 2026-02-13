@@ -118,7 +118,7 @@ public:
         {
             const ::algorithms::cg::Region region_create_graph("PCGGraph - create graph");
 
-            graph.emplace(exec);
+            graph.emplace(Kokkos::Experimental::get_device_handle(exec));
 
             const auto tmp       = Kokkos::subview(scalars_on_device, 0);
             const auto alpha     = Kokkos::subview(scalars_on_device, 1);

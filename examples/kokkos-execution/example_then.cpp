@@ -43,11 +43,12 @@ struct GraphThenTest
 
 //! @test Vanilla @c Kokkos.
 TEST_F(GraphThenTest, kokkos_vanilla) {
-    auto graph = Kokkos::Experimental::create_graph(exec, [&](const auto& root) {
-        root.then("node A", functor_t{.data = data})
-            .then("node B", functor_t{.data = data})
-            .then("node C", functor_t{.data = data});
-    });
+    auto graph =
+        Kokkos::Experimental::create_graph(Kokkos::Experimental::get_device_handle(exec), [&](const auto& root) {
+            root.then("node A", functor_t{.data = data})
+                .then("node B", functor_t{.data = data})
+                .then("node C", functor_t{.data = data});
+        });
 
     graph.submit(exec);
     exec.fence();

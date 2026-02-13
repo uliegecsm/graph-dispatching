@@ -52,21 +52,13 @@ struct Region
     static void pop() { Kokkos::Profiling::popRegion(); }
 };
 
-/**
- * @brief Make sure the node is using the execution space of the graph.
- *
- * As of now, if the node performs preparatory work, it uses the execution space instance passed to its execution policy,
- * so you better get them all on the execution space instance of the graph to ease proper synchronisation.
- */
+//! Retrieve the device handle of the graph of @p node.
 template <typename Node, typename... Args>
-constexpr auto make_range_policy_with_graph_exec(Node&& node, Args&&... args) -> decltype(auto)
+constexpr auto get_graph_device_handle(Node&& node) -> decltype(auto)
 {
-    return Kokkos::RangePolicy(
-        Kokkos::Impl::GraphAccess::get_graph_weak_ptr(std::forward<Node>(node))
+    return Kokkos::Impl::GraphAccess::get_graph_weak_ptr(std::forward<Node>(node))
             .lock()
-            ->get_execution_space(),
-        std::forward<Args>(args)...
-    );
+            ->get_device_handle();
 }
 
 } // namespace algorithms::cg

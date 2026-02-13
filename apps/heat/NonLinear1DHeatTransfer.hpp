@@ -220,10 +220,12 @@ struct NonLinear1DHeatTransfer {
     requires(UseGraph)
     void assemble(const Exec& exec) const {
         if (!this->graph) {
-            this->graph.emplace(exec);
+            this->graph.emplace(Kokkos::Experimental::get_device_handle(exec));
 
-            auto node_fill = this->graph->root_node()
-                                 .then_parallel_for(Kokkos::RangePolicy(exec, 0, params.num_elems), *this);
+            auto node_fill = this->graph->root_node().then_parallel_for(
+                Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(exec)),
+                Kokkos::RangePolicy<Exec>(0, params.num_elems),
+                *this);
 
             auto node_local_rhs_reset = ::algorithms::pcg::then_deep_copy(this->graph->root_node(), local_rhs, 0.);
             auto node_local_mat_reset =
@@ -232,7 +234,8 @@ struct NonLinear1DHeatTransfer {
             Kokkos::Experimental::when_all(
                 std::move(node_fill), std::move(node_local_rhs_reset), std::move(node_local_mat_reset))
                 .then_parallel_for(
-                    Kokkos::RangePolicy(exec, 0, params.num_elems),
+                    Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(exec)),
+                    Kokkos::RangePolicy<Exec>(0, params.num_elems),
                     scatter_t{
                         .stacked_elem_matrices = stacked_elem_matrices,
                         .stacked_elem_rhss = stacked_elem_rhss,

@@ -102,11 +102,12 @@ protected:
 //! @test The @c while loop is on host.
 TEST_F(WhileTest, manual)
 {
-    const graph_t graph{*this->exec};
+    const graph_t graph{Kokkos::Experimental::get_device_handle(*this->exec)};
 
     //! Add the parallel-for.
     const auto pfor = graph.root_node().then_parallel_for(
-        Kokkos::RangePolicy(*this->exec, 0, size),
+        Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(*this->exec)),
+        Kokkos::RangePolicy<Kokkos::Cuda>(0, size),
         Work<data_t>{.data = this->data}
     );
     
@@ -114,7 +115,8 @@ TEST_F(WhileTest, manual)
     const shared_bool_t value(Kokkos::view_alloc("shared bool"));
 
     pfor.then_parallel_reduce(
-        Kokkos::RangePolicy(*this->exec, 0, size),
+        Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(*this->exec)),
+        Kokkos::RangePolicy<Kokkos::Cuda>(0, size),
         Reduce<data_t>{.data = this->data},
         Kokkos::LAnd<bool, Kokkos::CudaSpace>{value}
     );
@@ -156,11 +158,12 @@ TEST_F(WhileTest, node)
         0, &conditional_params));
     {
         //! Create the graph from the @c while node subgraph.
-        const graph_t inner{*this->exec, conditional_params.conditional.phGraph_out[0]};
+        const graph_t inner{Kokkos::Experimental::get_device_handle(*this->exec), conditional_params.conditional.phGraph_out[0]};
 
         //! Add the parallel-for.
         const auto pfor = inner.root_node().then_parallel_for(
-            Kokkos::RangePolicy(*this->exec, 0, size),
+            Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(*this->exec)),
+            Kokkos::RangePolicy<Kokkos::Cuda>(0, size),
             Work<data_t>{.data = this->data}
         );
 
@@ -168,13 +171,17 @@ TEST_F(WhileTest, node)
         bool_t value(Kokkos::view_alloc(*exec, "device bool"));
 
         const auto pred = pfor.then_parallel_reduce(
-            Kokkos::RangePolicy(*this->exec, 0, size),
+            Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(*this->exec)),
+            Kokkos::RangePolicy<Kokkos::Cuda>(0, size),
             Reduce<data_t>{.data = this->data},
             Kokkos::LAnd<bool, Kokkos::CudaSpace>{value}
         );
 
         //! Add a node that will set the @c while conditional.
-        pred.then("convergence", *this->exec, Convergence<bool_t>{.value = std::move(value), .handle = conditional_handle});
+        pred.then(Kokkos::Experimental::node_props(
+            "convergence",
+            Kokkos::Experimental::get_device_handle(*this->exec)),
+            Convergence<bool_t>{.value = std::move(value), .handle = conditional_handle});
 
         //! Create the executable graph and submit once. It will converge during the first submission since the @c while is embedded.
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphInstantiate(&graph_exec, graph, nullptr, nullptr, 0));
