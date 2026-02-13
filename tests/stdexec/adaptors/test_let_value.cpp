@@ -39,7 +39,7 @@ class LetValueTest
 };
 
 /**
- * @test Use @c stdexec::let_value to express branching instead of @c stdexec::split, as proposed in @cite P3682R0.
+ * @test Use @c stdexec::let_value to express branching instead of @c exec::split, as proposed in @cite P3682R0.
  *
  * The semantic seems different. With @c stdexec::let_value, the inner sender is connected "lately", only when the @c stdexec::let_value
  * receiver is consumed.

@@ -8,6 +8,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 #include "exec/any_sender_of.hpp"
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -87,7 +88,7 @@ TEST_P(GraphTest, runtime_stdexec)
     ::stdexec::sender auto node_A = entry | ::stdexec::bulk(
         ::stdexec::par, 1,
         tests::AddValueOffset<view_t>{.data = data, .value = diamond::Values::value_A, .offset = index_A})
-        | ::stdexec::split();
+        | ::exec::split();
 
     //! Define a type-erased sender type. See also https://github.com/NVIDIA/stdexec/issues/1411.
     using type_erased_sender_t = any_sender_of<stdexec::set_value_t(), stdexec::set_error_t(std::exception_ptr const&), stdexec::set_stopped_t()>;

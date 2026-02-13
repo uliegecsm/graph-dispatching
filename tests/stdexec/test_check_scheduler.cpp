@@ -6,6 +6,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -52,7 +53,7 @@ TEST(check_scheduler, split_when_all_no_forward) {
     ::exec::static_thread_pool pool{1};
 
     auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
-              | THEN_SHOW_ID | ::stdexec::split();
+              | THEN_SHOW_ID | ::exec::split();
 
     auto chain = ::stdexec::when_all(
         fork | THEN_SHOW_ID | check_scheduler<default_scheduler_t>(),
@@ -70,7 +71,7 @@ TEST(check_scheduler, split_transfer_when_all_no_forward) {
     ::exec::static_thread_pool pool{1};
 
     auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
-              | THEN_SHOW_ID | ::stdexec::split();
+              | THEN_SHOW_ID | ::exec::split();
 
     auto chain = ::stdexec::transfer_when_all(
         pool.get_scheduler(),
@@ -85,7 +86,7 @@ TEST(check_scheduler, multiple_splits) {
     ::exec::static_thread_pool pool{1};
 
     auto fork_A = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
-                | THEN_SHOW_ID | ::stdexec::split();
+                | THEN_SHOW_ID | ::exec::split();
 
     auto chain_A_branch_a = fork_A | THEN_SHOW_ID;
     auto chain_A_branch_b = std::move(fork_A) | THEN_SHOW_ID;
@@ -93,7 +94,7 @@ TEST(check_scheduler, multiple_splits) {
     auto chain_A = ::stdexec::when_all(std::move(chain_A_branch_a), std::move(chain_A_branch_b)) | THEN_SHOW_ID;
 
     auto fork_B = std::move(chain_A) | ::stdexec::continues_on(pool.get_scheduler())
-                | check_scheduler<static_thread_pool_scheduler_t>() | ::stdexec::split();
+                | check_scheduler<static_thread_pool_scheduler_t>() | ::exec::split();
 
     auto chain_B_branch_a = fork_B | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();
     auto chain_B_branch_b = std::move(fork_B) | THEN_SHOW_ID | check_scheduler<default_scheduler_t>();

@@ -12,6 +12,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wmissing-field-initializers")
 PRAGMA_DIAGNOSTIC_POP
 
 #include "tests/Utils.hpp"
+#include "tests/stdexec/Utils.hpp"
 
 /**
  * @addtogroup unittests
@@ -30,10 +31,8 @@ namespace tests::stdexec::factories {
 TEST(read_env, get_scheduler_default) {
     ::stdexec::sync_wait(
         ::stdexec::read_env(::stdexec::get_scheduler) | ::stdexec::then([](const auto& scheduler) {
-            static_assert(std::same_as<
-                          std::remove_cvref_t<decltype(scheduler)>,
-                          ::stdexec::basic_run_loop<::stdexec::__env::env<>>::scheduler
-            >);
+            static_assert(
+                std::same_as<std::remove_cvref_t<decltype(scheduler)>, ::tests::stdexec::default_scheduler_t>);
         })
         | THEN_SHOW_ID);
 }

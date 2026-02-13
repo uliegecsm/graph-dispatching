@@ -10,6 +10,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wsign-compare")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "nvexec/stream_context.cuh"
 #include "stdexec/execution.hpp"
@@ -120,7 +121,7 @@ struct ThenFunctor {
 };
 
 /**
- * @test This test can be used to check how @c nvexec::stream_context deals with a @c stdexec::split.
+ * @test This test can be used to check how @c nvexec::stream_context deals with a @c exec::split.
  *
  * From inspection with @c nsys, it seems that in this case @c nvexec::stream_context will
  * create 4 streams.
@@ -132,7 +133,7 @@ TEST_F(StreamContextTest, split) {
 
     constexpr size_t size = 4;
 
-    auto fork = stdexec::schedule(sch) | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | stdexec::split();
+    auto fork = stdexec::schedule(sch) | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | exec::split();
 
     /// We must use @c stdexec::transfer_when_all here, see https://github.com/NVIDIA/stdexec/issues/1736.
     ///

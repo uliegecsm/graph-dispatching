@@ -68,9 +68,9 @@ class ForkJoinTest
 /**
  * @test Check that @c exec::fork_join effectively forks (and passes the values along), and joins.
  *
- * It mimics what could be achieved with @c stdexec::split and @c stdexec::when_all.
+ * It mimics what could be achieved with @c exec::split and @c stdexec::when_all.
  *
- * @warning According to @cite P3682R0, @c stdexec::split will be removed from the proposed @c std::execution for C++26.
+ * @warning According to @cite P3682R0, @c exec::split will be removed from the proposed @c std::execution for C++26.
  */
 TEST_F(ForkJoinTest, copies) {
     SKIP_IF_HIPCC
@@ -114,7 +114,7 @@ TEST_F(ForkJoinTest, copies) {
 /**
  * @test Using @c exec::fork_join within a @c exec::repeat_until does not memoize results.
  *
- * As opposed to @c stdexec::split that makes a single execution and memoizes the result, it seems that @c exec::fork_join
+ * As opposed to @c exec::split that makes a single execution and memoizes the result, it seems that @c exec::fork_join
  * does not memoize the result in between the repetitions. But it leads to copying the input sender at each iteration.
  *
  * See also @ref tests::exec::adaptors::RepeatEffectUntilTest_split_Test.

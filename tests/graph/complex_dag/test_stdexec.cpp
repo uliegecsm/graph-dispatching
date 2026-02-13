@@ -7,6 +7,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -51,17 +52,17 @@ TEST(graph, complex_dag_stdexec)
     DEFINE_VALUES
     DEFINE_INDICES
 
-    ::stdexec::sender auto entry = ::stdexec::just() | ::stdexec::split();
+    ::stdexec::sender auto entry = ::stdexec::just() | ::exec::split();
 
     ::stdexec::sender auto node_A1 = entry | ::stdexec::bulk(
         ::stdexec::par, 1,
         FetchValuesAndContribute(data, index_A1, value_A1))
-        | ::stdexec::split();
+        | ::exec::split();
 
     ::stdexec::sender auto node_A2 = entry | ::stdexec::bulk(
         ::stdexec::par, 1,
         FetchValuesAndContribute(data, index_A2, value_A2))
-        | ::stdexec::split();
+        | ::exec::split();
 
     ::stdexec::sender auto node_A3 = entry | ::stdexec::bulk(
         ::stdexec::par, 1,

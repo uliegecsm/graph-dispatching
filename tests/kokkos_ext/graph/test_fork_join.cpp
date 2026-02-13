@@ -70,11 +70,8 @@ TEST_F(ForkJoinTest, three_branches) {
     >);
 
     using clsr_t = ::stdexec::__clsur::__compose<
-        ::stdexec::__clsur::__closure<
-            ::stdexec::continues_on_t,
-            Kokkos::Experimental::details::graph::Scheduler<execution_space>
-        >,
-        ::stdexec::__clsur::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
+        ::stdexec::__closure<::stdexec::continues_on_t, Kokkos::Experimental::details::graph::Scheduler<execution_space>>,
+        ::stdexec::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
     >;
 
     using outer_0 = ::stdexec::connect_result_t<sndr_t, ::tests::stdexec::SinkReceiver>;
@@ -128,11 +125,8 @@ TEST_F(ForkJoinTest, diamond) {
               | ::stdexec::then(functor_t{.prev = 6, .value = 3, .data = data.data()});
 
     using clsr_t = ::stdexec::__clsur::__compose<
-        ::stdexec::__clsur::__closure<
-            ::stdexec::continues_on_t,
-            Kokkos::Experimental::details::graph::Scheduler<execution_space>
-        >,
-        ::stdexec::__clsur::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
+        ::stdexec::__closure<::stdexec::continues_on_t, Kokkos::Experimental::details::graph::Scheduler<execution_space>>,
+        ::stdexec::__closure<::stdexec::then_t, ::tests::ThenFunctor<atomic<view_s_t>>>
     >;
 
     using outer_0 = ::stdexec::connect_result_t<decltype(sndr), ::tests::stdexec::SinkReceiver>;

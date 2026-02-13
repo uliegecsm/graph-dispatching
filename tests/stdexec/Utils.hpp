@@ -10,11 +10,11 @@ namespace tests::stdexec {
 
 template <class Sndr, class Tag>
 concept has_completion_scheduler_for =
-    ::stdexec::queryable<Sndr>
+    ::stdexec::__queryable<Sndr>
     && std::invocable<::stdexec::get_completion_scheduler_t<Tag>, const ::stdexec::env_of_t<Sndr>&>;
 
 template <class Sndr, class... Signatures>
-concept has_completion_signatures = ::stdexec::queryable<Sndr>
+concept has_completion_signatures = ::stdexec::__queryable<Sndr>
                                  && std::same_as<
                                         std::invoke_result_t<::stdexec::get_completion_signatures_t, Sndr>,
                                         ::stdexec::completion_signatures<Signatures...>
@@ -122,7 +122,7 @@ struct ValueReceiver {
 };
 
 //! Default scheduler type when none provided.
-using default_scheduler_t = ::stdexec::basic_run_loop<::stdexec::__env::env<>>::scheduler;
+using default_scheduler_t = ::stdexec::run_loop::scheduler;
 
 } // namespace tests::stdexec
 
