@@ -18,7 +18,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check behavior related to the domain query.
  *
- * The test can be found in @ref tests/stdexec/queries/test_domain.cpp.
+ * The tests can be found in @ref tests/stdexec/queries/test_domain.cpp.
  */
 
 namespace tests::stdexec::queries {

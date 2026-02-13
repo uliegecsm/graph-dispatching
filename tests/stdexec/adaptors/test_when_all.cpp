@@ -23,7 +23,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c stdexec::when_all.
  *
- * The test can be found in @ref tests/stdexec/adaptors/test_when_all.cpp.
+ * The tests can be found in @ref tests/stdexec/adaptors/test_when_all.cpp.
  */
 
 namespace tests::stdexec::adaptors {
