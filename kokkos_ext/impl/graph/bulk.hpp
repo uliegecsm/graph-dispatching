@@ -18,8 +18,10 @@ auto build_parallel_for_node(State<Exec>& state, const OpstateType& opstate, con
     auto [policy, shape, functor] = std::forward<Data>(data);
     return get_predecessor(opstate, env, state.get_graph())
         .then_parallel_for(
-            std::format("{}: bulk", Kokkos::Impl::TypeInfo<Exec>::name()),
-            Kokkos::RangePolicy(state.exec, 0, std::move(shape)),
+            Kokkos::Experimental::node_props(
+                std::format("{}: bulk", Kokkos::Impl::TypeInfo<Exec>::name()),
+                Kokkos::Experimental::get_device_handle(state.exec)),
+            Kokkos::RangePolicy(0, std::move(shape)),
             std::move(functor));
 }
 

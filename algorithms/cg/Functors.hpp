@@ -74,8 +74,10 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
         );
     } else {
         return pred.then_parallel_for(
-            "algorithms::cg::spmv",
-            make_range_policy_with_graph_exec(pred, 0, num_rows),
+            Kokkos::Experimental::node_props(
+                "algorithms::cg::spmv",
+                get_graph_device_handle(pred)),
+            Kokkos::RangePolicy<execution_space>(0, num_rows),
             std::move(functor)
         );
     }
@@ -107,8 +109,10 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
         );
     } else {
         return pred.then_parallel_reduce(
-            "algorithms::cg::dot",
-            make_range_policy_with_graph_exec(pred, 0, functor.m_x.size()),
+            Kokkos::Experimental::node_props(
+                "algorithms::cg::dot",
+                get_graph_device_handle(pred)),
+            Kokkos::RangePolicy<execution_space>(0, functor.m_x.size()),
             std::move(functor),
             std::forward<Result>(result)
         );
@@ -151,6 +155,8 @@ struct Axpby
 template <typename Pred, typename Alpha, typename ViewX, typename Beta, typename ViewY>
 decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta, ViewY&& vec_y)
 {
+    using execution_space = typename std::remove_cvref_t<Pred>::execution_space;
+
     const auto size = vec_x.size();
 
     impl::Axpby< // NOLINT(misc-const-correctness)
@@ -168,13 +174,15 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
     if constexpr (Kokkos::ExecutionSpace<Pred>) {
         Kokkos::parallel_for(
             "algorithms::cg::axpby",
-            Kokkos::RangePolicy(pred, 0, size),
+            Kokkos::RangePolicy<execution_space>(pred, 0, size),
             std::move(functor)
         );
     } else {
         return pred.then_parallel_for(
-            "algorithms::cg::axpby",
-            make_range_policy_with_graph_exec(pred, 0, size),
+            Kokkos::Experimental::node_props(
+                "algorithms::cg::axpby",
+                get_graph_device_handle(pred)),
+            Kokkos::RangePolicy<execution_space>(0, size),
             std::move(functor)
         );
     }

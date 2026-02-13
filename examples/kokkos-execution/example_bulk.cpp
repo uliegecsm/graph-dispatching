@@ -53,12 +53,13 @@ struct GraphBulkTest
 TEST_F(GraphBulkTest, kokkos_vanilla) {
     using policy_t = Kokkos::RangePolicy<execution_space>;
 
-    auto graph = Kokkos::Experimental::create_graph(exec, [&](const auto& root) {
-        root.then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_A})
-            .then_parallel_for(policy_t(0, size / 2), functor_t{.data = data, .value = diamond::Values::value_B})
-            .then_parallel_for(policy_t(size / 2, size), functor_t{.data = data, .value = diamond::Values::value_C})
-            .then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_D});
-    });
+    auto graph =
+        Kokkos::Experimental::create_graph(Kokkos::Experimental::get_device_handle(exec), [&](const auto& root) {
+            root.then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_A})
+                .then_parallel_for(policy_t(0, size / 2), functor_t{.data = data, .value = diamond::Values::value_B})
+                .then_parallel_for(policy_t(size / 2, size), functor_t{.data = data, .value = diamond::Values::value_C})
+                .then_parallel_for(policy_t(0, size), functor_t{.data = data, .value = diamond::Values::value_D});
+        });
 
     graph.submit(exec);
 

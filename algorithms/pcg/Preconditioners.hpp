@@ -52,13 +52,16 @@ template <typename Pred, typename DstType, typename SrcType> requires (
 )
 decltype(auto) then_deep_copy(const Pred& pred, DstType&& dst, SrcType&& src)
 {
+    using execution_space = typename std::remove_cvref_t<Pred>::execution_space;
     using deep_copy_t = DeepCopy<std::remove_cvref_t<DstType>, std::remove_cvref_t<SrcType>>;
 
     const auto size = dst.size();
 
     return pred.then_parallel_for(
-        "deep copy",
-        ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, size),
+        Kokkos::Experimental::node_props(
+            "deep copy",
+            ::algorithms::cg::get_graph_device_handle(pred)),
+        Kokkos::RangePolicy<execution_space>(0, size),
         deep_copy_t{.dst = std::forward<DstType>(dst), .src = std::forward<SrcType>(src)}
     );
 }
@@ -160,8 +163,11 @@ struct DiagonalPreconditioner
         typename SrcType
     > requires (std::remove_cvref_t<DstType>::rank() == 1 && std::remove_cvref_t<SrcType>::rank() == 1 && IsGraphNode<std::remove_cvref_t<Pred>>)
     decltype(auto) apply(const Pred& pred, DstType&& dst, SrcType&& src) const {
+        using execution_space = typename std::remove_cvref_t<Pred>::execution_space;
+
         return pred.then_parallel_for(
-            ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, values.size()),
+            Kokkos::Experimental::node_props(::algorithms::cg::get_graph_device_handle(pred)),
+            Kokkos::RangePolicy<execution_space>(0, values.size()),
             Apply<std::remove_cvref_t<DstType>, std::remove_cvref_t<SrcType>>{.dst = std::forward<DstType>(dst), .src = std::forward<SrcType>(src), .values = values}
         );
     }
@@ -282,13 +288,15 @@ struct JacobiPreconditioner
         /// In the first pass, we should set @p dst to 0. But as it is equivalent to diagonal
         /// scaling, we can specialize the kernel for the first pass and save one deep copy operation.
         graph_node_ref_t next = pred.then_parallel_for(
-            ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, mat.numRows()),
+            Kokkos::Experimental::node_props(::algorithms::cg::get_graph_device_handle(pred)),
+            Kokkos::RangePolicy<execution_space>(0, mat.numRows()),
             ApplyFirstPass<DstType, SrcType>{.dst = dst, .src = src, .mat = mat}
         );
         for(sweep_t isweep = 1; isweep < num_sweeps; ++isweep)
         {
             auto next_in_loop = next.then_parallel_for(
-                ::algorithms::cg::make_range_policy_with_graph_exec(pred, 0, mat.numRows()),
+                Kokkos::Experimental::node_props(::algorithms::cg::get_graph_device_handle(pred)),
+                Kokkos::RangePolicy<execution_space>(0, mat.numRows()),
                 Apply<DstType, SrcType>{.dst = dst, .src = src, .mat = mat, .tmp = tmp}
             );
             next = then_deep_copy(next_in_loop, dst, tmp);

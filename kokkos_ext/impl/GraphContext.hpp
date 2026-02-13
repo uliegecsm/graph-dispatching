@@ -54,7 +54,7 @@ struct State {
      */
     auto& get_graph() {
         if (!graph) {
-            graph.emplace(exec);
+            graph.emplace(Kokkos::Experimental::get_device_handle(exec));
         }
         return *graph;
     }

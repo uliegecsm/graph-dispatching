@@ -104,7 +104,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 
         //! Create the graph.
         const Region region_create_graph("CGGraph - create graph");
-        Kokkos::Experimental::Graph graph(exec);
+        Kokkos::Experimental::Graph graph(Kokkos::Experimental::get_device_handle(exec));
 
         //! Compute @c alpha.
         const auto alpha_spmv = ::algorithms::cg::spmv(graph.root_node(), &handle, "N", 1., mat, dir, 0., mat_dir);
@@ -112,9 +112,13 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 
         const auto alpha_div = [&]() {
             if constexpr (UseHostNode) {
-                return alpha_dot.then_host("alpha", [=]      { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
+                return alpha_dot.then_host(
+                    Kokkos::Experimental::node_props("alpha"),
+                    [=]           { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             } else {
-                return alpha_dot.then("alpha", exec, KOKKOS_LAMBDA { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
+                return alpha_dot.then(
+                    Kokkos::Experimental::node_props("alpha", Kokkos::Experimental::get_device_handle(exec)),
+                    KOKKOS_LAMBDA { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             }
         }();
 
@@ -128,9 +132,11 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         //! Compute @c beta.
         const auto beta_div = [&, das = algorithms::cg::DivideAndSwap{.a = tmp, .b = res_dot_old}]() mutable {
             if constexpr (UseHostNode) {
-                return res_dot.then_host("beta", std::move(das));
+                return res_dot.then_host(
+                    Kokkos::Experimental::node_props("beta"), std::move(das));
             } else {
-                return res_dot.then("beta", exec, std::move(das));
+                return res_dot.then(
+                    Kokkos::Experimental::node_props("beta", Kokkos::Experimental::get_device_handle(exec)), std::move(das));
             }
         }();
 

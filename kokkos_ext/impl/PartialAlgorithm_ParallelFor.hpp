@@ -20,7 +20,7 @@ struct PartialAlgorithm<Kokkos::ParallelForTag, std::string, Policy, Functor>
     decltype(auto) operator()(Sender&& input) &&
     {
         return std::forward<Sender>(input).then_parallel_for(
-            std::move(label),
+            Kokkos::Experimental::node_props(std::move(label)),
             std::move(policy),
             std::move(functor)
         );
