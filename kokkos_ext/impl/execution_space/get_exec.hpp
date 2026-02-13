@@ -3,6 +3,8 @@
 
 #include "Kokkos_Core.hpp"
 
+#include "kokkos_ext/impl/env.hpp"
+
 namespace Kokkos::Experimental::details::execution_space {
 
 /**
@@ -53,24 +55,22 @@ struct ExecutionSpaceRef {
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC_TYPE(_exec_type_, _rcvr_type_)                                          \
-    stdexec::__join_env_t<                                                                                             \
-        stdexec::prop<                                                                                                 \
-            Kokkos::Experimental::details::execution_space::get_exec_t,                                                \
-            Kokkos::Experimental::details::execution_space::ExecutionSpaceRef<_exec_type_>                             \
-        >,                                                                                                             \
-        stdexec::__fwd_env_t<stdexec::env_of_t<_rcvr_type_>>                                                           \
+#define GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC_TYPE(_exec_type_, _rcvr_type_)                                        \
+    ::exec::upsert_in_env_t<                                                                                           \
+        Kokkos::Experimental::details::execution_space::get_exec_t,                                                    \
+        stdexec::__fwd_env_t<stdexec::env_of_t<_rcvr_type_>>,                                                          \
+        Kokkos::Experimental::details::execution_space::ExecutionSpaceRef<_exec_type_>                                 \
     >
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(_exec_type_, _exec_, _rcvr_type_, _rcvr_)                               \
+#define GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC(_exec_type_, _exec_, _rcvr_type_, _rcvr_)                             \
     [[nodiscard]]                                                                                                      \
-    constexpr auto get_env() const noexcept -> GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC_TYPE(_exec_type_, _rcvr_type_) { \
-        return stdexec::__env::__join(                                                                                 \
-            stdexec::prop{                                                                                             \
-                Kokkos::Experimental::details::execution_space::get_exec,                                              \
-                Kokkos::Experimental::details::execution_space::ExecutionSpaceRef{_exec_}},                            \
-            stdexec::__fwd_env(stdexec::get_env(_rcvr_)));                                                             \
+    constexpr auto get_env() const noexcept                                                                            \
+        -> GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC_TYPE(_exec_type_, _rcvr_type_) {                                   \
+        return ::exec::upsert_in_env(                                                                                  \
+            Kokkos::Experimental::details::execution_space::get_exec,                                                  \
+            stdexec::__fwd_env(stdexec::get_env(_rcvr_)),                                                              \
+            Kokkos::Experimental::details::execution_space::ExecutionSpaceRef{_exec_});                                \
     }
 
 } // namespace Kokkos::Experimental::details::execution_space

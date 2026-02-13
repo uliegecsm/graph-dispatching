@@ -66,7 +66,7 @@ template <stdexec::scheduler Schd, stdexec::sender Sndr, stdexec::receiver Inner
 struct ContinuesOnOpState {
     using operation_state_concept = stdexec::operation_state_t;
 
-    using env_t = GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC_TYPE(typename Schd::execution_space, InnerRcvr);
+    using env_t = GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC_TYPE(typename Schd::execution_space, InnerRcvr);
 
     struct ContinuesOnReceiver {
         using receiver_concept = stdexec::receiver_t;
@@ -113,7 +113,11 @@ struct ContinuesOnOpState {
         stdexec::start(inner_opstate);
     }
 
-    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state_ptr->exec, InnerRcvr, inner_rcvr)
+    GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC(
+        typename Schd::execution_space,
+        schd.state_ptr->exec,
+        InnerRcvr,
+        inner_rcvr)
 };
 
 //! Sender for @c continues_on.
