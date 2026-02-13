@@ -12,6 +12,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos_ext/impl/completion_signatures.hpp"
 
+#include "tests/stdexec/Utils.hpp"
 #include "tests/stdexec/adaptors/myalgo.hpp"
 #include "tests/stdexec/inline_scheduler_with_domain.hpp"
 
@@ -111,6 +112,7 @@ TEST(some_other_namespace, customized) {
         auto work = ::stdexec::schedule(iswd::inline_scheduler{})
                   | ::stdexec::let_value([]() noexcept { return ::stdexec::just(Printable{.value = 666}); })
                   | myalgo_namespace::myalgo("Hello from custom implementation!")
+                  | ::tests::stdexec::check_scheduler<iswd::inline_scheduler>()
                   | ::stdexec::then(
                         [](const auto& value) { std::cout << "Waving from 'then' with value " << value << ".\n"; });
         ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)

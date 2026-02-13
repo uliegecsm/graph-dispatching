@@ -33,17 +33,11 @@ struct myalgo_t {
 
 //! Default implementation.
 struct myalgo_impl : stdexec::__sexpr_defaults {
-    static constexpr auto get_attrs =
-        []<typename Sndr, typename Obj>(stdexec::__ignore, const Obj&, const Sndr& sndr) noexcept {
-            //! @todo Create our own sender attributes structure.
-            return stdexec::__sync_attrs{sndr};
-        };
-
     template <typename Sndr, typename... Env>
     using _completion_signatures_t = stdexec::completion_signatures_of_t<Sndr, Env...>;
 
     template <typename Sndr, typename... Env>
-    static consteval auto get_completion_signatures() -> _completion_signatures_t<stdexec::__child_of<Sndr>, Env...> {
+    static consteval auto __get_completion_signatures() -> _completion_signatures_t<stdexec::__child_of<Sndr>, Env...> {
         static_assert(stdexec::sender_expr_for<Sndr, myalgo_t>);
         return {};
     };
@@ -63,7 +57,7 @@ struct myalgo_impl : stdexec::__sexpr_defaults {
         }
     };
 
-    static constexpr auto complete = _complete_fn{};
+    static constexpr auto __complete = _complete_fn{};
 };
 } // namespace details
 

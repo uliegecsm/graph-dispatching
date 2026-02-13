@@ -9,6 +9,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 #include "exec/repeat_until.hpp"
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -64,9 +65,9 @@ TEST_F(RepeatEffectUntilTest, copies) {
 }
 
 /**
- * @test Try to mitigate the copies using @c stdexec::split.
+ * @test Try to mitigate the copies using @c exec::split.
  *
- * Since @c stdexec::split makes a single execution and memoizes the result, it effectively avoids the copies but
+ * Since @c exec::split makes a single execution and memoizes the result, it effectively avoids the copies but
  * also prevents the work from being repeated. It can be thought of as acting as a cacher for the results.
  */
 TEST_F(RepeatEffectUntilTest, split) {
@@ -74,7 +75,7 @@ TEST_F(RepeatEffectUntilTest, split) {
 
     unsigned short int irep = 0, witness = 0;
 
-    auto chain = ::exec::repeat_until(CHAIN | ::stdexec::split() | ::stdexec::then([&irep]() -> bool {
+    auto chain = ::exec::repeat_until(CHAIN | ::exec::split() | ::stdexec::then([&irep]() -> bool {
                                           std::printf( // NOLINT(modernize-use-std-print)
                                                      "Repetition %u: copy constructed %d times.\n",
                                                      irep,

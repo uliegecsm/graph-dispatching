@@ -7,6 +7,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -41,7 +42,7 @@ namespace diamond = examples::KokkosExecution::diamond;
 template <typename Sender, typename ViewType>
 decltype(auto) library(Sender&& input, ViewType data) // NOLINT(performance-unnecessary-value-param)
 {
-    auto continued = std::forward<Sender>(input) | ::stdexec::split();
+    auto continued = std::forward<Sender>(input) | ::exec::split();
 
     const auto half = data.size() / 2;
 

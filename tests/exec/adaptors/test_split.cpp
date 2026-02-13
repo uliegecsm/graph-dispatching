@@ -8,6 +8,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+#include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -18,17 +19,17 @@ PRAGMA_DIAGNOSTIC_POP
 /**
  * @addtogroup unittests
  *
- * Tests for @c stdexec::split
+ * Tests for @c exec::split
  * ---------------------------
  *
- * This group of tests check the behavior of @c stdexec::split, and therefore of @c stdexec::when_all as well.
+ * This group of tests check the behavior of @c exec::split, and therefore of @c stdexec::when_all as well.
  *
  * The test can be found in @ref stdexec/adaptors/test_split.cpp.
  */
 
 namespace tests::stdexec::adaptors {
 
-//! @test Simple test for @c stdexec::split.
+//! @test Simple test for @c exec::split.
 TEST(stdexec, split) {
     exec::static_thread_pool pool{2};
 
@@ -40,7 +41,7 @@ TEST(stdexec, split) {
     auto start = ::stdexec::schedule(scheduler)
                | ::stdexec::bulk(
                      ::stdexec::par, 2, [&](const auto index) -> void { bulk_thr[index] = std::this_thread::get_id(); })
-               | ::stdexec::split();
+               | ::exec::split();
 
     auto node_A = start | ::stdexec::then([&] { thr_A = std::this_thread::get_id(); });
     auto node_B = std::move(start) | ::stdexec::then([&] { thr_B = std::this_thread::get_id(); });
@@ -65,7 +66,7 @@ class SplitTest
     static constexpr size_t index_of_C = index_of<'C'>();
 };
 
-//! @test The sender returned by @c stdexec::split or @c stdexec::when_all does not have a completion scheduler.
+//! @test The sender returned by @c exec::split or @c stdexec::when_all does not have a completion scheduler.
 TEST_F(SplitTest, with_transition) {
     ::stdexec::scheduler auto scheduler_A = this->pools.at(index_of_A).get_scheduler();
     ::stdexec::scheduler auto scheduler_B = this->pools.at(index_of_B).get_scheduler();
@@ -82,8 +83,8 @@ TEST_F(SplitTest, with_transition) {
     >);
     static_assert(has_completion_scheduler_for<decltype(start), ::stdexec::set_value_t>);
 
-    //! However, once @c stdexec::split is used, there is no completion scheduler anymore.
-    ::stdexec::sender auto fork_one = std::move(start) | ::stdexec::split(); // NOLINT(performance-move-const-arg)
+    //! However, once @c exec::split is used, there is no completion scheduler anymore.
+    ::stdexec::sender auto fork_one = std::move(start) | ::exec::split(); // NOLINT(performance-move-const-arg)
 
     static_assert(std::same_as<
                   ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(fork_one)>,
@@ -110,7 +111,7 @@ TEST_F(SplitTest, with_transition) {
     static_assert(!has_completion_scheduler_for<decltype(post_one), ::stdexec::set_value_t>);
 
     auto fork_two = std::move(post_one) | ::stdexec::continues_on(scheduler_B) | THEN_STORE_ID(thrids[4])
-                  | ::stdexec::split();
+                  | ::exec::split();
 
     auto stage_two_branch_a = fork_two | ::stdexec::continues_on(scheduler_C) | THEN_STORE_ID(thrids[5]);
     auto stage_two_branch_b = fork_two | ::stdexec::continues_on(scheduler_A) | THEN_STORE_ID(thrids[6]);

@@ -41,7 +41,7 @@ constexpr struct YetAnotherCustomProperty : public ::stdexec::__query<YetAnother
 TEST(Environment, build_env_constexpr) {
     constexpr auto env = ::stdexec::prop{my_custom_property, 123};
 
-    using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, int>;
+    using expt_env_t = ::stdexec::prop<tests::stdexec::adaptors::CustomProperty, int>;
 
     static_assert(std::same_as<decltype(env), const expt_env_t>);
 
@@ -90,7 +90,7 @@ struct SomeRuntimeState {
 TEST(Environment, build_env_runtime) {
     const auto env = ::stdexec::prop{my_custom_property, SomeRuntimeState{"hello darkness my old friend"}};
 
-    using expt_env_t = ::stdexec::__env::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>;
+    using expt_env_t = ::stdexec::prop<tests::stdexec::adaptors::CustomProperty, SomeRuntimeState>;
 
     static_assert(std::same_as<decltype(env), const expt_env_t>);
 
