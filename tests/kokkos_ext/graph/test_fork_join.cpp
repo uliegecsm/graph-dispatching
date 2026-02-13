@@ -224,7 +224,7 @@ TEST_F(ForkJoinTest, double_diamond) {
  * Inspired by https://github.com/NVIDIA/stdexec/issues/1823.
  */
 TEST_F(ForkJoinTest, after_a_continues_on) {
-    const view_s_t data(Kokkos::view_alloc("data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t gctx{exec};
 
@@ -261,7 +261,7 @@ TEST_F(ForkJoinTest, after_a_continues_on) {
 
 //! @test Use @c exec::fork_join before a @c stdexec::continues_on.
 TEST_F(ForkJoinTest, before_a_continues_on) {
-    const view_s_t data(Kokkos::view_alloc("data - shared space"));
+    const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
     const context_t gctx{exec};
 
