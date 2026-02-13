@@ -27,7 +27,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c exec::ensure_started.
  *
- * The test can be found in @ref tests/stdexec/adaptors/test_ensure_started.cpp.
+ * The test can be found in @ref tests/exec/adaptors/test_ensure_started.cpp.
  *
  * @note In the long term, @c exec::ensure_started might be dropped for @c exec::async_scope.
  */

@@ -24,7 +24,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c exec::split, and therefore of @c stdexec::when_all as well.
  *
- * The test can be found in @ref stdexec/adaptors/test_split.cpp.
+ * The test can be found in @ref tests/exec/adaptors/test_split.cpp.
  */
 
 namespace tests::stdexec::adaptors {
