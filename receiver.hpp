@@ -22,7 +22,7 @@ struct Receiver : public ReceiverBase {
     Rcvr rcvr;
 
     //! Make others aware of which execution space instance it will submit its work onto.
-    GRAPH_DISPATCHING_KOKKOS_EXT_JOIN_EXEC(typename Schd::execution_space, schd.state->exec, Rcvr, rcvr)
+    GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC(typename Schd::execution_space, schd.state->exec, Rcvr, rcvr)
 
     /**
      * When the downstream receiver environment cannot be queried for @ref Kokkos::Experimental::details::execution_space::get_exec_t,
