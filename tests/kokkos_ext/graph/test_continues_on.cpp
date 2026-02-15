@@ -32,8 +32,6 @@ class ContinuesOnTest
    public:
     using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
 
-    using value_t = typename view_s_t::value_type;
-
     static constexpr bool on_device = ::tests::utils::on_device<execution_space>();
 };
 

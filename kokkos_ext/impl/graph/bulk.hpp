@@ -31,7 +31,7 @@ template <
     stdexec::receiver InnerRcvr,
     stdexec::__is_instance_of<stdexec::__bulk::__data> Data
 >
-requires Kokkos::Experimental::details::impl::parallel_policy<Data>
+requires Kokkos::Experimental::details::impl::has_parallel_policy<Data>
 struct BulkOpState {
     using operation_state_concept = stdexec::operation_state_t;
 
