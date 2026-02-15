@@ -23,7 +23,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c stdexec::starts_on.
  *
- * The test can be found in @ref tests/stdexec/adaptors/test_starts_on.cpp.
+ * The tests can be found in @ref tests/stdexec/adaptors/test_starts_on.cpp.
  */
 
 namespace tests::stdexec::adaptors {

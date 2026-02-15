@@ -18,7 +18,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @ref tests::stdexec::SinkReceiver.
  *
- * The test can be found in @ref tests/stdexec/test_sink_receiver.cpp.
+ * The tests can be found in @ref tests/stdexec/test_sink_receiver.cpp.
  */
 
 namespace tests::stdexec {

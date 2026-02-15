@@ -16,7 +16,7 @@ PRAGMA_DIAGNOSTIC_POP
  * According to @cite P3325R5 (Section 4.2.4, "Should Environments Be Constrained?"),
  * it must fail.
  *
- * The test can be found in @ref tests/stdexec/adaptors/test_write_env.fail.cpp.
+ * The tests can be found in @ref tests/stdexec/adaptors/test_write_env.fail.cpp.
  */
 
 namespace tests::stdexec::adaptors {

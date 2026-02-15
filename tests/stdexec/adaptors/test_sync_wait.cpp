@@ -23,7 +23,7 @@ PRAGMA_DIAGNOSTIC_POP
  *
  * This group of tests check the behavior of @c stdexec::sync_wait.
  *
- * The test can be found in @ref tests/stdexec/adaptors/test_sync_wait.cpp.
+ * The tests can be found in @ref tests/stdexec/adaptors/test_sync_wait.cpp.
  */
 
 namespace tests::stdexec::adaptors {
