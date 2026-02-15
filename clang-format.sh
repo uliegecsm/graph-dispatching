@@ -25,6 +25,7 @@ PATTERNS=(
     'kokkos_ext/impl/sync_wait.hpp'
     'tests/exec/**.cpp'
     'tests/kokkos_ext/*.hpp'
+    'tests/kokkos_ext/test_env.cpp'
     'tests/kokkos_ext/execution_space/*.cpp'
     'tests/kokkos_ext/graph/*.cpp'
     'tests/kokkos_ext/graph/*.hpp'
