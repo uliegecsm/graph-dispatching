@@ -5,10 +5,10 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -180,30 +180,17 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept) {
 
     static_assert(has_completion_signatures<
                   decltype(chain),
-                  ::stdexec::set_error_t(std::exception_ptr),
-                  ::stdexec::set_value_t()
+                  ::stdexec::__mset<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>
     >);
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     using starts_on_t = decltype(starts_on);
 
-    static_assert(std::same_as<
-                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t>,
-                  ::stdexec::completion_signatures<
-                      ::stdexec::set_error_t(std::exception_ptr),
-                      ::stdexec::set_value_t(),
-                      ::stdexec::set_stopped_t()
-                  >
-    >);
-
-    static_assert(std::same_as<
-                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
-                  ::stdexec::completion_signatures<
-                      ::stdexec::set_error_t(std::exception_ptr),
-                      ::stdexec::set_value_t(),
-                      ::stdexec::set_stopped_t()
-                  >
+    static_assert(has_completion_signatures<
+                  starts_on_t,
+                  ::stdexec::__mset<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>,
+                  ::stdexec::env<>
     >);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
@@ -216,16 +203,14 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept) {
 TEST_F(StartsOnTraitsTest, starts_on_with_noexcept) {
     auto chain = this->get_chain<false>();
 
-    static_assert(has_completion_signatures<decltype(chain), ::stdexec::set_value_t()>);
+    static_assert(has_completion_signatures<decltype(chain), ::stdexec::__mset<::stdexec::set_value_t()>>);
 
     auto starts_on = this->get_starts_on(std::move(chain)); // NOLINT(performance-move-const-arg)
 
     using starts_on_t = decltype(starts_on);
 
-    static_assert(std::same_as<
-                  std::invoke_result_t<::stdexec::get_completion_signatures_t, starts_on_t, ::stdexec::env<>>,
-                  ::stdexec::completion_signatures<::stdexec::set_value_t(), ::stdexec::set_stopped_t()>
-    >);
+    static_assert(
+        has_completion_signatures<starts_on_t, ::stdexec::__mset<::stdexec::set_value_t()>, ::stdexec::env<>>);
 
     ::stdexec::sync_wait(std::move(starts_on)); // NOLINT(performance-move-const-arg)
 }

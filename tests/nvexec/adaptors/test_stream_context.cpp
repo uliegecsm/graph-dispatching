@@ -5,10 +5,10 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_POP
 
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wsign-compare")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsign-compare")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"

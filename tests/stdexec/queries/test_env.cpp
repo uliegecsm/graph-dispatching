@@ -2,11 +2,11 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -64,9 +64,10 @@ static_assert(test_prop_makes_nested_env_queryable());
 
 
 /**
- * @test Check what happens for @c stdexec::prop within nested @c stdexec::env with an additional @c stdexec::prop alongside the nested @c stdexec::env.
+ * @test A @c stdexec::prop within nested @c stdexec::env with an additional @c stdexec::prop alongside the nested @c stdexec::env
+ *       can be queried for.
  *
- * @warning The expected behavior is not clear, see https://github.com/NVIDIA/stdexec/issues/1840.
+ * See also https://github.com/NVIDIA/stdexec/issues/1840.
  */
 constexpr bool test_prop_makes_nested_env_queryable_only_fwd_query() {
     auto env = ::stdexec::env{
@@ -74,13 +75,8 @@ constexpr bool test_prop_makes_nested_env_queryable_only_fwd_query() {
         ::stdexec::prop{                          bar,                     31415}
     };
 
-#if defined(__clang__)
-    static_assert(!::stdexec::__queryable_with<decltype(env), Foo>);
-    return fwd_foo(env) == 42. && bar(env) == 31415;
-#else
     static_assert(::stdexec::__queryable_with<decltype(env), Foo>);
     return fwd_foo(env) == 42. && foo(env) == 'F' && bar(env) == 31415;
-#endif
 }
 static_assert(test_prop_makes_nested_env_queryable_only_fwd_query());
 

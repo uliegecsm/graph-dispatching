@@ -13,12 +13,9 @@ concept has_completion_scheduler_for =
     ::stdexec::__queryable<Sndr>
     && std::invocable<::stdexec::get_completion_scheduler_t<Tag>, const ::stdexec::env_of_t<Sndr>&>;
 
-template <class Sndr, class... Signatures>
-concept has_completion_signatures = ::stdexec::__queryable<Sndr>
-                                 && std::same_as<
-                                        std::invoke_result_t<::stdexec::get_completion_signatures_t, Sndr>,
-                                        ::stdexec::completion_signatures<Signatures...>
-                                 >;
+template <typename Sndr, typename Signatures, typename... Env>
+concept has_completion_signatures =
+    ::stdexec::__mset_eq<Signatures, ::stdexec::__completion_signatures_of_t<Sndr, Env...>>;
 
 namespace impl {
 

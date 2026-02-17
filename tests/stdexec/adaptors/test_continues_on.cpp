@@ -3,9 +3,9 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
@@ -55,11 +55,14 @@ TEST_F(ContinuesOnTest, continues_on) {
     ASSERT_EQ(counter, 3);
 }
 
-//! @test Check traits of the sender created by the customized @c continues_on.
-TEST_F(ContinuesOnTest, traits) {
-    using scheduler_t = decltype(pools.at(index_of_A).get_scheduler());
-    static_assert(::utils::check_continues_on<scheduler_t>());
+//! @test Check traits of the sender created by @c stdexec::continues_on.
+constexpr bool test_continues_on_traits() {
+    static_assert(::utils::check_continues_on<::tests::stdexec::default_scheduler_t>());
+    static_assert(::utils::check_continues_on<::exec::_pool_::_static_thread_pool::scheduler>());
+
+    return true;
 }
+static_assert(test_continues_on_traits());
 
 //! @test This test checks that using @c continues_on persists the scheduler.
 TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
@@ -79,9 +82,8 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
 
     static_assert(has_completion_signatures<
                   decltype(then_1_on_a),
-                  ::stdexec::set_error_t(std::exception_ptr),
-                  ::stdexec::set_stopped_t(),
-                  ::stdexec::set_value_t()
+                  ::stdexec::__mset<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>,
+                  ::stdexec::env<>
     >);
 
     //! Next then, still on scheduler 'a'.
@@ -91,9 +93,8 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
 
     static_assert(has_completion_signatures<
                   decltype(then_2_on_a),
-                  ::stdexec::set_value_t(),
-                  ::stdexec::set_stopped_t(),
-                  ::stdexec::set_error_t(std::exception_ptr)
+                  ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::env<>
     >);
 
     /// Now, we move on scheduler 'b'.
@@ -112,7 +113,7 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
 
     //! It also has a completion scheduler for the value channel.
     static_assert(std::same_as<
-                  ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t>,
+                  ::stdexec::__completion_scheduler_of_t<::stdexec::set_value_t, continues_on_t, ::stdexec::env<>>,
                   exec::_pool_::_static_thread_pool::scheduler
     >);
 
@@ -125,9 +126,8 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
 
     static_assert(has_completion_signatures<
                   then_1_on_b_t,
-                  ::stdexec::set_value_t(),
-                  ::stdexec::set_stopped_t(),
-                  ::stdexec::set_error_t(std::exception_ptr)
+                  ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::env<>
     >);
 
     //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
@@ -147,9 +147,8 @@ TEST_F(ContinuesOnTest, continues_on_persists_scheduler) {
 
     static_assert(has_completion_signatures<
                   then_2_on_b_t,
-                  ::stdexec::set_error_t(std::exception_ptr),
-                  ::stdexec::set_stopped_t(),
-                  ::stdexec::set_value_t()
+                  ::stdexec::__mset<::stdexec::set_error_t(std::exception_ptr), ::stdexec::set_value_t()>,
+                  ::stdexec::env<>
     >);
 
     //! It advertises the default domain, and completes on the @c exec::static_thread_pool domain.
