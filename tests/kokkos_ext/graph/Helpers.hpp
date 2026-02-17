@@ -27,7 +27,8 @@ struct GraphContextTest
     using scheduler_t = decltype(std::declval<const context_t&>().get_scheduler());
     using schedule_sender_t = decltype(::stdexec::schedule(std::declval<scheduler_t>()));
 
-    using view_s_t = Kokkos::View<int, Kokkos::SharedSpace>;
+    using value_t = int;
+    using view_s_t = Kokkos::View<value_t, Kokkos::SharedSpace>;
 
    public:
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)

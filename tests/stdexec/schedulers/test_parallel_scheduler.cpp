@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 
+#define STDEXEC_SYSTEM_CONTEXT_HEADER_ONLY
+
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
