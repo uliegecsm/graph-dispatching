@@ -6,6 +6,7 @@ add_subdirectory(adaptors)
 add_subdirectory(factories)
 add_subdirectory(nvcc)
 add_subdirectory(queries)
+add_subdirectory(schedulers)
 
 add_one_test(NAME check_scheduler       DISABLE_KOKKOS ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})
 add_one_test(NAME completion_signatures DISABLE_KOKKOS ENABLE ${GRAPH_DISPATCHING_ENABLE_STDEXEC_TESTS})

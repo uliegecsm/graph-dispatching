@@ -3,11 +3,11 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
@@ -80,7 +80,8 @@ TEST_F(WhenAllTest, on_which_thread_after) {
     static_assert(std::same_as<
                   std::invoke_result_t<
                       ::stdexec::get_completion_domain_t<::stdexec::set_value_t>,
-                      ::stdexec::env_of_t<decltype(when_all)>
+                      ::stdexec::env_of_t<decltype(when_all)>,
+                      ::stdexec::env<>
                   >,
                   ::exec::_pool_::_static_thread_pool::domain
     >);

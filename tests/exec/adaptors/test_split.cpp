@@ -3,11 +3,11 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 #include "exec/split.hpp"
 #include "exec/static_thread_pool.hpp"
 #include "stdexec/execution.hpp"
@@ -78,7 +78,7 @@ TEST_F(SplitTest, with_transition) {
     ::stdexec::sender auto start = ::stdexec::schedule(scheduler_A) | THEN_STORE_ID(thrids[0]);
 
     static_assert(std::same_as<
-                  ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(start)>,
+                  ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(start), ::stdexec::env<>>,
                   ::exec::_pool_::_static_thread_pool::domain
     >);
     static_assert(has_completion_scheduler_for<decltype(start), ::stdexec::set_value_t>);

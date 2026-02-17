@@ -3,12 +3,12 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
 #include "exec/fork_join.hpp"
 #include "exec/repeat_until.hpp"
 #include "exec/static_thread_pool.hpp"
@@ -82,9 +82,10 @@ TEST_F(ForkJoinTest, copies) {
 
     using chain_t = decltype(chain);
 
-    static_assert(std::same_as<
-                  std::invoke_result_t<::stdexec::get_completion_signatures_t, chain_t>,
-                  ::stdexec::completion_signatures<::stdexec::set_stopped_t(), ::stdexec::set_value_t()>
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  chain_t,
+                  ::stdexec::__mset<::stdexec::set_value_t()>,
+                  ::stdexec::env<>
     >);
 
     /// The completion scheduler after the @c exec::fork_join is the one of the upstream (before the fork). Compared to @c stdexec::when_all

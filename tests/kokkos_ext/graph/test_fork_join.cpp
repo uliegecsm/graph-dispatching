@@ -2,12 +2,12 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-parameter")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wdeprecated-copy")
-PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wunused-result")
 #include "exec/fork_join.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
