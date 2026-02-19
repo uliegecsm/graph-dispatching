@@ -61,29 +61,27 @@ struct ScheduleFromSender {
     bool skip;
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::schedule_from_t, Env> {
-    template <graph_completing_sender<Env> Sndr>
-    auto operator()(stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+template <>
+struct transform_sender_for<stdexec::schedule_from_t> {
+    template <typename Env, graph_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
         const bool skip = [&]() {
             if constexpr (stdexec::__queryable_with<Env, Kokkos::Experimental::details::execution_space::get_exec_t>) {
                 if constexpr (std::same_as<
                                   std::remove_cvref_t<decltype(Kokkos::Experimental::details::execution_space::get_exec(
-                                                                   env_)
+                                                                   env)
                                                                    .get())>,
                                   std::remove_cvref_t<decltype(schd.state_ptr->exec)>
                               >) {
-                    return schd.state_ptr->exec == Kokkos::Experimental::details::execution_space::get_exec(env_).get();
+                    return schd.state_ptr->exec == Kokkos::Experimental::details::execution_space::get_exec(env).get();
                 }
             }
             return false;
         }();
         return ScheduleFromSender{.schd = std::move(schd), .sndr = std::forward<Sndr>(sndr), .skip = skip};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::graph

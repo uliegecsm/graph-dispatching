@@ -66,15 +66,13 @@ struct custom_printf_sender {
 
 namespace iswd {
 
-template <typename Env>
-struct transform_sender_for<myalgo_namespace::myalgo_t, Env> {
-    template <typename Obj, ::stdexec::sender Sndr>
-    auto operator()(myalgo_namespace::myalgo_t, Obj&& obj, Sndr&& sndr) && noexcept {
+template <>
+struct transform_sender_for<myalgo_namespace::myalgo_t> {
+    template <typename Env, typename Obj, ::stdexec::sender Sndr>
+    auto operator()(const Env&, myalgo_namespace::myalgo_t, Obj&& obj, Sndr&& sndr) && noexcept {
         return some_other_namespace::custom_printf_sender<std::remove_cvref_t<Sndr>, std::remove_cvref_t<Obj>>{
             .sndr = std::forward<Sndr>(sndr), .obj = std::forward<Obj>(obj)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace iswd

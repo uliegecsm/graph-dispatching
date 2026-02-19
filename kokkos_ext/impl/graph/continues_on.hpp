@@ -141,15 +141,13 @@ struct ContinuesOnSender {
     Sndr sndr;
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::continues_on_t, Env> {
-    template <stdexec::scheduler Schd, ::stdexec::sender Sndr>
+template <>
+struct transform_sender_for<stdexec::continues_on_t> {
+    template <typename Env, stdexec::scheduler Schd, ::stdexec::sender Sndr>
     requires stdexec::__is_instance_of<Schd, Scheduler>
-    auto operator()(stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
+    auto operator()(const Env&, stdexec::continues_on_t, Schd&& schd, Sndr&& sndr) && noexcept {
         return ContinuesOnSender{.schd = std::forward<Schd>(schd), .sndr = std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::graph

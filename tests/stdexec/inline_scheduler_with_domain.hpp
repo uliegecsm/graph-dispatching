@@ -8,16 +8,15 @@
 namespace iswd {
 
 //! Specialize me to customize an algorithm for the @ref iswd::inline_scheduler.
-template <typename Tag, typename Env>
+template <typename Tag>
 struct transform_sender_for;
 
 //! Domain for @ref iswd::inline_scheduler.
 struct domain : public stdexec::default_domain {
     template <stdexec::sender Sndr, typename Env>
-    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>, Env>, Sndr>
-    static auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env_) {
-        return stdexec::__apply(
-            transform_sender_for<stdexec::tag_of_t<Sndr>, Env>{.env_ = env_}, std::forward<Sndr>(sndr));
+    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr, const Env&>
+    static auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env) {
+        return stdexec::__apply(transform_sender_for<stdexec::tag_of_t<Sndr>>{}, std::forward<Sndr>(sndr), env);
     }
 };
 
