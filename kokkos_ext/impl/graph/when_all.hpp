@@ -151,15 +151,13 @@ struct WhenAllSender {
     stdexec::__tuple<Sndrs...> sndrs;
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::when_all_t, Env> {
-    template <::stdexec::sender... Sndrs>
+template <>
+struct transform_sender_for<stdexec::when_all_t> {
+    template <typename Env, ::stdexec::sender... Sndrs>
     requires(graph_completing_sender<Sndrs, Env> && ...)
-    auto operator()(stdexec::when_all_t, ::stdexec::__ignore, Sndrs&&... sndrs) && noexcept {
+    auto operator()(const Env&, stdexec::when_all_t, ::stdexec::__ignore, Sndrs&&... sndrs) && noexcept {
         return WhenAllSender<Sndrs...>{.sndrs = {std::forward<Sndrs>(sndrs)...}};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::graph

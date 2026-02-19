@@ -170,21 +170,19 @@ struct ForkJoinSender {
     PackedClosures packed_closures;
 };
 
-template <typename Env>
-struct transform_sender_for<exec::fork_join_t, Env> {
-    template <typename PackedClosures, graph_completing_sender<Env> Sndr>
-    auto operator()(exec::fork_join_t, PackedClosures&& closures, Sndr&& sndr) && noexcept {
+template <>
+struct transform_sender_for<exec::fork_join_t> {
+    template <typename Env, typename PackedClosures, graph_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, exec::fork_join_t, PackedClosures&& closures, Sndr&& sndr) && noexcept {
         static_assert(stdexec::__is_instance_of<PackedClosures, stdexec::__tuple>);
 
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
         return ForkJoinSender<decltype(schd), Sndr, PackedClosures>{
             .schd = std::move(schd),
             .sndr = std::forward<Sndr>(sndr),
             .packed_closures = std::forward<PackedClosures>(closures)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::graph

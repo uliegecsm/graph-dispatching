@@ -17,11 +17,11 @@ struct ThenWrapper {
     }
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::then_t, Env> {
-    template <typename Functor, execution_space_completing_sender<Env> Sndr>
-    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+template <>
+struct transform_sender_for<stdexec::then_t> {
+    template <typename Env, typename Functor, execution_space_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
         auto exec = schd.state->exec;
 
         using execution_space = decltype(exec);
@@ -33,8 +33,6 @@ struct transform_sender_for<stdexec::then_t, Env> {
             {{std::move(label), ThenWrapper{std::forward<Functor>(functor)}, std::move(policy)}},
             std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

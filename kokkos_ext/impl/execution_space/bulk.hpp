@@ -7,15 +7,19 @@
 
 namespace Kokkos::Experimental::details::execution_space {
 
-template <typename Env>
-struct transform_sender_for<stdexec::bulk_t, Env> {
-    template <Kokkos::Experimental::details::impl::has_parallel_policy Data, execution_space_completing_sender<Env> Sndr>
-    auto operator()(stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept {
+template <>
+struct transform_sender_for<stdexec::bulk_t> {
+    template <
+        typename Env,
+        Kokkos::Experimental::details::impl::has_parallel_policy Data,
+        execution_space_completing_sender<Env> Sndr
+    >
+    auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept {
         auto [parallel_policy, shape, functor] = std::forward<Data>(data);
 
         using functor_t = decltype(functor);
 
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
         auto exec = schd.state->exec;
 
         using execution_space = decltype(exec);
@@ -26,8 +30,6 @@ struct transform_sender_for<stdexec::bulk_t, Env> {
         return ParallelForSender<Sndr, functor_t, decltype(policy)>{
             {{std::move(label), std::move(functor), std::move(policy)}}, std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

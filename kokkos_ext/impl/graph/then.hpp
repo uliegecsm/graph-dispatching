@@ -141,16 +141,14 @@ struct ThenSender {
     }
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::then_t, Env> {
-    template <typename Functor, graph_completing_sender<Env> Sndr>
-    auto operator()(stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+template <>
+struct transform_sender_for<stdexec::then_t> {
+    template <typename Env, typename Functor, graph_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
         return ThenSender{
             .sndr = std::forward<Sndr>(sndr), .functor = std::forward<Functor>(functor), .schd = std::move(schd)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::graph

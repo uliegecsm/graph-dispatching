@@ -53,14 +53,12 @@ struct ContinuesOnSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::continues_on_t, Env> {
-    template <stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr>
-    auto operator()(stdexec::continues_on_t, Schd&&, Sndr&& sndr) && noexcept {
+template <>
+struct transform_sender_for<stdexec::continues_on_t> {
+    template <typename Env, stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr>
+    auto operator()(const Env&, stdexec::continues_on_t, Schd&&, Sndr&& sndr) && noexcept {
         return ContinuesOnSender{.sndr = std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space

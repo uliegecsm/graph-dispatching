@@ -71,16 +71,14 @@ struct ScheduleFromSender {
     Sndr sndr;
 };
 
-template <typename Env>
-struct transform_sender_for<stdexec::schedule_from_t, Env> {
-    template <execution_space_completing_sender<Env> Sndr>
-    auto operator()(stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+template <>
+struct transform_sender_for<stdexec::schedule_from_t> {
+    template <typename Env, execution_space_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept {
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
         return ScheduleFromSender{.schd = std::move(schd), .sndr = std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space
