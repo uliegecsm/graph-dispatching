@@ -53,23 +53,21 @@ struct ParallelForSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(sndr_t, sndr)
 };
 
-template <typename Env>
-struct transform_sender_for<Kokkos::Experimental::parallel_for_t, Env> {
-    template <typename Data, execution_space_completing_sender<Env> Sndr>
-    auto operator()(Kokkos::Experimental::parallel_for_t, Data&& data, Sndr&& sndr) const noexcept {
+template <>
+struct transform_sender_for<Kokkos::Experimental::parallel_for_t> {
+    template <typename Env, typename Data, execution_space_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, Kokkos::Experimental::parallel_for_t, Data&& data, Sndr&& sndr) const noexcept {
         auto [label, functor, policy] = std::forward<Data>(data);
 
         using functor_t = decltype(functor);
         using policy_t = decltype(policy);
 
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env_);
+        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
         policy_t policy_updated(Kokkos::Impl::PolicyUpdate{}, std::move(policy), schd.state->exec);
         return ParallelForSender<Sndr, functor_t, policy_t>{
             {{std::move(label), std::move(functor), std::move(policy_updated)}}, std::forward<Sndr>(sndr)};
     }
-
-    const Env& env_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace Kokkos::Experimental::details::execution_space
