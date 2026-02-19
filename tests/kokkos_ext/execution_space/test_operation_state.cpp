@@ -65,8 +65,11 @@ TEST_F(OpStateTest, construct_query_and_start) {
         "hello from pfor", BulkFunctor{.data = witness}, Kokkos::RangePolicy(exec, 2, size)};
     Kokkos::Experimental::details::execution_space::ParallelForClosure clsr{.data = std::move(pfor_data)};
 
-    auto op_state = Kokkos::Experimental::details::execution_space::OpState{
-        ::stdexec::schedule(esc.get_scheduler()), tests::stdexec::SinkReceiver{}, std::move(clsr)};
+    auto op_state = Kokkos::Experimental::details::execution_space::OpState<
+        typename Kokkos::Experimental::details::execution_space::Scheduler<execution_space>::Sender,
+        tests::stdexec::SinkReceiver,
+        decltype(clsr)
+    >{::stdexec::schedule(esc.get_scheduler()), tests::stdexec::SinkReceiver{}, std::move(clsr)};
 
     ASSERT_EQ(Kokkos::Experimental::details::execution_space::get_exec(op_state).get(), exec);
 
@@ -74,6 +77,90 @@ TEST_F(OpStateTest, construct_query_and_start) {
     exec.fence();
 
     ASSERT_EQ(witness(), size / 2 * (size - 1) - 1);
+}
+
+//! @test Check construction of folded operation state from two parallel for senders.
+TEST_F(OpStateTest, folded_from_two) {
+    constexpr size_t size = 10;
+
+    const view_s_t witness(Kokkos::view_alloc(exec, "witness - shared space"));
+
+    const context_t esc{exec};
+
+    auto chain = ::stdexec::schedule(esc.get_scheduler())
+               | Kokkos::Experimental::parallel_for(
+                     "hello from pfor", Kokkos::RangePolicy<execution_space>(0, size), BulkFunctor{.data = witness})
+               | Kokkos::Experimental::parallel_for(
+                     "hello again from pfor",
+                     Kokkos::RangePolicy<execution_space>(0, size),
+                     BulkFunctor{.data = witness});
+
+    auto op_state = ::stdexec::connect(std::move(chain), tests::stdexec::SinkReceiver{});
+
+    static_assert(std::same_as<
+                  decltype(op_state),
+                  Kokkos::Experimental::details::execution_space::OpState<
+                      Kokkos::Experimental::ParallelForSender<
+                          Kokkos::Experimental::details::execution_space::Scheduler<execution_space>::Sender,
+                          tests::kokkos_ext::BulkFunctor<view_s_t>,
+                          Kokkos::RangePolicy<execution_space>
+                      >,
+                      tests::stdexec::SinkReceiver,
+                      Kokkos::Experimental::details::execution_space::ParallelForClosure<
+                          tests::kokkos_ext::BulkFunctor<view_s_t>,
+                          Kokkos::RangePolicy<execution_space>
+                      >
+                  >
+    >);
+
+    static_assert(std::derived_from<
+                  decltype(op_state),
+                  Kokkos::Experimental::details::execution_space::OpState<
+                      Kokkos::Experimental::details::execution_space::Scheduler<execution_space>::Sender,
+                      tests::stdexec::SinkReceiver,
+                      Kokkos::Experimental::details::execution_space::ParallelForClosure<
+                          tests::kokkos_ext::BulkFunctor<view_s_t>,
+                          Kokkos::RangePolicy<execution_space>
+                      >,
+                      Kokkos::Experimental::details::execution_space::ParallelForClosure<
+                          tests::kokkos_ext::BulkFunctor<view_s_t>,
+                          Kokkos::RangePolicy<execution_space>
+                      >
+                  >
+    >);
+
+    static_assert(::stdexec::__tuple_size_v<typename decltype(op_state)::closures_t> == 2);
+
+    op_state.start();
+    exec.fence();
+
+    ASSERT_EQ(witness(), 2 * size / 2 * (size - 1));
+}
+
+//! @test Check construction of folded operation state from three parallel for senders.
+TEST_F(OpStateTest, folded_from_three) {
+    constexpr size_t size = 10;
+
+    const view_s_t witness(Kokkos::view_alloc(exec, "witness - shared space"));
+
+    const context_t esc{exec};
+
+    auto chain = ::stdexec::schedule(esc.get_scheduler())
+               | Kokkos::Experimental::parallel_for(
+                     Kokkos::RangePolicy<execution_space>(0, size), BulkFunctor{.data = witness})
+               | Kokkos::Experimental::parallel_for(
+                     Kokkos::RangePolicy<execution_space>(0, size), BulkFunctor{.data = witness})
+               | Kokkos::Experimental::parallel_for(
+                     Kokkos::RangePolicy<execution_space>(0, size), BulkFunctor{.data = witness});
+
+    auto op_state = ::stdexec::connect(std::move(chain), tests::stdexec::SinkReceiver{});
+
+    static_assert(::stdexec::__tuple_size_v<typename decltype(op_state)::closures_t> == 3);
+
+    op_state.start();
+    exec.fence();
+
+    ASSERT_EQ(witness(), 3 * size / 2 * (size - 1));
 }
 
 } // namespace tests::kokkos_ext
