@@ -58,7 +58,7 @@ TEST_F(ThenTest, then_schedule) {
                   ::stdexec::__demangle_t<::stdexec::connect_result_t<chain_t, ::tests::stdexec::SinkReceiver>>,
                   Kokkos::Experimental::details::graph::ThenOpState<
                       Kokkos::Experimental::details::graph::Scheduler<execution_space>,
-                      ::stdexec::__basic_sender<
+                      ::tests::stdexec::basic_sender<
                           ::stdexec::then_t,
                           ::tests::utils::LoadCheckAddFunctor<int, on_device>,
                           Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender

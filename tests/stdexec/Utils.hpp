@@ -8,6 +8,10 @@
 
 namespace tests::stdexec {
 
+//! See https://github.com/NVIDIA/stdexec/pull/1873#discussion_r2834863237.
+template <typename... Args>
+using basic_sender = typename ::stdexec::__basic_sender<Args...>::type;
+
 template <class Sndr, class Tag>
 concept has_completion_scheduler_for =
     ::stdexec::__queryable<Sndr>
