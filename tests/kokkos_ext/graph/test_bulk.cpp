@@ -47,10 +47,10 @@ TEST_F(BulkTest, bulk) {
                   ::stdexec::__demangle_t<::stdexec::connect_result_t<chain_t, ::tests::stdexec::SinkReceiver>>,
                   Kokkos::Experimental::details::graph::BulkOpState<
                       Kokkos::Experimental::details::graph::Scheduler<execution_space>,
-                      ::stdexec::__basic_sender<
+                      ::tests::stdexec::basic_sender<
                           ::stdexec::then_t,
                           tests::ThenFunctor<view_s_t>,
-                          ::stdexec::__basic_sender<
+                          ::tests::stdexec::basic_sender<
                               ::stdexec::bulk_t,
                               ::stdexec::__bulk::__data<
                                   __pstl::execution::parallel_policy,

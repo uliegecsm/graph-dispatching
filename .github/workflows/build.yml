@@ -216,12 +216,6 @@ jobs:
                       base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [AMPERE86]
-                    - backend        : Cuda
-                      compiler_family: gcc
-                      base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
-                      platforms      : linux/arm64
-                      runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
-                      kokkos_archs   : [ARMV9_GRACE, HOPPER90]
                     - backend        : HIP
                       compiler_family: rocm
                       base_image     : rocm/dev-ubuntu-24.04:7.0.2

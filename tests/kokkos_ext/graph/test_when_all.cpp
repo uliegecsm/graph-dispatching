@@ -227,21 +227,21 @@ TEST_F(WhenAllTest, join_topology) {
                   ::stdexec::__demangle_t<outer_0>,
                   Kokkos::Experimental::details::graph::ThenOpState<
                       Kokkos::Experimental::details::graph::Scheduler<execution_space>,
-                      ::stdexec::__basic_sender<
+                      ::tests::stdexec::basic_sender<
                           ::stdexec::continues_on_t,
                           Kokkos::Experimental::details::graph::Scheduler<execution_space>,
-                          ::stdexec::__basic_sender<
+                          ::tests::stdexec::basic_sender<
                               ::stdexec::schedule_from_t,
                               ::stdexec::__,
-                              ::stdexec::__basic_sender<
+                              ::tests::stdexec::basic_sender<
                                   ::stdexec::when_all_t,
                                   ::stdexec::__,
-                                  ::stdexec::__basic_sender<
+                                  ::tests::stdexec::basic_sender<
                                       ::stdexec::then_t,
                                       ::tests::ThenFunctor<atomic<view_s_t>>,
                                       Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender
                                   >,
-                                  ::stdexec::__basic_sender<
+                                  ::tests::stdexec::basic_sender<
                                       ::stdexec::then_t,
                                       ::tests::ThenFunctor<atomic<view_s_t>>,
                                       Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender

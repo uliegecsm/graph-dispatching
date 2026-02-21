@@ -132,10 +132,10 @@ TEST_F(ForkJoinTest, diamond) {
                   ::stdexec::__demangle_t<outer_0>,
                   Kokkos::Experimental::details::graph::ThenOpState<
                       Kokkos::Experimental::details::graph::Scheduler<execution_space>,
-                      ::stdexec::__basic_sender<
+                      ::tests::stdexec::basic_sender<
                           ::exec::fork_join_t,
                           ::stdexec::__tuple<clsr_t, clsr_t>,
-                          ::stdexec::__basic_sender<
+                          ::tests::stdexec::basic_sender<
                               ::stdexec::then_t,
                               functor_t,
                               Kokkos::Experimental::details::graph::Scheduler<execution_space>::Sender

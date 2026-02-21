@@ -66,18 +66,18 @@ TEST_F(StreamContextTest, workload_dependencies) {
     const view_t witness(Kokkos::view_alloc("witness"));
 
     auto chain =
-        stdexec::schedule(stream_ctx.get_scheduler())
-        | stdexec::then(
+        ::stdexec::schedule(stream_ctx.get_scheduler())
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 0, .value = 4, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 4, .value = 2, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 6, .value = 6, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 12, .value = 9, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 21, .value = 8, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 29, .value = 1, .data = witness.data()});
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
@@ -133,20 +133,20 @@ TEST_F(StreamContextTest, split) {
 
     constexpr size_t size = 4;
 
-    auto fork = stdexec::schedule(sch) | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | exec::split();
+    auto fork = ::stdexec::schedule(sch) | ::stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 0}) | exec::split();
 
     /// We must use @c stdexec::transfer_when_all here, see https://github.com/NVIDIA/stdexec/issues/1736.
     ///
     /// References:
     ///     - https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/stdexec/__detail/__when_all.hpp#L453-L463
     ///     - https://github.com/pika-org/pika/blob/11dfb31d37e9395dc42416a53d39d46335f9fd70/libs/pika/execution/include/pika/execution/algorithms/transfer_when_all.hpp#L23
-    auto snd = stdexec::transfer_when_all(
+    auto snd = ::stdexec::transfer_when_all(
                    sch,
-                   fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 1}),
-                   fork | stdexec::then(ThenFunctor{.id = 0}),
-                   fork | stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 2}))
-             | stdexec::then(ThenFunctor{.id = 1});
-    stdexec::sync_wait(std::move(snd));
+                   fork | ::stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 1}),
+                   fork | ::stdexec::then(ThenFunctor{.id = 0}),
+                   fork | ::stdexec::bulk(::stdexec::par, size, BulkFunctor{.id = 2}))
+             | ::stdexec::then(ThenFunctor{.id = 1});
+    ::stdexec::sync_wait(std::move(snd));
 }
 
 //! @test Check that @c nvexec::stream_context correctly synchronizes the kernels before switching to @c exec::static_thread_pool.
@@ -159,15 +159,15 @@ TEST_F(StreamContextTest, move_to_static_thread_pool) {
     exec::static_thread_pool pool{1};
 
     auto chain =
-        stdexec::schedule(stream_ctx.get_scheduler())
-        | stdexec::then(
+        ::stdexec::schedule(stream_ctx.get_scheduler())
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 0, .value = 4, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, true>{.prev = 4, .value = 2, .data = witness.data()})
-        | stdexec::continues_on(pool.get_scheduler())
-        | stdexec::then(
+        | ::stdexec::continues_on(pool.get_scheduler())
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, false>{.prev = 6, .value = 6, .data = witness.data()})
-        | stdexec::then(
+        | ::stdexec::then(
             ::tests::utils::LoadCheckAddFunctor<value_t, false>{.prev = 12, .value = 9, .data = witness.data()});
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)

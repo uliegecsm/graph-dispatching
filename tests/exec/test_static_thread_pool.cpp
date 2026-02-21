@@ -52,7 +52,7 @@ TEST_F(StaticThreadPoolTest, then_completion_domain_with_env) {
 
     static_assert(std::same_as<
                   ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(work)>,
-                  stdexec::indeterminate_domain<>
+                  ::stdexec::indeterminate_domain<>
     >);
 
     /// By passing the thread pool scheduler environment to @c work,

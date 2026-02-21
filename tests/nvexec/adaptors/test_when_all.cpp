@@ -90,8 +90,9 @@ TEST_F(StreamContextTest, different_type_children) {
      * See https://github.com/NVIDIA/stdexec/blob/8cfc3f1983d3521b341864074123281011f998c1/include/stdexec/__detail/__domain.hpp#L93.
      */
     static_assert(!::stdexec::__applicable<
-                  ::nvexec::_strm::transform_sender_for<::stdexec::set_value_t, ::stdexec::env<>>,
-                  when_all_t
+                  ::nvexec::_strm::transform_sender_for<::stdexec::set_value_t>,
+                  when_all_t,
+                  const ::stdexec::env<>&
     >);
 
     /**
