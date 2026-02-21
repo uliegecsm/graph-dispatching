@@ -38,6 +38,51 @@ class LetValueTest
     static constexpr size_t index_of_D = index_of<'D'>();
 };
 
+template <bool Throws>
+struct Dummy {
+    void operator()() const noexcept(!Throws) {
+    }
+};
+
+/**
+ * @test Completion signatures of @c stdexec::let_value.
+ *
+ * This test shows that the completion signature of @c stdexec::let_value depends
+ * both on the @c noexcept -ness of its lambda, but also on the completion signatures
+ * of the returned sender.
+ */
+constexpr bool test_completion_signatures() {
+    //! The lambda is @c noexcept, the functor is @c noexcept callable.
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just() | ::stdexec::then(Dummy<false>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t()>,
+                  ::stdexec::env<>
+    >);
+
+    //! The lambda is not @c noexcept, the functor is @c noexcept callable.
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() {
+                               return ::stdexec::just() | ::stdexec::then(Dummy<false>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::env<>
+    >);
+
+    //! The lambda is @c noexcept, the functor is not @c noexcept callable.
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just() | ::stdexec::then(Dummy<true>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::env<>
+    >);
+
+    return true;
+}
+static_assert(test_completion_signatures());
+
 /**
  * @test Use @c stdexec::let_value to express branching instead of @c exec::split, as proposed in @cite P3682R0.
  *
