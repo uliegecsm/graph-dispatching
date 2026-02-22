@@ -11,16 +11,31 @@ struct ThenFunctor {
     typename ViewType::non_const_type data;
 
     KOKKOS_FUNCTION
-    void operator()() const noexcept(MayThrow == false) {
+    void operator()() const noexcept(!MayThrow) {
         ++data();
     }
 };
 
 //! Does nothing.
-template <bool MayThrow = true>
+template <bool MayThrowOnCall = true, bool MayThrowOnCopy = true, bool MayThrowOnMove = true>
 struct ThenNoOp {
+    ThenNoOp() = default;
+
+    ThenNoOp(const ThenNoOp&) noexcept(!MayThrowOnCopy) { // NOLINT(modernize-use-equals-default)
+    }
+    ThenNoOp(ThenNoOp&&) noexcept(!MayThrowOnMove) {
+    }
+    ThenNoOp& operator=(const ThenNoOp&) noexcept(!MayThrowOnCopy) { // NOLINT(modernize-use-equals-default)
+        return *this;
+    }
+    ThenNoOp& operator=(ThenNoOp&&) noexcept(!MayThrowOnMove) {
+        return *this;
+    }
+
+    ~ThenNoOp() = default;
+
     KOKKOS_FUNCTION
-    void operator()() const noexcept(MayThrow == false) {
+    void operator()() const noexcept(!MayThrowOnCall) {
     }
 };
 
@@ -32,7 +47,7 @@ struct AddValueOffset {
     typename ViewType::size_type offset = 0;
 
     template <std::integral T>
-    KOKKOS_FUNCTION void operator()(const T index) const noexcept(MayThrow == false) {
+    KOKKOS_FUNCTION void operator()(const T index) const noexcept(!MayThrow) {
         data(offset + index) += value;
     }
 };

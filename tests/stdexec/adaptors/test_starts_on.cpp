@@ -151,7 +151,7 @@ class StartsOnTraitsTest
    public:
     template <bool MayThrow>
     static ::stdexec::sender auto get_chain() {
-        return ::stdexec::just() | ::stdexec::then(ThenNoOp<MayThrow>{});
+        return ::stdexec::just() | ::stdexec::then(ThenNoOp<MayThrow, false, false>{});
     }
 
     template <::stdexec::sender Chain>

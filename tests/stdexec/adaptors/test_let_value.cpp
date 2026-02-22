@@ -42,33 +42,74 @@ class LetValueTest
 /**
  * @test Completion signatures of @c stdexec::let_value.
  *
- * This test shows that the completion signature of @c stdexec::let_value depends
- * both on the @c noexcept -ness of its lambda, but also on the completion signatures
- * of the returned sender.
+ * This test shows that the completion signatures of @c stdexec::let_value depend on
+ *
+ * - whether the lambda is nothrow invocable,
+ * - whether the returned sender is nothrow connectable,
+ * - whether the returned sender may complete with an error.
  */
-constexpr bool test_completion_signatures() {
-    //! The lambda is @c noexcept, the functor is @c noexcept callable.
+consteval bool test_completion_signatures() {
+    //! The lambda is nothrow invocable, the functor is nothrow invocable and nothrow movable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
-                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false, false, false>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t()>,
                   ::stdexec::env<>
     >);
 
-    //! The lambda is not @c noexcept, the functor is @c noexcept callable.
+    //! The lambda is potentially throwing on call, the functor is nothrow invocable and nothrow movable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() {
-                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false, false, false>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
                   ::stdexec::env<>
     >);
 
-    //! The lambda is @c noexcept, the functor is not @c noexcept callable.
+    //! The lambda is nothrow invocable, the functor is potentially throwing on call and nothrow movable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
-                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<true>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<true, false, false>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::env<>
+    >);
+
+    /**
+     * The lambda is nothrow invocable, the functor is nothrow invocable and nothrow movable,
+     * but potentially throwing on copy.
+     *
+     * The @c let_value attaches to the @c just sender a continuation that calls the lambda to
+     * return a sender that is connected and started. As the functor is moved when the returned
+     * sender is connected, the connection is nothrow, and no @c set_error_t completion is added
+     * to the completion signatures.
+     */
+    static_assert(::stdexec::__nothrow_connectable<
+                  decltype(::stdexec::then(::stdexec::just(), ThenNoOp<false, true, false>{})),
+                  tests::stdexec::SinkReceiver
+    >);
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false, true, false>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t()>,
+                  ::stdexec::env<>
+    >);
+
+    /**
+     * The lambda is nothrow invocable, the functor is nothrow invocable and potentially throwing on move.
+     *
+     * The connection of the returned sender is now potentially throwing, and a @c set_error_t completion
+     * is added to the completion signatures.
+     */
+    static_assert(!::stdexec::__nothrow_connectable<
+                  decltype(::stdexec::then(::stdexec::just(), ThenNoOp<false, false, true>{})),
+                  tests::stdexec::SinkReceiver
+    >);
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false, false, true>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
                   ::stdexec::env<>
