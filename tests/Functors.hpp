@@ -16,6 +16,14 @@ struct ThenFunctor {
     }
 };
 
+//! Does nothing.
+template <bool MayThrow = true>
+struct ThenNoOp {
+    KOKKOS_FUNCTION
+    void operator()() const noexcept(MayThrow == false) {
+    }
+};
+
 //! Add @ref value to @ref data.
 template <Kokkos::utils::concepts::ViewOfRank<1> ViewType, bool MayThrow = true>
 struct AddValueOffset {

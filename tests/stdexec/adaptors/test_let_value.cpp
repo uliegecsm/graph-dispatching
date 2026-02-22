@@ -12,6 +12,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wswitch-default")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
+#include "tests/Functors.hpp"
 #include "tests/Utils.hpp"
 #include "tests/stdexec/Utils.hpp"
 
@@ -38,12 +39,6 @@ class LetValueTest
     static constexpr size_t index_of_D = index_of<'D'>();
 };
 
-template <bool Throws>
-struct Dummy {
-    void operator()() const noexcept(!Throws) {
-    }
-};
-
 /**
  * @test Completion signatures of @c stdexec::let_value.
  *
@@ -55,7 +50,7 @@ constexpr bool test_completion_signatures() {
     //! The lambda is @c noexcept, the functor is @c noexcept callable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
-                               return ::stdexec::just() | ::stdexec::then(Dummy<false>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t()>,
                   ::stdexec::env<>
@@ -64,7 +59,7 @@ constexpr bool test_completion_signatures() {
     //! The lambda is not @c noexcept, the functor is @c noexcept callable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() {
-                               return ::stdexec::just() | ::stdexec::then(Dummy<false>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<false>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
                   ::stdexec::env<>
@@ -73,7 +68,7 @@ constexpr bool test_completion_signatures() {
     //! The lambda is @c noexcept, the functor is not @c noexcept callable.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
-                               return ::stdexec::just() | ::stdexec::then(Dummy<true>{});
+                               return ::stdexec::just() | ::stdexec::then(ThenNoOp<true>{});
                            })),
                   ::stdexec::__mset<::stdexec::set_value_t(), ::stdexec::set_error_t(std::exception_ptr)>,
                   ::stdexec::env<>
