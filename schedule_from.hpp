@@ -62,22 +62,31 @@ struct ScheduleFromSender {
     stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         using recv_t = ScheduleFromReceiver<Schd, std::remove_cvref_t<Rcvr>>;
 
-        return stdexec::connect(std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
+        return stdexec::connect(
+            std::forward<Sndr>(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 
     Schd schd;
-    Sndr sndr;
+    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 template <>
 struct transform_sender_for<stdexec::schedule_from_t> {
-    template <typename Env, execution_space_completing_sender<Env> Sndr>
-    auto operator()(const Env& env, stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept {
-        auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
+    template <typename Env, typename Sndr>
+    using schd_t = stdexec::__completion_scheduler_of_t<stdexec::set_value_t, Sndr, const Env&>;
 
-        return ScheduleFromSender{.schd = std::move(schd), .sndr = std::forward<Sndr>(sndr)};
+    template <typename Env, typename Sndr>
+    using sndr_t = ScheduleFromSender<schd_t<Env, Sndr>, Sndr>;
+
+    template <typename Env, execution_space_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept(
+        std::is_nothrow_constructible_v<sndr_t<Env, Sndr>, schd_t<Env, Sndr>&&, Sndr&&>) {
+
+        return sndr_t<Env, Sndr>{
+            .schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env),
+            .sndr = std::forward<Sndr>(sndr)};
     }
 };
 
