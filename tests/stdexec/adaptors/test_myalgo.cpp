@@ -55,10 +55,9 @@ struct custom_printf_sender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(custom_printf_sender)
 
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         return ::stdexec::connect(
-            std::move(sndr),
-            receiver<std::remove_cvref_t<Rcvr>>{.downstream_rcvr = std::forward<Rcvr>(rcvr), .obj = std::move(obj)});
+            std::move(sndr), receiver<Rcvr>{.downstream_rcvr = std::move(rcvr), .obj = std::move(obj)});
     }
 };
 

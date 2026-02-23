@@ -39,9 +39,8 @@ struct inline_scheduler {
         using completion_signatures = ::stdexec::completion_signatures<::stdexec::set_value_t()>;
 
         template <::stdexec::receiver_of<completion_signatures> Rcvr>
-        auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-            -> operation_state<std::remove_cvref_t<Rcvr>> {
-            return {.rcvr = std::forward<Rcvr>(rcvr)};
+        auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) -> operation_state<Rcvr> {
+            return {.rcvr = std::move(rcvr)};
         }
 
         struct attrs {

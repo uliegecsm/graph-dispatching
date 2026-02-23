@@ -133,9 +133,8 @@ struct BulkSender {
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return BulkOpState<Schd, Sndr, std::remove_cvref_t<Rcvr>, Data>(
-            std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr), std::move(data));
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return BulkOpState<Schd, Sndr, Rcvr, Data>(std::move(schd), std::move(sndr), std::move(rcvr), std::move(data));
     }
 
     Sndr sndr;

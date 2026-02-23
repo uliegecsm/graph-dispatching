@@ -143,9 +143,8 @@ struct Scheduler {
         using completion_signatures = ::stdexec::completion_signatures<::stdexec::set_value_t()>;
 
         template <stdexec::receiver_of<completion_signatures> Rcvr>
-        OpState<std::remove_cvref_t<Rcvr>>
-            connect(Rcvr&& rcvr) noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<Rcvr>, Rcvr&&>) {
-            return {std::forward<Rcvr>(rcvr)};
+        OpState<Rcvr> connect(Rcvr rcvr) noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+            return {std::move(rcvr)};
         }
 
         [[nodiscard]]
