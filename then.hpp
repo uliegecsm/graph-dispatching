@@ -8,6 +8,7 @@ namespace Kokkos::Experimental::details::execution_space {
 
 //! Inspired by https://github.com/kokkos/kokkos/blob/69273c3a4e7b6adeb95066341ca201d62fe1e698/core/src/impl/Kokkos_GraphNodeThenImpl.hpp#L28.
 template <typename Functor>
+requires(std::same_as<void, std::invoke_result_t<Functor>>)
 struct ThenWrapper {
     Functor functor;
 

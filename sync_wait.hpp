@@ -10,15 +10,18 @@
 namespace Kokkos::Experimental::details::execution_space {
 
 //! Receiver for @c sync_wait.
-template <Kokkos::ExecutionSpace Exec>
+template <Kokkos::ExecutionSpace Exec, typename... Values>
 struct SyncWaitReceiver {
     using receiver_concept = stdexec::receiver_t;
 
     State<Exec> const * state;
     Kokkos::Experimental::details::impl::State* runloop_state;
+    std::optional<std::tuple<Values...>>* result;
 
-    void set_value() && noexcept {
+    template <typename... Args>
+    void set_value(Args&&... args) && noexcept {
         state->exec.fence(std::format("{}: sync_wait", Kokkos::Impl::TypeInfo<Exec>::name()));
+        result->emplace(std::forward<Args>(args)...);
         runloop_state->loop.finish();
     }
 
@@ -54,14 +57,22 @@ struct SyncWait {
      * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
      */
     template <stdexec::sender Sndr>
-    auto operator()(Sndr&& sndr) const noexcept(false) -> std::optional<std::tuple<>> {
+    auto operator()(Sndr&& sndr) const noexcept(false)
+        -> std::optional<stdexec::__sync_wait::__value_tuple_for_t<Sndr>> {
         Kokkos::Experimental::details::impl::State runloop_state;
 
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 
+        using result_t = std::optional<stdexec::__sync_wait::__value_tuple_for_t<Sndr>>;
+
+        result_t result{};
+
         auto op_state = stdexec::connect(
             std::forward<Sndr>(sndr),
-            SyncWaitReceiver{.state = std::move(schd.state), .runloop_state = &runloop_state});
+            SyncWaitReceiver{
+                .state = std::move(schd.state),
+                .runloop_state = std::addressof(runloop_state),
+                .result = std::addressof(result)});
 
         stdexec::start(op_state);
 
@@ -70,7 +81,7 @@ struct SyncWait {
         if (runloop_state.error)
             std::rethrow_exception(std::move(runloop_state.error));
 
-        return std::tuple{};
+        return result;
     }
 };
 
@@ -81,13 +92,11 @@ struct SyncWait {
  *  - https://github.com/NVIDIA/stdexec/blob/e8a6a7b25fbc2463e1dfe0ee20973b1fe622bfcf/include/nvexec/stream_context.cuh#L247-L251
  *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#spec-execution.senders.consumers.sync_wait
  *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html#design-dispatch
- *
- * @todo Make the @c noexcept specifier depend on the completion signatures of @p sndr.
  */
 template <>
 struct apply_sender_for<stdexec::sync_wait_t> {
     template <execution_space_completing_sender Sndr>
-    auto operator()(Sndr&& sndr) && noexcept(false) {
+    auto operator()(Sndr&& sndr) && noexcept(std::is_nothrow_invocable_v<SyncWait, Sndr&&>) {
         return SyncWait{}(std::forward<Sndr>(sndr));
     }
 };
