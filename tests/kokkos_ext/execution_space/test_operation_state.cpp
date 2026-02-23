@@ -25,19 +25,15 @@ class OpStateTest : public impl::ExecutionSpaceContextTest<execution_space> { };
 
 //! @test Check traits of @c Kokkos::Experimental::details::execution_space::OpState.
 consteval bool test_op_state_traits() {
-    //! Schedule sender.
-    using schd_sndr_t = typename OpStateTest::schedule_sender_t;
+    using clsr_t = Kokkos::Experimental::details::execution_space::ParallelForClosure<
+        BulkFunctor<typename OpStateTest::view_s_t>,
+        Kokkos::RangePolicy<execution_space>
+    >;
 
-    //! Parallel for closure.
-    using functor_t = BulkFunctor<typename OpStateTest::view_s_t>;
-    using policy_t = Kokkos::RangePolicy<execution_space>;
-    using clsr_t = Kokkos::Experimental::details::execution_space::ParallelForClosure<functor_t, policy_t>;
-
-    //! Receiver.
     using rcvr_t = tests::stdexec::SinkReceiver;
 
-    //! Operation state.
-    using op_state_t = Kokkos::Experimental::details::execution_space::OpState<schd_sndr_t, rcvr_t, clsr_t>;
+    using op_state_t =
+        Kokkos::Experimental::details::execution_space::OpState<typename OpStateTest::schedule_sender_t, rcvr_t, clsr_t>;
 
     //! Models the operation state concept.
     static_assert(::stdexec::operation_state<op_state_t>);
