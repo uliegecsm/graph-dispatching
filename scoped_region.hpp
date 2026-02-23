@@ -99,7 +99,7 @@ struct RegionSender {
 struct Push {
     template <stdexec::sender Sndr, typename T>
     auto operator()(Sndr&& sndr, T&& name) const noexcept -> RegionSender<Kind::PUSH, Sndr> {
-        return RegionSender<Kind::PUSH, Sndr>{.sndr = std::forward<Sndr&&>(sndr), .name = std::forward<T>(name)};
+        return RegionSender<Kind::PUSH, Sndr>{.sndr = std::forward<Sndr>(sndr), .name = std::forward<T>(name)};
     }
 
     template <typename T>
@@ -123,7 +123,7 @@ struct Pop {
 struct ScopedRegion {
     template <stdexec::sender Sndr, typename T, stdexec::__sender_adaptor_closure Closure>
     auto operator()(Sndr&& sndr, T&& name, Closure&& closure) const noexcept {
-        return std::forward<Sndr&&>(sndr) | Push{}(std::forward<T>(name)) | std::forward<Closure>(closure) | Pop{}();
+        return std::forward<Sndr>(sndr) | Push{}(std::forward<T>(name)) | std::forward<Closure>(closure) | Pop{}();
     }
 
     template <typename T, stdexec::__sender_adaptor_closure Closure>
