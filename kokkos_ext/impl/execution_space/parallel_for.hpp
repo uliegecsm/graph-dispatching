@@ -25,7 +25,7 @@ struct ParallelForClosure {
         Kokkos::parallel_for(data.label, data.policy, data.functor);
     }
 
-    const policy_t& get_policy() const & {
+    const policy_t& get_policy() const & noexcept {
         return data.policy;
     }
 };
