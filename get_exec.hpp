@@ -56,7 +56,7 @@ struct ExecutionSpaceRef {
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC_TYPE(_exec_type_, _rcvr_type_)                                        \
-    ::exec::upsert_in_env_t<                                                                                           \
+    ::exec::upsert_in_env_or_join_t<                                                                                   \
         Kokkos::Experimental::details::execution_space::get_exec_t,                                                    \
         stdexec::__fwd_env_t<stdexec::env_of_t<_rcvr_type_>>,                                                          \
         Kokkos::Experimental::details::execution_space::ExecutionSpaceRef<_exec_type_>                                 \
@@ -67,7 +67,7 @@ struct ExecutionSpaceRef {
     [[nodiscard]]                                                                                                      \
     constexpr auto get_env() const noexcept                                                                            \
         -> GRAPH_DISPATCHING_KOKKOS_EXT_UPSERT_EXEC_TYPE(_exec_type_, _rcvr_type_) {                                   \
-        return ::exec::upsert_in_env(                                                                                  \
+        return ::exec::upsert_in_env_or_join(                                                                          \
             Kokkos::Experimental::details::execution_space::get_exec,                                                  \
             stdexec::__fwd_env(stdexec::get_env(_rcvr_)),                                                              \
             Kokkos::Experimental::details::execution_space::ExecutionSpaceRef{_exec_});                                \
