@@ -15,6 +15,7 @@ PRAGMA_DIAGNOSTIC_POP
 
 #include "kokkos_ext/impl/ExecutionSpaceContext_fwd.hpp"
 #include "kokkos_ext/impl/completion_signatures.hpp"
+#include "kokkos_ext/impl/env.hpp"
 
 /**
  * @file
@@ -66,9 +67,7 @@ struct RegionReceiver {
         std::move(*this).complete(stdexec::set_error, std::forward<Error>(err));
     }
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Rcvr> {
-        return stdexec::get_env(rcvr);
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Rcvr, rcvr)
 };
 
 template <Kind kind, stdexec::sender Sndr>
@@ -90,9 +89,7 @@ struct RegionSender {
     Sndr sndr;
     std::string name{};
 
-    auto get_env() const noexcept -> ::stdexec::env_of_t<Sndr> {
-        return stdexec::get_env(sndr);
-    }
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 };
 
 struct Push {
