@@ -38,7 +38,7 @@ template <stdexec::sender Sndr>
 struct ContinuesOnSender {
     using sender_concept = stdexec::sender_t;
 
-    Sndr sndr;
+    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
@@ -47,7 +47,7 @@ struct ContinuesOnSender {
         -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>> {
         using recv_t = ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>;
 
-        return stdexec::connect(std::move(sndr), recv_t{.rcvr = std::forward<Rcvr>(rcvr)});
+        return stdexec::connect(std::forward<Sndr>(sndr), recv_t{.rcvr = std::forward<Rcvr>(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
@@ -56,8 +56,9 @@ struct ContinuesOnSender {
 template <>
 struct transform_sender_for<stdexec::continues_on_t> {
     template <typename Env, stdexec::__is_instance_of<Scheduler> Schd, stdexec::sender Sndr>
-    auto operator()(const Env&, stdexec::continues_on_t, Schd&&, Sndr&& sndr) && noexcept {
-        return ContinuesOnSender{.sndr = std::forward<Sndr>(sndr)};
+    auto operator()(const Env&, stdexec::continues_on_t, Schd&&, Sndr&& sndr) && noexcept(
+        std::is_nothrow_constructible_v<ContinuesOnSender<Sndr>, Sndr&&>) {
+        return ContinuesOnSender<Sndr>{.sndr = std::forward<Sndr>(sndr)};
     }
 };
 

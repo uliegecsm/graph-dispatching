@@ -31,8 +31,9 @@ struct Domain : public stdexec::default_domain {
     }
 
     template <stdexec::sender Sndr, typename Env>
-    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr, const Env&>
-    static auto transform_sender(stdexec::set_value_t, Sndr&& sndr, const Env& env) {
+    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr&&, const Env&>
+    static auto transform_sender(stdexec::set_value_t, Sndr&& sndr, const Env& env)
+        noexcept(stdexec::__nothrow_applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr&&, const Env&>) {
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
         PLOG_DEBUG << Kokkos::Impl::TypeInfo<Domain>::name() << ": transform_sender for tag "
                    << Kokkos::Impl::TypeInfo<stdexec::tag_of_t<Sndr>>::name();

@@ -15,8 +15,7 @@
 
 using execution_space = Kokkos::DefaultExecutionSpace;
 
-namespace tests::kokkos
-{
+namespace tests::kokkos {
 
 //! @test Check nothrow traits of @c Kokkos::RangePolicy.
 constexpr bool test_range_policy_traits() {
