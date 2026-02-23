@@ -128,9 +128,8 @@ struct ContinuesOnSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return ContinuesOnOpState<Schd, Sndr, std::remove_cvref_t<Rcvr>>(
-            std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr));
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return ContinuesOnOpState<Schd, Sndr, Rcvr>(std::move(schd), std::move(sndr), std::move(rcvr));
     }
 
     auto get_env() const noexcept -> SchedulerEnv<typename Schd::execution_space> {

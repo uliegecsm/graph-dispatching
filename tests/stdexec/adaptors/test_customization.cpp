@@ -136,12 +136,11 @@ struct ThenSender {
     ///@}
 
     template <::stdexec::receiver Rcvr>
-    auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = ThenReceiver<ID, Customization, std::remove_cvref_t<Rcvr>, Functor>;
+    auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        using recv_t = ThenReceiver<ID, Customization, Rcvr, Functor>;
 
         //! @note We don't pass the @ref schd to the receiver because it serves no purpose in this test.
-        return ::stdexec::connect(
-            std::move(sndr), recv_t{.rcvr = std::forward<Rcvr>(rcvr), .functor = std::move(functor)});
+        return ::stdexec::connect(std::move(sndr), recv_t{.rcvr = std::move(rcvr), .functor = std::move(functor)});
     }
 
     Sndr sndr;

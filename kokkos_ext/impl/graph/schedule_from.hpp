@@ -47,11 +47,11 @@ struct ScheduleFromSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ScheduleFromSender)
 
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        using recv_t = ScheduleFromReceiver<Schd, std::remove_cvref_t<Rcvr>>;
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        using recv_t = ScheduleFromReceiver<Schd, Rcvr>;
 
         return ::stdexec::connect(
-            std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::forward<Rcvr>(rcvr), .skip = skip});
+            std::move(sndr), recv_t{.schd = std::move(schd), .rcvr = std::move(rcvr), .skip = skip});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)

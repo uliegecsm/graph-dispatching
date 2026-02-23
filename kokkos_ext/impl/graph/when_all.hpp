@@ -140,8 +140,8 @@ struct WhenAllSender {
     }
 
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return WhenAllOpState<Rcvr, Sndrs...>(std::move(sndrs), std::forward<Rcvr>(rcvr));
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return WhenAllOpState<Rcvr, Sndrs...>(std::move(sndrs), std::move(rcvr));
     }
 
     constexpr auto get_env() const noexcept -> attrs {

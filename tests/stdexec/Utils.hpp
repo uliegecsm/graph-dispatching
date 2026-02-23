@@ -31,7 +31,7 @@ struct CheckSchedulerSender {
 
     template <::stdexec::receiver Rcvr>
     constexpr ::stdexec::operation_state auto
-        connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         /// First, try to get the completion scheduler from the sender environment.
         if constexpr (requires {
                           ::stdexec::get_completion_scheduler<Tag>(::stdexec::get_env(sndr), ::stdexec::get_env(rcvr));
@@ -56,7 +56,7 @@ struct CheckSchedulerSender {
                 "No scheduler found.");
         }
 
-        return ::stdexec::connect(std::move(sndr), std::forward<Rcvr>(rcvr));
+        return ::stdexec::connect(std::move(sndr), std::move(rcvr));
     }
 
     Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

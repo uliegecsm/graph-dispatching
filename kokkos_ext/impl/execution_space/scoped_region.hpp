@@ -78,14 +78,13 @@ struct RegionSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(RegionSender)
 
     template <stdexec::receiver Rcvr>
-    stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+    stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr));
 
-        using recv_t = RegionReceiver<kind, std::remove_cvref_t<Rcvr>, std::remove_cvref_t<decltype(schd)>>;
+        using recv_t = RegionReceiver<kind, Rcvr, std::remove_cvref_t<decltype(schd)>>;
 
         return stdexec::connect(
-            std::move(sndr),
-            recv_t{.rcvr = std::forward<Rcvr>(rcvr), .name = std::move(name), .schd = std::move(schd)});
+            std::move(sndr), recv_t{.rcvr = std::move(rcvr), .name = std::move(name), .schd = std::move(schd)});
     }
 
     Sndr sndr;

@@ -127,9 +127,9 @@ struct ThenSender {
 
     //! See also https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/then.cuh#L52.
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return ThenOpState<Schd, Sndr, std::remove_cvref_t<Rcvr>, Functor>(
-            std::move(schd), std::move(sndr), std::forward<Rcvr>(rcvr), std::move(functor));
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return ThenOpState<Schd, Sndr, Rcvr, Functor>(
+            std::move(schd), std::move(sndr), std::move(rcvr), std::move(functor));
     }
 
     Sndr sndr;

@@ -48,8 +48,8 @@ struct CacheSender {
     }
 
     template <stdexec::receiver Rcvr>
-    constexpr auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) -> CacheOpState<Rcvr> {
-        return {std::forward<Rcvr>(rcvr)};
+    constexpr auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) -> CacheOpState<Rcvr> {
+        return {std::move(rcvr)};
     }
 
     static constexpr auto get_env() noexcept -> Kokkos::Experimental::details::impl::domain_queryable_env_t<Domain> {
@@ -158,9 +158,9 @@ struct ForkJoinSender {
     }
 
     template <::stdexec::receiver Rcvr>
-    ::stdexec::operation_state auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-        return ForkJoinOpState<Schd, Sndr, PackedClosures, std::remove_cvref_t<Rcvr>>(
-            std::move(schd), std::move(sndr), std::move(packed_closures), std::forward<Rcvr>(rcvr));
+    ::stdexec::operation_state auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+        return ForkJoinOpState<Schd, Sndr, PackedClosures, Rcvr>(
+            std::move(schd), std::move(sndr), std::move(packed_closures), std::move(rcvr));
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)

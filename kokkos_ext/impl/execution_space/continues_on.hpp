@@ -43,11 +43,11 @@ struct ContinuesOnSender {
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
     template <stdexec::receiver Rcvr>
-    auto connect(Rcvr&& rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>> {
-        using recv_t = ContinuesOnReceiver<std::remove_cvref_t<Rcvr>>;
+    auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
+        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<Rcvr>> {
+        using recv_t = ContinuesOnReceiver<Rcvr>;
 
-        return stdexec::connect(std::forward<Sndr>(sndr), recv_t{.rcvr = std::forward<Rcvr>(rcvr)});
+        return stdexec::connect(std::forward<Sndr>(sndr), recv_t{.rcvr = std::move(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
