@@ -12,6 +12,7 @@ PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
 #include "stdexec/execution.hpp"
 PRAGMA_DIAGNOSTIC_POP
 
+#include "tests/Functors.hpp"
 #include "tests/Utils.hpp"
 #include "tests/stdexec/Utils.hpp"
 
@@ -144,19 +145,13 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain) {
     ASSERT_THAT(ids, ::testing::Each(threads.at(index_of_A)));
 }
 
-template <bool MayThrow>
-struct ThenFunctorMayThrow {
-    void operator()() const noexcept(!MayThrow) {
-    }
-};
-
 class StartsOnTraitsTest
     : public utils::StaticThreadPool<'A'>
     , public ::testing::Test {
    public:
     template <bool MayThrow>
     static ::stdexec::sender auto get_chain() {
-        return ::stdexec::just() | ::stdexec::then(ThenFunctorMayThrow<MayThrow>{});
+        return ::stdexec::just() | ::stdexec::then(ThenNoOp<MayThrow, false, false>{});
     }
 
     template <::stdexec::sender Chain>
@@ -172,7 +167,7 @@ class StartsOnTraitsTest
 };
 
 /**
- * @test Check that a chain of @ref ThenFunctorMayThrow without @c noexcept terminated by a @c starts_on
+ * @test Check that a chain of @ref ThenNoOp without @c noexcept terminated by a @c starts_on
  *       will complete on all channels.
  */
 TEST_F(StartsOnTraitsTest, starts_on_without_noexcept) {
@@ -197,7 +192,7 @@ TEST_F(StartsOnTraitsTest, starts_on_without_noexcept) {
 }
 
 /**
- * @test Check that a chain of @ref ThenFunctorMayThrow with @c noexcept terminated by a @c starts_on
+ * @test Check that a chain of @ref ThenNoOp with @c noexcept terminated by a @c starts_on
  *       will complete on all but the error channels.
  */
 TEST_F(StartsOnTraitsTest, starts_on_with_noexcept) {
