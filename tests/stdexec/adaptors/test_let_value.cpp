@@ -115,6 +115,26 @@ consteval bool test_completion_signatures() {
                   ::stdexec::env<>
     >);
 
+    //! The completion signatures contain the error channel when the lambda returns a sender whose value is not nothrow moveable.
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just(ThenNoOp<false, true, true>{});
+                           })),
+                  ::stdexec::__mset<
+                      ::stdexec::set_value_t(ThenNoOp<false, true, true>),
+                      ::stdexec::set_error_t(std::exception_ptr)
+                  >,
+                  ::stdexec::env<>
+    >);
+
+    static_assert(::tests::stdexec::has_completion_signatures<
+                  decltype(::stdexec::just() | ::stdexec::let_value([]() noexcept {
+                               return ::stdexec::just(ThenNoOp<false, true, false>{});
+                           })),
+                  ::stdexec::__mset<::stdexec::set_value_t(ThenNoOp<false, true, false>)>,
+                  ::stdexec::env<>
+    >);
+
     return true;
 }
 static_assert(test_completion_signatures());
