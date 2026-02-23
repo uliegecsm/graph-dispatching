@@ -74,17 +74,17 @@ struct ScheduleFromSender {
 
 template <>
 struct transform_sender_for<stdexec::schedule_from_t> {
-    template <typename Env, typename Sndr>
+    template <typename Sndr, typename Env>
     using schd_t = stdexec::__completion_scheduler_of_t<stdexec::set_value_t, Sndr, const Env&>;
 
-    template <typename Env, typename Sndr>
-    using sndr_t = ScheduleFromSender<schd_t<Env, Sndr>, Sndr>;
+    template <typename Sndr, typename Env>
+    using sndr_t = ScheduleFromSender<schd_t<Sndr, Env>, Sndr>;
 
     template <typename Env, execution_space_completing_sender<Env> Sndr>
     auto operator()(const Env& env, stdexec::schedule_from_t, stdexec::__ignore, Sndr&& sndr) && noexcept(
-        std::is_nothrow_constructible_v<sndr_t<Env, Sndr>, schd_t<Env, Sndr>&&, Sndr&&>) {
+        std::is_nothrow_constructible_v<sndr_t<Sndr, Env>, schd_t<Sndr, Env>&&, Sndr&&>) {
 
-        return sndr_t<Env, Sndr>{
+        return sndr_t<Sndr, Env>{
             .schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env),
             .sndr = std::forward<Sndr>(sndr)};
     }
