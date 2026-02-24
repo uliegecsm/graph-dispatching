@@ -34,11 +34,11 @@ struct transform_sender_for<stdexec::then_t> {
 
     template <typename Env, typename Functor, execution_space_completing_sender<Env> Sndr>
     requires requires { typename schd_t<Sndr, Env>; }
-    auto operator()(const Env& env, stdexec::then_t, Functor&& functor, Sndr&& sndr) && noexcept(
-        std::is_nothrow_constructible_v<
-            sndr_t<Sndr, Functor, Env>,
-            typename sndr_t<Sndr, Functor, Env>::closure_t&&,
-            Sndr&&
+    auto operator()(const Env& env, stdexec::then_t, Functor&& functor, Sndr&& sndr) const
+        noexcept(std::is_nothrow_constructible_v<
+                 sndr_t<Sndr, Functor, Env>,
+                 typename sndr_t<Sndr, Functor, Env>::closure_t&&,
+                 Sndr&&
         >) {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
