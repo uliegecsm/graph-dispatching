@@ -64,7 +64,7 @@ struct ScheduleFromSender {
 template <>
 struct transform_sender_for<stdexec::schedule_from_t> {
     template <typename Env, graph_completing_sender<Env> Sndr>
-    auto operator()(const Env& env, stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) && noexcept {
+    auto operator()(const Env& env, stdexec::schedule_from_t, ::stdexec::__ignore, Sndr&& sndr) const noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
         const bool skip = [&]() {

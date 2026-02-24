@@ -14,7 +14,7 @@ struct transform_sender_for<stdexec::bulk_t> {
         Kokkos::Experimental::details::impl::has_parallel_policy Data,
         execution_space_completing_sender<Env> Sndr
     >
-    auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept {
+    auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) const noexcept {
         auto [parallel_policy, shape, functor] = std::forward<Data>(data);
 
         using functor_t = decltype(functor);

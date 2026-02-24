@@ -149,7 +149,7 @@ struct BulkSender {
 template <>
 struct transform_sender_for<stdexec::bulk_t> {
     template <typename Env, typename Data, graph_completing_sender<Env> Sndr>
-    auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) && noexcept {
+    auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) const noexcept {
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
         return BulkSender{.sndr = std::forward<Sndr>(sndr), .data = std::forward<Data>(data), .schd = std::move(schd)};
     }
