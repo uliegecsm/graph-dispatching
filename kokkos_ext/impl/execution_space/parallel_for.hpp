@@ -35,22 +35,21 @@ struct ParallelForSender {
     using sender_concept = stdexec::sender_t;
 
     using closure_t = ParallelForClosure<Functor, ExecPolicy>;
-    using sndr_t = Sndr;
     using execution_space = typename closure_t::execution_space;
 
     closure_t clsr;
-    sndr_t sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_ADD(ParallelForSender, stdexec::set_error_t(std::exception_ptr))
 
     template <stdexec::receiver Rcvr>
     constexpr auto connect(Rcvr rcvr) && noexcept(
-        std::is_nothrow_constructible_v<OpState<sndr_t, Rcvr, closure_t>, sndr_t&&, Rcvr&&, closure_t&&>)
-        -> OpState<sndr_t, Rcvr, closure_t> {
-        return OpState<sndr_t, Rcvr, closure_t>(std::forward<sndr_t>(sndr), std::move(rcvr), std::move(clsr));
+        std::is_nothrow_constructible_v<OpState<Sndr, Rcvr, closure_t>, Sndr&&, Rcvr&&, closure_t&&>)
+        -> OpState<Sndr, Rcvr, closure_t> {
+        return OpState<Sndr, Rcvr, closure_t>(std::forward<Sndr>(sndr), std::move(rcvr), std::move(clsr));
     }
 
-    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(sndr_t, sndr)
+    GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
 };
 
 template <>
