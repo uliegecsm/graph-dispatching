@@ -155,7 +155,7 @@ template <>
 struct transform_sender_for<stdexec::when_all_t> {
     template <typename Env, ::stdexec::sender... Sndrs>
     requires(graph_completing_sender<Sndrs, Env> && ...)
-    auto operator()(const Env&, stdexec::when_all_t, ::stdexec::__ignore, Sndrs&&... sndrs) && noexcept {
+    auto operator()(const Env&, stdexec::when_all_t, ::stdexec::__ignore, Sndrs&&... sndrs) const noexcept {
         return WhenAllSender<Sndrs...>{.sndrs = {std::forward<Sndrs>(sndrs)...}};
     }
 };
