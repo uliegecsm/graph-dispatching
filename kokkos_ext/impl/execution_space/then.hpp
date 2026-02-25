@@ -30,7 +30,7 @@ struct transform_sender_for<stdexec::then_t> {
     using policy_t = Kokkos::RangePolicy<execution_space<Sndr, Env>, Kokkos::LaunchBounds<1>>;
 
     template <typename Sndr, typename Functor, typename Env>
-    using sndr_t = ParallelForSender<Sndr, ThenWrapper<Functor>, policy_t<Sndr, Env>>;
+    using sndr_t = ParallelForSender<Sndr, ThenWrapper<std::remove_cvref_t<Functor>>, policy_t<Sndr, Env>>;
 
     template <typename Env, typename Functor, execution_space_completing_sender<Env> Sndr>
     requires requires { typename schd_t<Sndr, Env>; }
@@ -44,7 +44,7 @@ struct transform_sender_for<stdexec::then_t> {
 
         return sndr_t<Sndr, Functor, Env>{
             {{std::string(std::format("{}: then", Kokkos::Impl::TypeInfo<execution_space<Sndr, Env>>::name())),
-              ThenWrapper{std::forward<Functor>(functor)},
+              ThenWrapper<std::remove_cvref_t<Functor>>{.functor = std::forward<Functor>(functor)},
               policy_t<Sndr, Env>(schd.state->exec, 0, 1)}},
             std::forward<Sndr>(sndr)};
     }

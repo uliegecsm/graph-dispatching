@@ -91,6 +91,33 @@ TEST_F(ThenTest, then_schedule) {
     ASSERT_EQ(data(), 2);
 }
 
+//! @test Check that the chain can be passed by reference to the consumer.
+TEST_F(ThenTest, then_chain_passed_by_reference) {
+    utils::Counter::reset();
+
+    const context_t esc{exec};
+
+    auto chain = ::stdexec::schedule(esc.get_scheduler()) | ::stdexec::then(ThenNoOpWithCounter{});
+
+    ASSERT_EQ(utils::Counter::copy_constructions.load(), 0);
+    ASSERT_EQ(utils::Counter::move_constructions.load(), 4);
+
+    ::stdexec::sync_wait(chain);
+
+    ASSERT_EQ(utils::Counter::copy_constructions.load(), 4);
+    ASSERT_EQ(utils::Counter::copy_assignments.load(), 0);
+    /**
+     * Successive moves into:
+     * - @ref Kokkos::Experimental::details::execution_space::ParallelForData
+     * - @ref Kokkos::Experimental::details::execution_space::ParallelForClosure
+     * - @ref Kokkos::Experimental::details::execution_space::ParallelForSender
+     * - @ref Kokkos::Experimental::details::execution_space::OpState
+     * - @ref Kokkos::Experimental::details::execution_space::OpStateBase
+     */
+    ASSERT_EQ(utils::Counter::move_constructions.load(), 9);
+    ASSERT_EQ(utils::Counter::copy_assignments.load(), 0);
+}
+
 /**
  * @test Similar to @ref tests::kokkos_ext::ThenTest_then_schedule_Test, but the chain is scheduled
  *       with a @c starts_on.

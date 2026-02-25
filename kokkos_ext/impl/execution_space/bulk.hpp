@@ -19,7 +19,7 @@ struct transform_sender_for<stdexec::bulk_t> {
     using policy_t = Kokkos::RangePolicy<execution_space<Sndr, Env>>;
 
     template <typename Data>
-    using functor_t = std::remove_cvref_t<decltype(std::declval<Data>().__fun_)>;
+    using functor_t = stdexec::__copy_cvref_t<Data, std::remove_cvref_t<decltype(std::declval<Data>().__fun_)>>;
 
     template <typename Sndr, typename Data, typename Env>
     using closure_t = ParallelForClosure<functor_t<Data>, policy_t<Sndr, Env>>;
@@ -35,7 +35,7 @@ struct transform_sender_for<stdexec::bulk_t> {
     auto operator()(const Env& env, stdexec::bulk_t, Data&& data, Sndr&& sndr) const noexcept(
         stdexec::__nothrow_decay_copyable<Data&&>
         && std::is_nothrow_constructible_v<sndr_t<Sndr, Data, Env>, closure_t<Sndr, Data, Env>&&, Sndr&&>) {
-        auto [parallel_policy, shape, functor] = std::forward<Data>(data);
+        auto& [parallel_policy, shape, functor] = data;
 
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
@@ -43,7 +43,7 @@ struct transform_sender_for<stdexec::bulk_t> {
 
         return sndr_t<Sndr, Data, Env>{
             {{std::move(label),
-              std::move(functor),
+              stdexec::__forward_like<Data>(functor),
               impl_policy_construct<policy_t<Sndr, Env>>(schd.state->exec, shape)}},
             std::forward<Sndr>(sndr)};
     }

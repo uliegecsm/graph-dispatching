@@ -3,6 +3,8 @@
 
 #include "kokkos-utils/concepts/View.hpp"
 
+#include "tests/utils/Counter.hpp"
+
 namespace tests {
 
 //! Increment @ref data.
@@ -36,6 +38,12 @@ struct ThenNoOp {
 
     KOKKOS_FUNCTION
     void operator()() const noexcept(!MayThrowOnCall) {
+    }
+};
+
+struct ThenNoOpWithCounter : public utils::Counter {
+    KOKKOS_FUNCTION
+    void operator()() const {
     }
 };
 
