@@ -43,15 +43,14 @@ struct BulkFunctor {
 };
 
 template <typename ViewType>
-struct BulkFunctorWithCounter : public utils::Counter {
-    ViewType data;
-
-    BulkFunctorWithCounter(ViewType data_) : data(std::move(data_)) {}
-
-    template <std::integral T>
-    KOKKOS_FUNCTION void operator()(const T index) const {
-        Kokkos::atomic_add(data.data(), index);
+struct BulkFunctorWithCounter
+    : public BulkFunctor<ViewType>
+    , public utils::Counter {
+    explicit BulkFunctorWithCounter(ViewType view)
+        : BulkFunctor<ViewType>{std::move(view)} {
     }
+
+    using BulkFunctor<ViewType>::operator();
 };
 
 //! Get the dispatch label from @p Exec and @p label.

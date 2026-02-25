@@ -41,10 +41,11 @@ struct ThenNoOp {
     }
 };
 
-struct ThenNoOpWithCounter : public utils::Counter {
-    KOKKOS_FUNCTION
-    void operator()() const {
-    }
+template <bool MayThrowOnCall = true, bool MayThrowOnCopy = true, bool MayThrowOnMove = true>
+struct ThenNoOpWithCounter
+    : public ThenNoOp<MayThrowOnCall, MayThrowOnCopy, MayThrowOnMove>
+    , public utils::Counter {
+    using ThenNoOp<MayThrowOnCall, MayThrowOnCopy, MayThrowOnMove>::operator();
 };
 
 //! Add @ref value to @ref data.

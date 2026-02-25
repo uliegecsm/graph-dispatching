@@ -104,11 +104,35 @@ TEST_F(ThenTest, then_chain_passed_by_reference) {
 
     ::stdexec::sync_wait(chain);
 
-    ASSERT_EQ(utils::Counter::copy_constructions.load(), 4);
+    const size_t expt_copy_constructions = []() {
+#if defined(KOKKOS_ENABLE_HPX)
+        if constexpr (std::same_as<execution_space, Kokkos::Experimental::HPX>) {
+            return 4;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_CUDA)
+        if constexpr (std::same_as<execution_space, Kokkos::Cuda>) {
+            return 3;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_HIP)
+        if constexpr (std::same_as<execution_space, Kokkos::HIP>) {
+            return 3;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_OPENMP)
+        if constexpr (std::same_as<execution_space, Kokkos::OpenMP>) {
+            return 2;
+        }
+#endif
+        throw std::logic_error("Unsupported execution space type.");
+    }();
+
+    ASSERT_EQ(utils::Counter::copy_constructions.load(), expt_copy_constructions);
     ASSERT_EQ(utils::Counter::copy_assignments.load(), 0);
     /**
      * Successive moves into:
-     * - @ref Kokkos::Experimental::details::execution_space::ParallelForData
+     * - @ref Kokkos::Experimental::ParallelForData
      * - @ref Kokkos::Experimental::details::execution_space::ParallelForClosure
      * - @ref Kokkos::Experimental::details::execution_space::ParallelForSender
      * - @ref Kokkos::Experimental::details::execution_space::OpState

@@ -10,6 +10,10 @@ namespace Kokkos::Experimental::details::execution_space {
 template <typename Functor>
 requires(std::same_as<void, std::invoke_result_t<Functor>>)
 struct ThenWrapper {
+    static_assert(
+        std::same_as<Functor, std::remove_cvref_t<Functor>>,
+        "Functor must not be reference qualified to avoid a dangling reference when used on device");
+
     Functor functor;
 
     template <std::integral T>
@@ -44,7 +48,7 @@ struct transform_sender_for<stdexec::then_t> {
 
         return sndr_t<Sndr, Functor, Env>{
             {{std::string(std::format("{}: then", Kokkos::Impl::TypeInfo<execution_space<Sndr, Env>>::name())),
-              ThenWrapper<std::remove_cvref_t<Functor>>{.functor = std::forward<Functor>(functor)},
+              ThenWrapper<std::remove_cvref_t<Functor>>{std::forward<Functor>(functor)},
               policy_t<Sndr, Env>(schd.state->exec, 0, 1)}},
             std::forward<Sndr>(sndr)};
     }

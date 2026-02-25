@@ -41,18 +41,42 @@ TEST_F(BulkTest, bulk_chain_passed_by_reference) {
 
     const context_t esc{exec};
 
-    auto chain = ::stdexec::schedule(esc.get_scheduler())
-               | ::stdexec::bulk(
-                     ::stdexec::par, size, BulkFunctorWithCounter<std::remove_cvref_t<decltype(data)>>(data));
+    auto chain =
+        ::stdexec::schedule(esc.get_scheduler())
+        | ::stdexec::bulk(::stdexec::par, size, BulkFunctorWithCounter<std::remove_cvref_t<decltype(data)>>(data));
 
     ASSERT_EQ(utils::Counter::copy_constructions.load(), 0);
     ASSERT_EQ(utils::Counter::move_constructions.load(), 4);
 
     ::stdexec::sync_wait(chain);
 
-    ASSERT_EQ(utils::Counter::copy_constructions.load(), 3);
+    const size_t expt_copy_constructions = []() {
+#if defined(KOKKOS_ENABLE_HPX)
+        if constexpr (std::same_as<execution_space, Kokkos::Experimental::HPX>) {
+            return 4;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_CUDA)
+        if constexpr (std::same_as<execution_space, Kokkos::Cuda>) {
+            return 3;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_HIP)
+        if constexpr (std::same_as<execution_space, Kokkos::HIP>) {
+            return 3;
+        }
+#endif
+#if defined(KOKKOS_ENABLE_OPENMP)
+        if constexpr (std::same_as<execution_space, Kokkos::OpenMP>) {
+            return 2;
+        }
+#endif
+        throw std::logic_error("Unsupported execution space type.");
+    }();
+
+    ASSERT_EQ(utils::Counter::copy_constructions.load(), expt_copy_constructions);
     ASSERT_EQ(utils::Counter::copy_assignments.load(), 0);
-    ASSERT_EQ(utils::Counter::move_constructions.load(), 4);
+    ASSERT_EQ(utils::Counter::move_constructions.load(), 10);
     ASSERT_EQ(utils::Counter::copy_assignments.load(), 0);
 }
 
