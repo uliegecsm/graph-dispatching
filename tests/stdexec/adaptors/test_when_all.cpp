@@ -99,4 +99,24 @@ TEST_F(WhenAllTest, on_which_thread_after) {
     ASSERT_THAT(thr_X, ::testing::AnyOf(thr_A, thr_B, thr_C));
 }
 
+//! @test Each branch uses @c stdexec::continues_on.
+TEST_F(WhenAllTest, continues_on) {
+    ::exec::static_thread_pool pool{3};
+
+    std::array<std::thread::id, 3> thrids;
+
+    ::stdexec::sync_wait(
+        ::stdexec::when_all(
+            ::stdexec::just() | ::stdexec::continues_on(this->pools.at(index_of<'A'>()).get_scheduler())
+                | THEN_STORE_ID(thrids[0]),
+            ::stdexec::just() | ::stdexec::continues_on(this->pools.at(index_of<'B'>()).get_scheduler())
+                | THEN_STORE_ID(thrids[1]),
+            ::stdexec::just() | ::stdexec::continues_on(this->pools.at(index_of<'C'>()).get_scheduler())
+                | THEN_STORE_ID(thrids[2])));
+
+    ASSERT_EQ(thrids[0], this->threads.at(index_of<'A'>()));
+    ASSERT_EQ(thrids[1], this->threads.at(index_of<'B'>()));
+    ASSERT_EQ(thrids[2], this->threads.at(index_of<'C'>()));
+}
+
 } // namespace tests::stdexec::adaptors

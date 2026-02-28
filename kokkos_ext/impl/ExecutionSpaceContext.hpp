@@ -14,7 +14,7 @@ PRAGMA_DIAGNOSTIC_POP
 #include "Kokkos_Core.hpp"
 
 #if defined(GRAPH_DISPATCHING_KOKKOS_EXT_DEBUG)
-#include "plog/Log.h"
+#    include "plog/Log.h"
 #endif
 
 #include "kokkos_ext/impl/execution_space/bulk.hpp"
@@ -26,28 +26,28 @@ PRAGMA_DIAGNOSTIC_POP
 #include "kokkos_ext/impl/execution_space/sync_wait.hpp"
 #include "kokkos_ext/impl/execution_space/then.hpp"
 
-namespace Kokkos::Experimental
-{
+namespace Kokkos::Experimental {
 
-namespace details::execution_space
-{
+namespace details::execution_space {
 
 template <Kokkos::ExecutionSpace Exec>
 struct State {
     Exec exec;
+    stdexec::run_loop* loop;
 };
 
 //! See https://github.com/NVIDIA/stdexec/blob/9514e7bdf4b5d16d8ee4b5ad0e9c8733c3539f37/include/nvexec/stream/common.cuh#L168-L195).
 template <Kokkos::ExecutionSpace Exec>
-struct SchedulerEnv
-{
+struct SchedulerEnv {
     using execution_space = Exec;
 
-    [[nodiscard]] constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec> {
+    [[nodiscard]]
+    constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler<Exec> {
         return {state};
     }
 
-    [[nodiscard]] constexpr auto query(stdexec::get_completion_domain_t<stdexec::set_value_t>) const noexcept -> Domain {
+    [[nodiscard]]
+    constexpr auto query(stdexec::get_completion_domain_t<stdexec::set_value_t>) const noexcept -> Domain {
         return {};
     }
 
@@ -61,55 +61,72 @@ struct SchedulerEnv
  * generally implies a shared pointer copy, see https://github.com/kokkos/kokkos/pull/8807.
  */
 template <Kokkos::ExecutionSpace Exec>
-struct Scheduler
-{
+struct Scheduler {
     //! As per https://eel.is/c++draft/exec.sched#1.
     using scheduler_concept = stdexec::scheduler_t;
 
     using execution_space = Exec;
 
     template <stdexec::receiver Rcvr>
-    struct OpState
-    {
+    struct OpState : public stdexec::__run_loop::__run_loop_base::__task {
         using operation_state_concept = stdexec::operation_state_t;
 
         Rcvr rcvr;
+        stdexec::run_loop* loop;
 
-        //! @todo Check signature. And check whether we should move the receiver.
-        void start() & noexcept {
+        OpState(Rcvr rcvr_, stdexec::run_loop* loop_)
+            : stdexec::__run_loop::__run_loop_base::__task{&execute}
+            , rcvr(std::move(rcvr_))
+            , loop(loop_) {
+        }
+
+        static constexpr void execute(stdexec::__run_loop::__run_loop_base::__task* task) noexcept {
+            auto& rcvr = static_cast<OpState*>(task)->rcvr;
             stdexec::set_value(std::move(rcvr));
+        }
+
+        void start() & noexcept {
+            this->loop->__task_count_.fetch_add(1, stdexec::__std::memory_order_release);
+            this->loop->__queue_.push(this);
         }
     };
 
-    struct Sender
-    {
+    struct Sender {
         using sender_concept = stdexec::sender_t;
 
         using completion_signatures = stdexec::completion_signatures<stdexec::set_value_t()>;
 
         template <stdexec::receiver_of<completion_signatures> Rcvr>
-        [[nodiscard]] OpState<Rcvr> connect(Rcvr rcvr) noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
-            return {std::move(rcvr)};
+        [[nodiscard]]
+        OpState<Rcvr> connect(Rcvr rcvr) noexcept(std::is_nothrow_move_constructible_v<Rcvr>) {
+            return {std::move(rcvr), env.state->loop};
         }
 
-        [[nodiscard]] constexpr auto get_env() const noexcept -> const SchedulerEnv<Exec>& { return env; }
+        [[nodiscard]]
+        constexpr auto get_env() const noexcept -> const SchedulerEnv<Exec>& {
+            return env;
+        }
 
         SchedulerEnv<Exec> env;
     };
 
-    [[nodiscard]] Sender schedule() const noexcept { return {state}; }
-
-    [[nodiscard]] constexpr auto
-    query(stdexec::get_completion_domain_t<stdexec::set_value_t>) const noexcept -> Domain {
-        return {};
-    }
-
-    [[nodiscard]] constexpr auto
-    query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler {
+    [[nodiscard]]
+    Sender schedule() const noexcept {
         return {state};
     }
 
-    [[nodiscard]] friend bool operator==(const Scheduler&, const Scheduler&) noexcept = default;
+    [[nodiscard]]
+    constexpr auto query(stdexec::get_completion_domain_t<stdexec::set_value_t>) const noexcept -> Domain {
+        return {};
+    }
+
+    [[nodiscard]]
+    constexpr auto query(stdexec::get_completion_scheduler_t<stdexec::set_value_t>) const noexcept -> Scheduler {
+        return {state};
+    }
+
+    [[nodiscard]]
+    friend bool operator==(const Scheduler&, const Scheduler&) noexcept = default;
 
     State<Exec>* state;
 };
@@ -124,14 +141,26 @@ struct Scheduler
  *  2. The execution resource is the GPU the stream is attached to.
  */
 template <Kokkos::ExecutionSpace Exec>
-struct ExecutionSpaceContext
-{
+struct ExecutionSpaceContext {
+   public:
     using state_t = details::execution_space::State<Exec>;
 
+   private:
+    stdexec::run_loop m_loop;
+    std::thread m_worker;
+
+   public:
     state_t m_state;
 
     explicit ExecutionSpaceContext(Exec exec) // NOLINT(performance-unnecessary-value-param)
-        : m_state{std::move(exec)} {
+        : m_loop{}
+        , m_worker([this]() noexcept { this->m_loop.run(); })
+        , m_state{std::move(exec), std::addressof(m_loop)} {
+    }
+
+    ~ExecutionSpaceContext() {
+        m_loop.finish();
+        m_worker.join();
     }
 
     auto get_scheduler() const noexcept -> details::execution_space::Scheduler<Exec> {

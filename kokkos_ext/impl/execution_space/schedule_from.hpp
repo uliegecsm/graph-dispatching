@@ -20,6 +20,8 @@ struct ScheduleFromReceiver {
     void set_value() && noexcept {
         //! If the downstream receiver is our customization of @c continues_on and it shares the same execution space instance, skip the fence.
         const bool skip = [&]() {
+            static_assert(std::same_as<Rcvr, int>);
+            static_assert(std::same_as<stdexec::env_of_t<Rcvr>, int>);
             if constexpr (stdexec::__is_instance_of<Rcvr, ContinuesOnReceiver>) {
                 if constexpr (stdexec::__queryable_with<stdexec::env_of_t<Rcvr>, get_exec_t>) {
                     if constexpr (std::same_as<
