@@ -65,7 +65,12 @@ class WhenAllTest
     : public utils::StaticThreadPool<'A', 'B', 'C'>
     , public ::testing::Test { };
 
-//! @test Check on which thread after @c stdexec::when_all it will execute.
+/**
+ * @test Check on which thread after @c stdexec::when_all it will execute.
+ *
+ * As stated in @cite P2300R10, section 4.20.11:
+ *    It completes inline on the execution resource on which the last input sender completes, [...]
+ */
 TEST_F(WhenAllTest, on_which_thread_after) {
     std::thread::id thr_A, thr_B, thr_C, thr_X;
 
