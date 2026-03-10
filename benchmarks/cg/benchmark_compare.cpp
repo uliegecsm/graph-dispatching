@@ -12,6 +12,10 @@
 
 #include "benchmarks/Helpers.hpp"
 
+#if defined(KOKKOS_ENABLE_SYCL) && !defined(KOKKOS_IMPL_SYCL_GRAPH_SUPPORT)
+    #error "KOKKOS_IMPL_SYCL_GRAPH_SUPPORT is required."
+#endif
+
 /**
  * @addtogroup unitbenchmarks
  *
