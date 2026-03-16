@@ -243,4 +243,29 @@ TEST_F(ParallelForTest, two_parallel_regions) {
     ASSERT_EQ(witness(), size / 2 * (size - 1) + 4 + 2 * size * (2 * size - 1) / 2);
 }
 
+//! @test Check that a parallel region can be bound lately to an execution space scheduler.
+TEST_F(ParallelForTest, starts_on_parallel_region) {
+    constexpr size_t size = 10;
+
+    const view_s_t witness(Kokkos::view_alloc("data - shared space"));
+
+    auto chain = ::stdexec::just()
+               | Kokkos::Experimental::parallel_for(
+                     std::format("{}: hello from pfor", Kokkos::Impl::TypeInfo<execution_space>::name()),
+                     Kokkos::RangePolicy<execution_space>(0, size),
+                     BulkFunctor{.data = witness});
+
+    const context_t esc{exec};
+    auto starts_on = ::stdexec::starts_on(esc.get_scheduler(), std::move(chain));
+
+    ASSERT_THAT(
+        recorder_listener_t::record(
+            [starts_on = std::move(starts_on)]() mutable { ::stdexec::sync_wait(std::move(starts_on)); }),
+        ::testing::ElementsAre(
+            MATCHER_FOR_BEGIN_PFOR(exec, dispatch_label(exec, "hello from pfor")),
+            MATCHER_FOR_BEGIN_FENCE(exec, dispatch_label(exec, "sync_wait"))));
+
+    ASSERT_EQ(witness(), size / 2 * (size - 1));
+}
+
 } // namespace tests::kokkos_ext
