@@ -32,6 +32,7 @@
                 // stated in https://clang.llvm.org/docs/Toolchain.html#atomics-library.
                 // We are not sure why this is needed, i.e. why we don't get this automatically from
                 // Kokkos or HPX.
+                // See also https://github.com/kokkos/kokkos/issues/8977.
                 "LDFLAGS" : "-latomic"
             }
         },
