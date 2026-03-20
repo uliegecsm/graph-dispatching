@@ -77,7 +77,7 @@ class CGBenchmark(BenchmarkBase):
         return *pair, int(match.group(3)), int(match.group(4))
 
     @typeguard.typechecked
-    def run(self, *, args : typing.List[str] = []) -> None:
+    def run(self, *, args : typing.List[str]) -> None:
         """
         Run the benchmark.
         """

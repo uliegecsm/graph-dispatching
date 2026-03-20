@@ -1,0 +1,2 @@
+add_one_benchmark(NAME fork ADDITIONAL_LINK_LIBRARIES Kokkos::kokkosutils)
+add_one_benchmark(NAME straight_line ADDITIONAL_LINK_LIBRARIES Kokkos::kokkosutils)
