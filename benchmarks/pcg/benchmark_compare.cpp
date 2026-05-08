@@ -119,7 +119,7 @@ protected:
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PCGBENCHMARK_REGISTER_F(_which_) BENCHMARK_REGISTER_F(PCGBenchmark, _which_)
 
-void CustomArguments(benchmark::internal::Benchmark* benchmark) {
+void CustomArguments(benchmark::Benchmark* benchmark) {
     benchmark
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters", "nsweeps"})
