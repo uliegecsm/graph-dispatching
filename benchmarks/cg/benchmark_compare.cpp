@@ -173,7 +173,7 @@ protected:
 #define CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(_which_) BENCHMARK_REGISTER_F(CGBenchmark, _which_##convergence)
 #define CGBENCHMARK_REGISTER_UPTO_SINGLE_ITER_F(_which_) BENCHMARK_REGISTER_F(CGBenchmark, _which_##single_iter)
 
-void CustomArguments(benchmark::internal::Benchmark* benchmark) {
+void CustomArguments(benchmark::Benchmark* benchmark) {
     benchmark
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters"})
