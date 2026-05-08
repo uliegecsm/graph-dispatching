@@ -158,6 +158,10 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphUpload(graph.native_graph_exec(), exec.cuda_stream()));
 #endif
 
+#if defined(KOKKOS_ENABLE_HIP)
+        KOKKOS_IMPL_HIP_SAFE_CALL(hipGraphUpload(graph.native_graph_exec(), exec.hip_stream()));
+#endif
+
         exec.fence("CGGraph - fence before popping instantiate graph region");
         region_instantiate_graph.pop();
 
