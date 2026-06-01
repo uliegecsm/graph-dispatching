@@ -1,3 +1,4 @@
 matplot2tikz
 matplotlib
 numpy
+pandas
