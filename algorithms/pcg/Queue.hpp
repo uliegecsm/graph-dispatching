@@ -157,6 +157,7 @@ public:
 
             ++iter;
         }
+        exec_A.fence("draining");
 
         return {res_nrm2, iter};
     }

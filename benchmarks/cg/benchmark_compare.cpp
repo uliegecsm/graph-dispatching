@@ -155,6 +155,7 @@ class CGBenchmark
     BENCHMARK_DEFINE_F(CGBenchmark, _which_)(benchmark::State & state) {                                               \
         this->run<_which_##_t>(state);                                                                                 \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CGBENCHMARK_REGISTER_F(_which_) BENCHMARK_REGISTER_F(CGBenchmark, _which_)
 
 void parameters(benchmark::Benchmark* benchmark) {

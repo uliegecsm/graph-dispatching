@@ -120,6 +120,7 @@ struct CGQueue : public CGBase<MatrixType, VectorType>
 
             ++iter;
         }
+        exec_A.fence("draining");
 
         return {res_nrm2, iter};
     }
