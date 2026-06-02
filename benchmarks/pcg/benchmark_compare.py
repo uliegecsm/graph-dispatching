@@ -67,7 +67,8 @@ class PCGBenchmark(BenchmarkBase):
             self.target,
             '--benchmark_out=' + str(self.results),
             '--benchmark_out_format=json',
-            '--benchmark_min_time=2x',
+            '--benchmark_min_warmpup_time=2',
+            '--benchmark_min_time=5s',
             '--benchmark_enable_random_interleaving=true',
             *args,
         ]

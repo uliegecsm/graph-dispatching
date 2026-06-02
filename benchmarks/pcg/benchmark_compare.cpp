@@ -1,3 +1,8 @@
+#include "kokkos-utils/callbacks/EventNameMatcher.hpp"
+#include "kokkos-utils/callbacks/Manager.hpp"
+#include "kokkos-utils/callbacks/SequenceOfRegionTimerListener.hpp"
+#include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
+
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/pcg/Graph.hpp"
 #include "algorithms/pcg/Preconditioners.hpp"
@@ -31,7 +36,7 @@ using execution_space = Kokkos::DefaultExecutionSpace;
 namespace benchmarks::pcg
 {
 
-class PCGBenchmark : public benchmarks::BenchmarkBase
+class PCGBenchmark : public benchmarks::BenchmarkBase, public Kokkos::utils::tests::scoped::callbacks::Manager
 {
 public:
     using pool_t = utils::ExecutionSpacePool<execution_space>;
@@ -56,17 +61,27 @@ public:
     template <typename T>
     auto run_once(::benchmark::State& state) const
     {
+        auto sequence = std::make_shared<sequence_t>(region_matcher_t{{{
+            std::string("PCG") + (std::same_as<T, solver_single_queue_t> ? "SingleQueue" : "Graph") + " - loop"
+        }}});
+        Kokkos::utils::callbacks::Manager::register_listener(sequence);
+        
         const auto [elapsed, res_nrm2, num_iters, sol] = T::run(
             *pool,
-            state.range(state_nrows), {.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(state_niters)) * 2},
+            state.range(state_nrows), {.tolerance = tolerance, .max_iters = 20 /*static_cast<size_t>(state.range(state_niters)) * 2*/},
             [num_sweeps = state.range(state_nsweeps)](auto& solver) {
                 solver.get_preconditioner().num_sweeps = num_sweeps;
             }
         );
 
-        CHECK_NUMBER_OF_ITERS(static_cast<int64_t>(num_iters), state.range(state_niters))
+        CHECK_NUMBER_OF_ITERS(static_cast<int64_t>(num_iters), 20 /*state.range(state_niters)*/)
 
         state.SetIterationTime(std::chrono::duration_cast<Kokkos::utils::timer::seconds>(elapsed).count());
+
+        auto timing = this->convert(sequence->timers.at(0).duration<Kokkos::utils::timer::seconds>());
+        state.counters["loop"] = ::benchmark::Counter(timing, ::benchmark::Counter::Flags::kAvgIterations);
+
+        Kokkos::utils::callbacks::Manager::unregister_listener(sequence.get());
 
         return elapsed;
     }
@@ -98,6 +113,10 @@ protected:
 
     using preconditioner_t = ::algorithms::pcg::JacobiPreconditioner<matrix_t>;
 
+    using event_matcher_t  = Kokkos::utils::callbacks::EventNameMatcher;
+    using sequence_t       = Kokkos::utils::callbacks::SequenceOfRegionTimerListener<event_matcher_t>;
+    using region_matcher_t = typename sequence_t::matcher_t;
+
     using solver_single_queue_t = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGSingleQueue<matrix_t, rhs_t,          preconditioner_t, ::algorithms::cg::Spmv, ::algorithms::cg::Dot, algorithms::cg::Axpby>>;
     using solver_graph_t        = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGGraph      <matrix_t, rhs_t, graph_t, preconditioner_t>>;
 
@@ -125,24 +144,24 @@ void CustomArguments(benchmark::Benchmark* benchmark) {
     benchmark
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters", "nsweeps"})
-
-    ->Args({    10,     4, 4})->Args({    10,     4, 8})->Args({    10,     4, 12})
-    ->Args({    20,     9, 4})->Args({    20,     9, 8})->Args({    20,     8, 12})
-    ->Args({    50,    23, 4})->Args({    50,    19, 8})->Args({    50,    16, 12})
-#if false
-    ->Args({   100,    43, 4})->Args({   100,    33, 8})->Args({   100,    28, 12})
-    ->Args({   150,    62, 4})->Args({   150,    47, 8})->Args({   150,    47, 12})
-    ->Args({   200,    81, 4})->Args({   200,    60, 8})->Args({   200,    60, 12})
-    ->Args({   300,   118, 4})->Args({   300,    87, 8})->Args({   300,    73, 12})
-    ->Args({   500,   190, 4})->Args({   500,   139, 8})->Args({   500,   116, 12})
-    ->Args({  1000,   371, 4})->Args({  1000,   268, 8})->Args({  1000,   268, 12})
-    ->Args({  2000,   729, 4})->Args({  2000,   522, 8})->Args({  2000,   522, 12})
-    ->Args({ 10000,  3571, 4})->Args({ 10000,  2536, 8})->Args({ 10000,  2076, 12})
-    ->Args({ 20000,  7115, 4})->Args({ 20000,  5044, 8})->Args({ 20000,  4126, 12})
-    ->Args({ 50000, 17735, 4})->Args({ 50000, 12558, 8})->Args({ 50000, 10263, 12})
-    ->Args({100000, 59954, 4})->Args({100000, 25074, 8})->Args({100000, 25074, 12})
-#endif
-    ;
+    //->Args({    10,     4, 4})->Args({    10,     4, 8})->Args({    10,     4, 12})
+    //->Args({    20,     9, 4})->Args({    20,     9, 8})->Args({    20,     8, 12})
+    //->Args({    50,    23, 4})->Args({    50,    19, 8})->Args({    50,    16, 12})
+    //
+    //->Args({     100,    43, 4})->Args({     100,    33, 8})->Args({     100,    28, 12})
+    //->Args({     150,    62, 4})->Args({     150,    47, 8})->Args({     150,    47, 12})
+    //->Args({     200,    81, 4})->Args({     200,    60, 8})->Args({     200,    60, 12})
+    //->Args({     300,   118, 4})->Args({     300,    87, 8})->Args({     300,    73, 12})
+    //->Args({     500,   190, 4})->Args({     500,   139, 8})->Args({     500,   116, 12})
+    //->Args({    1000,   371, 4})->Args({    1000,   268, 8})->Args({    1000,   268, 12})
+    //->Args({    2000,   729, 4})->Args({    2000,   522, 8})->Args({    2000,   522, 12})
+    //->Args({   10000,  3571, 4})->Args({   10000,  2536, 8})->Args({   10000,  2076, 12})
+    //->Args({   20000,  7115, 4})->Args({   20000,  5044, 8})->Args({   20000,  4126, 12})
+    //
+    //->Args({   50000, 17735, 4})->Args({   50000, 12558, 8})->Args({   50000, 10263, 12})
+    //->Args({  100000, 59954, 4})->Args({  100000, 25074, 8})->Args({  100000, 25074, 12})
+    //->Args({ 1000000,     0, 4})->Args({ 1000000,     0, 8})->Args({ 1000000,     0, 12})
+    ->Args({10000000,     0, 4})->Args({10000000,     0, 8})->Args({10000000,     0, 12})->Args({10000000,     0, 20});
 }
 
 PCGBENCHMARK_DEFINE_F(single_queue)
