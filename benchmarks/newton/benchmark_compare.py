@@ -16,7 +16,7 @@ from benchmarks.base import BenchmarkBase, parse_args
 
 class Method(enum.StrEnum):
     GRAPH = 'Graph'
-    SINGLE_QUEUE = 'SingleQueue'
+    QUEUE = 'Queue'
 
     @typeguard.typechecked
     def to_strbool(self) -> str:
@@ -29,7 +29,7 @@ class Method(enum.StrEnum):
     def from_strbool(cls, value : str) -> 'Method':
         match value:
             case 'true' : return Method.GRAPH
-            case 'false': return Method.SINGLE_QUEUE
+            case 'false': return Method.QUEUE
             case _:
                 raise ValueError(f'unsupported value {value}')
 
@@ -110,7 +110,7 @@ class NewtonBenchmark(BenchmarkBase):
         """
         Analyse the results.
         """
-        LINESTYLES = {Method.GRAPH : '--', Method.SINGLE_QUEUE : '-.'}
+        LINESTYLES = {Method.GRAPH : '--', Method.QUEUE : '-.'}
 
         # Load benchmark results for the details of the convergence, check it made a single iteration.
         logging.info(f'Loading results from {self.results["details"]}.')
@@ -163,32 +163,32 @@ class NewtonBenchmark(BenchmarkBase):
         fig.savefig(solution_plot, bbox_inches = 0, transparent = False)
 
         self.assertTrue(numpy.allclose(
-            a = details[Method.GRAPH       ]['solution'],
-            b = details[Method.SINGLE_QUEUE]['solution'],
+            a = details[Method.GRAPH]['solution'],
+            b = details[Method.QUEUE]['solution'],
         ), msg = "The solutions should be close.")
 
-        convergence_graph        = self.extract_from_output(file=details[Method.GRAPH       ]['output_file'], method=Method.GRAPH)
-        convergence_single_queue = self.extract_from_output(file=details[Method.SINGLE_QUEUE]['output_file'], method=Method.SINGLE_QUEUE)
+        convergence_graph = self.extract_from_output(file=details[Method.GRAPH]['output_file'], method=Method.GRAPH)
+        convergence_queue = self.extract_from_output(file=details[Method.QUEUE]['output_file'], method=Method.QUEUE)
 
-        self.assertEqual(convergence_graph.newton.shape, convergence_single_queue.newton.shape)
-        self.assertTrue(numpy.allclose(convergence_graph.newton, convergence_single_queue.newton))
+        self.assertEqual(convergence_graph.newton.shape, convergence_queue.newton.shape)
+        self.assertTrue(numpy.allclose(convergence_graph.newton, convergence_queue.newton))
 
         logging.info(f'Newton converged in {convergence_graph.newton.shape[0]} iterations.')
 
-        self.assertEqual(len(convergence_graph.       pcg), convergence_graph.newton.shape[0])
-        self.assertEqual(len(convergence_single_queue.pcg), convergence_graph.newton.shape[0])
+        self.assertEqual(len(convergence_graph.pcg), convergence_graph.newton.shape[0])
+        self.assertEqual(len(convergence_queue.pcg), convergence_graph.newton.shape[0])
 
         fig, ax = matplotlib.pyplot.subplots(nrows = 1, ncols = 1, figsize = (10, 7))
 
         COLORS = iter(itertools.cycle(['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:brown']))
 
-        for outer, (pcg_iter_graph, pcg_iter_queue) in enumerate(zip(convergence_graph.pcg, convergence_single_queue.pcg)):
+        for outer, (pcg_iter_graph, pcg_iter_queue) in enumerate(zip(convergence_graph.pcg, convergence_queue.pcg)):
             self.assertEqual(pcg_iter_graph.shape, pcg_iter_queue.shape, msg = outer)
 
             color = next(COLORS)
 
             ax.plot(pcg_iter_graph, label = f'graph - {outer}', color = color, linestyle = LINESTYLES[Method.GRAPH])
-            ax.plot(pcg_iter_queue, label = f'queue - {outer}', color = color, linestyle = LINESTYLES[Method.SINGLE_QUEUE])
+            ax.plot(pcg_iter_queue, label = f'queue - {outer}', color = color, linestyle = LINESTYLES[Method.QUEUE])
 
         ax.legend()
         ax.set_xlabel('iteration [-]')
@@ -221,7 +221,7 @@ class NewtonBenchmark(BenchmarkBase):
 
             timing[params.method] = avg
 
-        ratio = timing[Method.SINGLE_QUEUE] / timing[Method.GRAPH]
+        ratio = timing[Method.QUEUE] / timing[Method.GRAPH]
         logging.info(f'Ratio is {ratio}.')
 
     @typeguard.typechecked

@@ -19,8 +19,8 @@ class PCGFlavor(enum.StrEnum):
     """
     PCG solver flavor.
     """
-    GRAPH       = 'graph'
-    SINGLEQUEUE = 'single_queue'
+    GRAPH = 'graph'
+    QUEUE = 'queue'
 
 @dataclasses.dataclass(eq = True, frozen = True)
 class Parameters:
@@ -118,23 +118,23 @@ class PCGBenchmark(BenchmarkBase):
             )
 
         # Number of sweeps (unique, sorted).
-        nsweeps_sorted_set = sorted(set([k.nsweeps for k in data[PCGFlavor.GRAPH      ].keys()]))
-        self.assertEqual(    sorted(set([k.nsweeps for k in data[PCGFlavor.SINGLEQUEUE].keys()])), nsweeps_sorted_set)
+        nsweeps_sorted_set = sorted(set([k.nsweeps for k in data[PCGFlavor.GRAPH].keys()]))
+        self.assertEqual(    sorted(set([k.nsweeps for k in data[PCGFlavor.QUEUE].keys()])), nsweeps_sorted_set)
 
         logging.info(f'List of sweeps: {nsweeps_sorted_set}.')
 
         self.assertEqual(len(nsweeps_sorted_set), 3)
 
         # Number of rows (unique, sorted).
-        nrows_sorted_set = sorted(set([k.nrows for k in data[PCGFlavor.GRAPH      ].keys()]))
-        self.assertEqual(  sorted(set([k.nrows for k in data[PCGFlavor.SINGLEQUEUE].keys()])), nrows_sorted_set)
+        nrows_sorted_set = sorted(set([k.nrows for k in data[PCGFlavor.GRAPH].keys()]))
+        self.assertEqual(  sorted(set([k.nrows for k in data[PCGFlavor.QUEUE].keys()])), nrows_sorted_set)
 
         logging.info(f'List of rows: {nrows_sorted_set}.')
 
         nrows_sorted_set = numpy.asarray(nrows_sorted_set)
 
-        # The baseline is the 'single_queue' flavor.
-        BASELINE = PCGFlavor.SINGLEQUEUE
+        # The baseline is the 'queue' flavor.
+        BASELINE = PCGFlavor.QUEUE
 
         ratio_full = {x : [] for x in nsweeps_sorted_set}
 

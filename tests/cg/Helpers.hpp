@@ -8,6 +8,8 @@
 
 #include "kokkos-utils/timer/Timer.hpp"
 
+#include "utils/pool.hpp"
+
 namespace tests::cg
 {
 /**
@@ -156,17 +158,19 @@ struct NbyNSolverTest
     };
 
     template <Kokkos::ExecutionSpace Exec, typename Callback = NoOp>
-    static auto run(const Exec& exec, const typename Exec::size_type nrows, const typename SolverType::Parameters& params, Callback&& callback = Callback{})
+    static auto run(const utils::ExecutionSpacePool<Exec>& pool, const typename Exec::size_type nrows, const typename SolverType::Parameters& params, Callback&& callback = Callback{})
     {
-        auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec, nrows);
+        const auto& exec_A = pool.get(0);
 
-        auto solver = get_solver(exec, std::move(system.mat), std::move(system.rhs));
+        auto system = NbyNSolverTestHelper<Exec>::initializer_t::create(exec_A, nrows);
+
+        auto solver = get_solver(exec_A, std::move(system.mat), std::move(system.rhs));
 
         std::forward<Callback>(callback)(solver);
 
         Kokkos::utils::timer::Timer<void> timer;
         timer.start();
-        const auto [res_nrm2, num_iters] = solver.apply(exec, system.guess, params);
+        const auto [res_nrm2, num_iters] = solver.apply(pool, system.guess, params);
         timer.stop();
         const auto elapsed = timer.template duration<Kokkos::utils::timer::seconds>();
 
@@ -184,9 +188,9 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
 }
 
 //! Helper for writing tests that use @ref tests::cg::NbyNSolverTest. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define RUN_AND_CHECK(_exec_, _nrows_, _tol_, _expt_niters_)                                           \
+#define RUN_AND_CHECK(_pool_, _nrows_, _tol_, _expt_niters_)                                           \
     const auto [elapsed, res_nrm2, num_iters, sol] = this->run(                                        \
-        _exec_, _nrows_,                                                                               \
+        _pool_, _nrows_,                                                                               \
         {_tol_, 2 * _expt_niters_}                                                                     \
     );                                                                                                 \
                                                                                                        \
@@ -195,7 +199,7 @@ auto relDifference(const Kokkos::complex<T>& val1, const Kokkos::complex<T>& val
     EXPECT_EQ(num_iters, _expt_niters_);                                                               \
                                                                                                        \
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace{}, sol); \
-    for(typename std::remove_cvref_t<decltype(_exec_)>::size_type irow = 0; irow < _nrows_; ++irow) {  \
+    for(typename std::remove_cvref_t<decltype(_pool_)>::execution_space::size_type irow = 0; irow < _nrows_; ++irow) {  \
         const Kokkos::complex<double> value {double(2 * irow) / _nrows_, double(2 * irow) / _nrows_};  \
         EXPECT_LE(                                                                                     \
             tests::cg::relDifference(mirror(irow), value),                                             \

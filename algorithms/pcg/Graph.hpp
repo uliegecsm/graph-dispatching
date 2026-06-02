@@ -11,6 +11,7 @@
 
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Helpers.hpp"
+#include "utils/pool.hpp"
 
 namespace algorithms::pcg
 {
@@ -84,7 +85,7 @@ public:
     auto& get_preconditioner() { return preconditioner; }
 
     template <Kokkos::ExecutionSpace Exec>
-    std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const Exec& exec, const VectorType& sol, const base_t::Parameters& params) const
+    std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const utils::ExecutionSpacePool<Exec>& pool, const VectorType& sol, const base_t::Parameters& params) const
     {
         PLOG_INFO << "PCGGraph(apply): starting...";
 
@@ -95,6 +96,9 @@ public:
             algorithms::cg::check_cublas_uses_host_pointer_mode();
         }
 #endif
+
+        if(pool.size() < 1) Kokkos::abort("The pool size must be at least 1.");
+        const auto& exec = pool.get(0);
 
         //! Pre-compute the residual.
         Kokkos::deep_copy(exec, res, rhs);

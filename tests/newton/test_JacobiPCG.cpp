@@ -10,11 +10,11 @@
 #include "plog/Log.h"
 
 #include "algorithms/cg/Functors.hpp"
-#include "algorithms/cg/SingleQueue.hpp"
+#include "algorithms/cg/Queue.hpp"
 #include "algorithms/newton/Solver.hpp"
 #include "algorithms/pcg/Graph.hpp"
 #include "algorithms/pcg/Preconditioners.hpp"
-#include "algorithms/pcg/SingleQueue.hpp"
+#include "algorithms/pcg/Queue.hpp"
 #include "apps/heat/NonLinear1DHeatTransfer.hpp"
 
 #include "tests/newton/Helpers.hpp"
@@ -34,7 +34,9 @@ using memory_space = typename execution_space::memory_space;
 namespace tests::newton {
 
 template <typename UseGraph>
-struct NewtonPCGTest : public ::testing::Test {
+struct NewtonPCGTest
+    : public ::testing::Test
+    , public utils::ExecutionSpacePoolFixture<execution_space, 2> {
    public:
     using problem_t = ::apps::heat::NonLinear1DHeatTransfer<memory_space, execution_space, UseGraph::value>;
 
@@ -47,7 +49,7 @@ struct NewtonPCGTest : public ::testing::Test {
         preconditioner_t
     >;
 
-    using solver_single_queue_t = algorithms::pcg::PCGSingleQueue<
+    using solver_queue_t = algorithms::pcg::PCGQueue<
         typename problem_t::local_matrix_t,
         typename problem_t::scalar_1d_view_t,
         preconditioner_t,
@@ -56,7 +58,7 @@ struct NewtonPCGTest : public ::testing::Test {
         ::algorithms::cg::Axpby
     >;
 
-    using linear_solver_t = std::conditional_t<UseGraph::value, solver_graph_t, solver_single_queue_t>;
+    using linear_solver_t = std::conditional_t<UseGraph::value, solver_graph_t, solver_queue_t>;
 
     using subtract_t = Subtract<typename problem_t::scalar_1d_view_t, typename problem_t::scalar_1d_view_t>;
 
@@ -92,15 +94,15 @@ TYPED_TEST(NewtonPCGTest, Jacobi) {
         typename TestFixture::subtract_t
     >;
 
-    const execution_space exec{};
+    const auto& exec_A = this->pool.get(0);
 
-    typename TestFixture::problem_t problem{exec, typename TestFixture::problem_t::Parameters{.num_elems = 100}};
-    typename TestFixture::linear_solver_t linear_solver{exec, problem.local_matrix, problem.local_rhs};
+    typename TestFixture::problem_t problem{exec_A, typename TestFixture::problem_t::Parameters{.num_elems = 100}};
+    typename TestFixture::linear_solver_t linear_solver{exec_A, problem.local_matrix, problem.local_rhs};
 
     const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
 
     const auto [res_nrm2, num_iters] =
-        solver.solve(exec, {.tolerance = 1.e-6, .max_iters = 10}, {.tolerance = 1.e-6, .max_iters = 100});
+        solver.solve(this->pool, {.tolerance = 1.e-6, .max_iters = 10}, {.tolerance = 1.e-6, .max_iters = 100});
 
     const auto sol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, solver.problem.local_sol);
 

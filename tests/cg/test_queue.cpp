@@ -6,8 +6,8 @@
 #include "kokkos-utils/tests/scoped/callbacks/Manager.hpp"
 
 #include "algorithms/cg/Functors.hpp"
-#define GRAPH_DISPATCHING_ALGORITHMS_CG_CGSINGLEQUEUE_ENABLE_SCOPEDREGION_IN_LOOP
-#include "algorithms/cg/SingleQueue.hpp"
+#define GRAPH_DISPATCHING_ALGORITHMS_CG_CGQUEUE_ENABLE_SCOPEDREGION_IN_LOOP
+#include "algorithms/cg/Queue.hpp"
 
 #include "tests/CallbackMatchers.hpp"
 #include "tests/cg/Helpers.hpp"
@@ -15,12 +15,12 @@
 /**
  * @addtogroup unittests
  *
- * Conjugate gradient solver with a single @c Kokkos execution space instance
- * --------------------------------------------------------------------------
+ * Conjugate gradient solver with @c Kokkos execution space instances
+ * ------------------------------------------------------------------
  *
- * This group of tests check the behavior of @ref algorithms::cg::CGSingleQueue.
+ * This group of tests check the behavior of @ref algorithms::cg::CGQueue.
  *
- * The test can be found in @ref tests/cg/test_single_queue.cpp.
+ * The test can be found in @ref tests/cg/test_queue.cpp.
  */
 
 using execution_space = Kokkos::DefaultExecutionSpace;
@@ -34,7 +34,7 @@ DEFINE_FUNCTOR(KokkosSparseSpmv, KokkosSparse::spmv)
 DEFINE_FUNCTOR(KokkosBlasDot,    KokkosBlas::dot)
 DEFINE_FUNCTOR(KokkosBlasAxpby,  KokkosBlas::axpby)
 
-using solver_t = algorithms::cg::CGSingleQueue<
+using solver_t = algorithms::cg::CGQueue<
     typename helper_t::initializer_t::matrix_t,
     typename helper_t::initializer_t::rhs_t,
     KokkosSparseSpmv,
@@ -44,9 +44,10 @@ using solver_t = algorithms::cg::CGSingleQueue<
 
 using namespace Kokkos::utils::callbacks;
 
-class CGSingleQueueTest : public ::testing::Test,
+class CGQueueTest : public ::testing::Test,
                           public NbyNSolverTest<solver_t>,
-                          public Kokkos::utils::tests::scoped::callbacks::Manager
+                          public Kokkos::utils::tests::scoped::callbacks::Manager,
+                          public utils::ExecutionSpacePoolFixture<execution_space, 2>
 {
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
@@ -54,21 +55,22 @@ public:
     using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
 };
 
-TEST_F(CGSingleQueueTest, 10x10)
+TEST_F(CGQueueTest, 10x10)
 {
-    const execution_space exec {};
-
 #if defined(KOKKOS_ENABLE_CUDA)
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGSingleQueue - iter 7"}};
+    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "CGQueue - iter 7"}};
     const auto recorder = std::make_shared<event_in_region_recorder_t>(std::move(matcher));
 
     Kokkos::utils::callbacks::Manager::register_listener(recorder);
 #endif
 
-    RUN_AND_CHECK(exec, 10, 1.e-12, 9)
+    RUN_AND_CHECK(pool, 10, 1.e-12, 9)
 
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::utils::callbacks::Manager::unregister_listener(recorder.get());
+
+    const auto& exec_A = pool.get(0);
+    const auto& exec_B = pool.get(1);
 
     /// When the backend is @c Cuda, there won't be any call to @c cublasDdot because of
     /// https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_dot_tpl_spec_avail.hpp#L81-L90.
@@ -79,10 +81,10 @@ TEST_F(CGSingleQueueTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (quadratic)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
             MATCHER_FOR_POP_REGION(),
@@ -91,17 +93,17 @@ TEST_F(CGSingleQueueTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (norm)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
                 /// There is no official support for @c axpby in @c cuBLAS. Therefore, if @c beta is not one,
                 /// @c KokkosKernels will fallback to its own implementation.
                 /// See also https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_axpby_tpl_spec_decl.hpp#L289-L305.
                 MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec, "KokkosBlas::Axpby::S11"),
+                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
                 MATCHER_FOR_POP_REGION(),
             MATCHER_FOR_POP_REGION()
         )

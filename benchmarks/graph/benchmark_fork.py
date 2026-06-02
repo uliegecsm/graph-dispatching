@@ -12,7 +12,8 @@ import pandas
 import typeguard
 
 from benchmarks.base import BenchmarkBase, parse_args
-from benchmarks.graph.common import Method, asymptotic_speedup, n_be
+from benchmarks.common import asymptotic_speedup, n_be
+from benchmarks.graph.common import Method
 
 
 @dataclasses.dataclass(frozen=True)
