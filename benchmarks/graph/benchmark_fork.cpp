@@ -33,9 +33,9 @@ struct Increment {
     ViewType data;
     IndexType index;
 
-    template <std::integral T>
+    template <typename... Args>
     KOKKOS_FUNCTION
-    void operator()(const T) const noexcept {
+    void operator()(Args&&...) const noexcept {
         ++data(index);
     }
 };
