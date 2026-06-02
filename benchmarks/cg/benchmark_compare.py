@@ -20,7 +20,7 @@ class CGFlavor(enum.StrEnum):
     CG solver flavor.
     """
     GRAPH           = 'graph'
-    GRAPH_WITH_HOST = 'graph_with_host'
+    #GRAPH_WITH_HOST = 'graph_with_host'
     SINGLEQUEUE     = 'single_queue'
 
     @property
@@ -101,7 +101,8 @@ class CGBenchmark(BenchmarkBase):
             self.target,
             '--benchmark_out=' + str(self.results[CollectionMethod.CONVERGENCE]),
             '--benchmark_out_format=json',
-            '--benchmark_min_time=1x',
+            '--benchmark_min_warmpup_time=2',
+            '--benchmark_min_time=5s',
             '--benchmark_filter=CONVERGENCE',
             '--benchmark_enable_random_interleaving=true',
             *args,
@@ -213,7 +214,7 @@ class CGBenchmark(BenchmarkBase):
 
                         ratios_full    [flavor].append(flavor_retime / baseline_retime)
                         ratios_per_iter[flavor].append(flavor_loop   / baseline_loop)
-                        times_per_iter [flavor].append(flavor_loop   / baseline_niters)
+                        times_per_iter [flavor].append(flavor_loop   / min(20, baseline_niters))
                     case _:
                         raise ValueError()
 
@@ -224,14 +225,14 @@ class CGBenchmark(BenchmarkBase):
         # Colors for each flavor.
         COLORS = {
             CGFlavor.GRAPH          : 'red',
-            CGFlavor.GRAPH_WITH_HOST: 'green',
+            #CGFlavor.GRAPH_WITH_HOST: 'green',
             CGFlavor.SINGLEQUEUE    : 'blue',
         }
 
         # Line style for each flavor (for black and white).
         LINESTYLES = {
             CGFlavor.GRAPH          : '-.',
-            CGFlavor.GRAPH_WITH_HOST: '--',
+            #CGFlavor.GRAPH_WITH_HOST: '--',
             CGFlavor.SINGLEQUEUE    : ':',
         }
 
@@ -246,10 +247,12 @@ class CGBenchmark(BenchmarkBase):
         convergence_ax_ratio = convergence_axes[1]
 
         convergence_ax_ratio.set_xscale('log')
+        convergence_ax_ratio.set_yscale('log')
         convergence_ax_ratio.set_xlabel('size [-]')
         convergence_ax_ratio.set_ylabel('ratio [-]')
 
         convergence_ax_per_i.set_xscale('log')
+        convergence_ax_per_i.set_yscale('log')
         convergence_ax_per_i.set_ylabel(f'avg. iteration [{time_unit}]')
 
         for flavor in CGFlavor:
@@ -262,7 +265,7 @@ class CGBenchmark(BenchmarkBase):
                 label     = f'{flavor}',
             )
 
-            if flavor == BASELINE or flavor == CGFlavor.GRAPH_WITH_HOST:
+            if flavor == BASELINE: # or flavor == CGFlavor.GRAPH_WITH_HOST:
                 continue
 
             convergence_ax_ratio.plot(
@@ -297,7 +300,7 @@ class CGBenchmark(BenchmarkBase):
         for ext in ('png', 'svg', 'eps'):
             output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.' + ext).resolve()
             logging.info(f'Saving figure to {output}.')
-            matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
+            matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
 
         # Plot the time it takes for the CG initial setup, graph creation and instantiation.
         # See also https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html#grouped-bar-chart-with-labels.
@@ -343,7 +346,7 @@ class CGBenchmark(BenchmarkBase):
         legend = {
             # Flavors.
             'graph'            : matplotlib.patches.Patch(edgecolor = EDGECOLOR, facecolor = COLORS[CGFlavor.GRAPH],           linestyle = ''),
-            'graph with host'  : matplotlib.patches.Patch(edgecolor = EDGECOLOR, facecolor = COLORS[CGFlavor.GRAPH_WITH_HOST], linestyle = ''),
+            #'graph with host'  : matplotlib.patches.Patch(edgecolor = EDGECOLOR, facecolor = COLORS[CGFlavor.GRAPH_WITH_HOST], linestyle = ''),
             # Type of data.
             f'setup / {SCALE}' : matplotlib.patches.Patch(edgecolor = EDGECOLOR, hatch = HATCH_SETUP,  facecolor = 'white', linestyle = ''),
             'create'           : matplotlib.patches.Patch(edgecolor = EDGECOLOR, hatch = HATCH_CREATE, facecolor = 'white', linestyle = ''),

@@ -80,9 +80,9 @@ public:
     {
         sequence->reset();
 
-        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(1) * 2)});
+        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = 20 /*static_cast<size_t>(state.range(1) * 2)*/});
 
-        CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, static_cast<size_t>(state.range(1)))
+        CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, 20 /*static_cast<size_t>(state.range(1))*/)
 
         for(size_t itiming = 0; itiming < timings.size(); ++itiming) {
             timings.at(itiming) += this->convert(sequence->timers.at(itiming).duration<Kokkos::utils::timer::microseconds>());
@@ -173,46 +173,48 @@ protected:
 #define CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(_which_) BENCHMARK_REGISTER_F(CGBenchmark, _which_##convergence)
 #define CGBENCHMARK_REGISTER_UPTO_SINGLE_ITER_F(_which_) BENCHMARK_REGISTER_F(CGBenchmark, _which_##single_iter)
 
-void CustomArguments(benchmark::Benchmark* benchmark) {
+void CustomArguments(benchmark::internal::Benchmark* benchmark) {
     benchmark
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond)->ArgNames({"nrows", "niters"})
-    ->Args({    10,     9})
-    ->Args({    20,    18})
-    ->Args({    50,    48})
-#if false
-    ->Args({   100,    99})
-    ->Args({   150,   149})
-    ->Args({   200,   198})
-    ->Args({   300,   299})
-    ->Args({   500,   498})
-    ->Args({  1000,   999})
-    ->Args({  2000,  1998})
-    ->Args({ 10000,  9999})
-    ->Args({ 20000, 19998})
-    ->Args({ 50000, 49998})
-    ->Args({100000, 99999})
-#endif
-;
+    ->Args({    32,    32})
+    ->Args({    64,    48})
+    ->Args({   128,    99})
+    ->Args({   128<<1,   149})
+    ->Args({   128<<2,   198})
+    ->Args({   128<<3,   299})
+    ->Args({   128<<4,   498})
+    ->Args({  128<<5,   999})
+    ->Args({  128<<6,  1998})
+    ->Args({ 128<<7,  9999})
+    ->Args({ 128<<8, 19998})
+    ->Args({ 128<<9, 49998})
+    ->Args({128<<10, 100000})
+    ->Args({128<<11, 100000})
+    ->Args({128<<12, 100000})
+    ->Args({128<<13, 100000})
+    ->Args({128<<15, 100000})
+    ->Args({128<<16, 100000})
+    ->Args({128<<17, 100000}); // 2^7 × 2^17 = 2^24 = 16,777,216
 }
 
 /// @name Benchmarks that will go up to convergence.
 ///@{
 CGBENCHMARK_DEFINE_UPTO_CONVERGENCE_F(single_queue)
 CGBENCHMARK_DEFINE_UPTO_CONVERGENCE_F(graph)
-CGBENCHMARK_DEFINE_UPTO_CONVERGENCE_F(graph_with_host)
+//CGBENCHMARK_DEFINE_UPTO_CONVERGENCE_F(graph_with_host)
 
 CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(single_queue   )->Apply(CustomArguments);
 CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(graph          )->Apply(CustomArguments);
-CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(graph_with_host)->Apply(CustomArguments);
+//CGBENCHMARK_REGISTER_UPTO_CONVERGENCE_F(graph_with_host)->Apply(CustomArguments);
 ///@}
 
 /// @name Benchmarks that will do a single iteration.
 ///@{
 CGBENCHMARK_DEFINE_UPTO_SINGLE_ITER_F(graph)
-CGBENCHMARK_DEFINE_UPTO_SINGLE_ITER_F(graph_with_host)
+//CGBENCHMARK_DEFINE_UPTO_SINGLE_ITER_F(graph_with_host)
 
 CGBENCHMARK_REGISTER_UPTO_SINGLE_ITER_F(graph          )->Apply(CustomArguments);
-CGBENCHMARK_REGISTER_UPTO_SINGLE_ITER_F(graph_with_host)->Apply(CustomArguments);
+//CGBENCHMARK_REGISTER_UPTO_SINGLE_ITER_F(graph_with_host)->Apply(CustomArguments);
 ///@}
 } // namespace benchmarks::cg

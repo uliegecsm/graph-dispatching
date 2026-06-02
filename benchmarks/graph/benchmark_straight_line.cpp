@@ -158,7 +158,9 @@ void parameters(benchmark::Benchmark* benchmark) {
             ->Args({10, 50})
             ->Args({10, 100})
             ->Args({10, 200})
-            ->Args({10, 500});
+            ->Args({10, 500})
+            ->MinTime(20.)
+            ->MinWarmUpTime(10.);
 }
 
 BENCHMARK_DEFINE_F(StraightLineBenchmark, exec)(benchmark::State& state) { this->run_exec(state); }

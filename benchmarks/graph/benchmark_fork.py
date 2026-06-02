@@ -56,9 +56,9 @@ class ForkBenchmark(BenchmarkBase):
             self.target,
             '--benchmark_out=' + str(self.results),
             '--benchmark_out_format=json',
-            '--benchmark_min_time=1x',
+            #'--benchmark_min_time=1x',
             '--benchmark_enable_random_interleaving=true',
-            '--benchmark_min_warmup_time=0',
+            #'--benchmark_min_warmup_time=0',
             *args,
         ]
         subprocess.check_call(cmd)

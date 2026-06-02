@@ -30,6 +30,7 @@ if(
             -Werror=unused-lambda-capture
             -Werror=unused-member-function
             -Werror=delete-non-virtual-dtor
+            -Wno-deprecated-declarations
         )
     endif()
 

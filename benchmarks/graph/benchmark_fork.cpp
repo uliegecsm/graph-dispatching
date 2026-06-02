@@ -33,9 +33,9 @@ struct Increment {
     ViewType data;
     IndexType index;
 
-    template <std::integral T>
+    template <typename... Args>
     KOKKOS_FUNCTION
-    void operator()(const T) const noexcept {
+    void operator()(Args&&...) const noexcept {
         ++data(index);
     }
 };
@@ -147,7 +147,9 @@ void parameters(benchmark::Benchmark* benchmark) {
              ->ArgNames({"num_branches", "num_submits", "num_nodes"})
             ->Args({2, 10, 10})
             ->Args({4, 10, 10})
-            ->Args({4, 100, 10});
+            ->Args({4, 100, 10})
+            ->MinTime(20.)
+            ->MinWarmUpTime(10.);
 }
 
 BENCHMARK_DEFINE_F(ForkBenchmark, exec)(benchmark::State& state) { this->run_exec(state); }

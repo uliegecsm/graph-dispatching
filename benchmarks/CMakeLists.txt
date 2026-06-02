@@ -71,7 +71,7 @@ function(add_one_benchmark)
         COMMAND python3 ${SCRIPT_FILE}
                 --target $<TARGET_FILE:${EXECUTABLE_NAME}>
                 --
-                --benchmark_min_time=1x
+                #--benchmark_min_time=1x
     )
     set_property(
         TEST ${EXECUTABLE_NAME}
