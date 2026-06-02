@@ -34,6 +34,8 @@ namespace benchmarks::pcg
 class PCGBenchmark : public benchmarks::BenchmarkBase
 {
 public:
+    using pool_t = utils::ExecutionSpacePool<execution_space>;
+
     static constexpr unsigned short state_nrows   = 0;
     static constexpr unsigned short state_niters  = 1;
     static constexpr unsigned short state_nsweeps = 2;
@@ -41,11 +43,11 @@ public:
 public:
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State&) override {
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->pool = pool_t{2};
     }
 
     void TearDown(const ::benchmark::State&) override {
-        this->exec = std::nullopt;
+        this->pool = std::nullopt;
     }
 
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(SetUp)
@@ -55,7 +57,7 @@ public:
     auto run_once(::benchmark::State& state) const
     {
         const auto [elapsed, res_nrm2, num_iters, sol] = T::run(
-            *exec,
+            *pool,
             state.range(state_nrows), {.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(state_niters)) * 2},
             [num_sweeps = state.range(state_nsweeps)](auto& solver) {
                 solver.get_preconditioner().num_sweeps = num_sweeps;
@@ -99,7 +101,7 @@ protected:
     using solver_single_queue_t = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGSingleQueue<matrix_t, rhs_t,          preconditioner_t, ::algorithms::cg::Spmv, ::algorithms::cg::Dot, algorithms::cg::Axpby>>;
     using solver_graph_t        = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGGraph      <matrix_t, rhs_t, graph_t, preconditioner_t>>;
 
-    std::optional<execution_space> exec = std::nullopt;
+    std::optional<pool_t> pool = std::nullopt;
 
     static constexpr typename solver_single_queue_t::solver_t::mag_t tolerance = 1.e-12;
 };

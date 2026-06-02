@@ -40,7 +40,7 @@ template <typename HostOrDeviceNode>
 class CGGraphTest : public ::testing::Test,
                     public NbyNSolverTest<algorithms::cg::CGGraph<typename helper_t::initializer_t::matrix_t, typename helper_t::initializer_t::rhs_t, HostOrDeviceNode::value>>,
                     public Kokkos::utils::tests::scoped::callbacks::Manager,
-                    public Kokkos::utils::tests::scoped::ExecutionSpace<execution_space>
+                    public utils::ExecutionSpacePoolFixture<execution_space, 1>
 {
 public:
     using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, PushRegionEvent, PopRegionEvent>;
@@ -60,15 +60,16 @@ TYPED_TEST(CGGraphTest, 10x10)
 
     Manager::register_listener(recorder);
 
-    RUN_AND_CHECK(this->exec, 10000, 1.e-12, 9999)
+    RUN_AND_CHECK(this->pool, 10000, 1.e-12, 9999)
 
     Manager::unregister_listener(recorder.get());
 
     /// Everything happens in the graph, and there is no marker yet. The only event is our fence before computing the
     /// convergence criterion.
+    const auto& exec= this->pool.get(0);
     ASSERT_THAT(
         recorder->recorded_events,
-        ::testing::Contains(MATCHER_FOR_BEGIN_FENCE(this->exec, "fencing before evaluating convergence")).Times(9999)
+        testing::Contains(MATCHER_FOR_BEGIN_FENCE(exec, "fencing before evaluating convergence")).Times(9999)
     );
 }
 

@@ -48,6 +48,8 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
    public:
     using problem_t = ::apps::heat::NonLinear1DHeatTransfer<memory_space, execution_space, UseGraph>;
 
+    using pool_t = utils::ExecutionSpacePool<execution_space>;
+
     using preconditioner_t = ::algorithms::pcg::JacobiPreconditioner<typename problem_t::local_matrix_t>;
 
     using solver_graph_t = algorithms::pcg::PCGGraph<
@@ -79,7 +81,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State& state) override {
         this->name = std::regex_replace(state.name(), std::regex("[<>,]"), "_");
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->pool = pool_t{2};
 
         if constexpr (DetailedCollection) {
             const auto output_dir = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name;
@@ -98,7 +100,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     }
 
     void TearDown(const ::benchmark::State&) override {
-        this->exec = std::nullopt;
+        this->pool = std::nullopt;
 
         if constexpr (DetailedCollection) {
             logger.reset();
@@ -110,8 +112,8 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
 
     auto run(::benchmark::State& state) {
-        problem_t problem{*exec, typename problem_t::Parameters{.num_elems = num_elems}};
-        linear_solver_t linear_solver{*exec, problem.local_matrix, problem.local_rhs};
+        problem_t problem{pool->get(0), typename problem_t::Parameters{.num_elems = num_elems}};
+        linear_solver_t linear_solver{pool->get(0), problem.local_matrix, problem.local_rhs};
 
         linear_solver.get_preconditioner().num_sweeps = 8;
 
@@ -119,7 +121,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
 
         timer.start();
         [[maybe_unused]] const auto [res_nrm2, num_iters] = solver.solve(
-            *exec,
+            *pool,
             typename newton_t::Parameters{.tolerance = 1.e-8, .max_iters = std::numeric_limits<size_t>::max()},
             typename linear_solver_t::Parameters{.tolerance = 1.e-8, .max_iters = num_elems});
         timer.stop();
@@ -152,7 +154,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
    protected:
     std::string name;
 
-    std::optional<execution_space> exec = std::nullopt;
+    std::optional<pool_t> pool = std::nullopt;
 
     Kokkos::utils::timer::Timer<void> timer;
 

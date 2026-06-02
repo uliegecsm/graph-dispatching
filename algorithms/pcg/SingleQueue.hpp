@@ -10,6 +10,7 @@
 
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Helpers.hpp"
+#include "utils/pool.hpp"
 
 namespace algorithms::pcg
 {
@@ -64,7 +65,7 @@ public:
     /// We explicitly don't partition @p exec.
     /// This decision is aligned with how @c KokkosKernels would use the incoming @p exec.
     template <Kokkos::ExecutionSpace Exec>
-    std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const Exec& exec, const VectorType& sol, const base_t::Parameters& params) const
+    std::tuple<mag_t, decltype(base_t::Parameters::max_iters)> apply(const utils::ExecutionSpacePool<Exec>& pool, const VectorType& sol, const base_t::Parameters& params) const
     {
         PLOG_INFO << "PCGSingleQueue(apply): starting...";
 
@@ -76,22 +77,26 @@ public:
         }
 #endif
 
+        if(pool.size() < 2) Kokkos::abort("The pool size must be at least 2.");
+        const auto exec_A = pool.get(0);
+        const auto exec_B = pool.get(1);
+
         //! Pre-compute the residual.
-        Kokkos::deep_copy(exec, res, rhs);
-        KokkosSparse::spmv(exec, &handle, "N", -1., mat, sol, 1., res);
+        Kokkos::deep_copy(exec_A, res, rhs);
+        KokkosSparse::spmv(exec_A, &handle, "N", -1., mat, sol, 1., res);
 
         //! Placeholder for the residual L2 norm.
-        mag_t res_nrm2 = Kokkos::sqrt(Kokkos::abs(KokkosBlas::dot(exec, res, res)));
+        mag_t res_nrm2 = Kokkos::sqrt(Kokkos::abs(KokkosBlas::dot(exec_A, res, res)));
         if(res_nrm2 < params.tolerance) return {res_nrm2, 0};
 
         //! Pre-compute the residual of the preconditioned system.
-        preconditioner.apply(exec, res_p, res);
+        preconditioner.apply(exec_A, res_p, res);
 
         //! Compute the dot product of both residuals.
-        dot_t res_p_res_dot_old = KokkosBlas::dot(exec, res_p, res);
+        dot_t res_p_res_dot_old = KokkosBlas::dot(exec_A, res_p, res);
 
         //! Direction of search is set to the residual of the preconditioned system.
-        Kokkos::deep_copy(exec, dir, res_p);
+        Kokkos::deep_copy(exec_A, dir, res_p);
 
         /// For @c Cuda, the @c dot will not end up in a @c cuBLAS call (see https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_dot_tpl_spec_avail.hpp#L81-L90).
         /// Therefore, @c KokkosBlas::dot will end up doing a @c Kokkos parallel reduce.
@@ -112,40 +117,40 @@ public:
 #endif
 
             //! Compute @c alpha.
-            SpmvType{}(exec, &handle, "N", 1., mat, dir, 0., mat_dir);
+            SpmvType{}(exec_A, &handle, "N", 1., mat, dir, 0., mat_dir);
 
-            DotType{}(exec, pinned, dir, mat_dir);
+            DotType{}(exec_A, pinned, dir, mat_dir);
 
-            exec.fence("waiting for dot (quadratic)");
+            exec_A.fence("waiting for dot (quadratic)");
 
             const auto alpha = res_p_res_dot_old / pinned();
 
             //! Update the solution candidate and residual.
-            AxpbyType{}(exec,   alpha, dir,     1., sol);
-            AxpbyType{}(exec, - alpha, mat_dir, 1., res);
+            AxpbyType{}(exec_A,   alpha, dir,     1., sol);
+            AxpbyType{}(exec_B, - alpha, mat_dir, 1., res);
 
             //! At this point, we can already check the condition and exit.
-            DotType{}(exec, pinned, res, res);
+            DotType{}(exec_B, pinned, res, res);
 
-            exec.fence("waiting for dot (norm)");
+            exec_B.fence("waiting for dot (norm)");
 
             res_nrm2 = Kokkos::sqrt(Kokkos::abs(pinned()));
 
             if(res_nrm2 > params.tolerance)
             {
                 //! Update the residual of the preconditioned system.
-                preconditioner.apply(exec, res_p, res);
+                preconditioner.apply(exec_B, res_p, res);
 
                 //! Compute the dot product of the residuals.
-                DotType{}(exec, pinned, res_p, res);
+                DotType{}(exec_B, pinned, res_p, res);
 
-                exec.fence("waiting for dot (residuals)");
+                exec_B.fence("waiting for dot (residuals)");
 
                 //! Compute @c beta.
                 const auto beta = pinned() / res_p_res_dot_old;
 
                 //! Update search direction.
-                AxpbyType{}(exec, 1., res_p, beta, dir);
+                AxpbyType{}(exec_A, 1., res_p, beta, dir);
 
                 res_p_res_dot_old = pinned();
             }

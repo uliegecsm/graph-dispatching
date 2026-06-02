@@ -201,14 +201,19 @@ struct NonLinear1DHeatTransfer {
 
     template <Kokkos::ExecutionSpace Exec>
     requires(!UseGraph)
-    void assemble(const Exec& exec) const {
-        Kokkos::parallel_for(Kokkos::RangePolicy(exec, 0, params.num_elems), *this);
+    void assemble(const utils::ExecutionSpacePool<Exec>& pool) const {
+        const auto& exec_A = pool.get(0);
+        const auto& exec_B = pool.get(1);
 
-        Kokkos::deep_copy(exec, local_rhs, 0.);
-        Kokkos::deep_copy(exec, local_matrix.values, 0.);
+        Kokkos::parallel_for(Kokkos::RangePolicy(exec_A, 0, params.num_elems), *this);
+
+        Kokkos::deep_copy(exec_B, local_rhs, 0.);
+        Kokkos::deep_copy(exec_A, local_matrix.values, 0.);
+
+        exec_B.fence();
 
         Kokkos::parallel_for(
-            Kokkos::RangePolicy(exec, 0, params.num_elems),
+            Kokkos::RangePolicy(exec_A, 0, params.num_elems),
             scatter_t{
                 .stacked_elem_matrices = stacked_elem_matrices,
                 .stacked_elem_rhss = stacked_elem_rhss,
@@ -218,12 +223,14 @@ struct NonLinear1DHeatTransfer {
 
     template <Kokkos::ExecutionSpace Exec>
     requires(UseGraph)
-    void assemble(const Exec& exec) const {
+    void assemble(const utils::ExecutionSpacePool<Exec>& pool) const {
         if (!this->graph) {
-            this->graph.emplace(Kokkos::Experimental::get_device_handle(exec));
+            const auto device_handle = Kokkos::Experimental::get_device_handle(pool.get(0));
+
+            this->graph.emplace(device_handle);
 
             auto node_fill = this->graph->root_node().then_parallel_for(
-                Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(exec)),
+                Kokkos::Experimental::node_props(device_handle),
                 Kokkos::RangePolicy<Exec>(0, params.num_elems),
                 *this);
 
@@ -234,7 +241,7 @@ struct NonLinear1DHeatTransfer {
             Kokkos::Experimental::when_all(
                 std::move(node_fill), std::move(node_local_rhs_reset), std::move(node_local_mat_reset))
                 .then_parallel_for(
-                    Kokkos::Experimental::node_props(Kokkos::Experimental::get_device_handle(exec)),
+                    Kokkos::Experimental::node_props(device_handle),
                     Kokkos::RangePolicy<Exec>(0, params.num_elems),
                     scatter_t{
                         .stacked_elem_matrices = stacked_elem_matrices,
@@ -243,7 +250,7 @@ struct NonLinear1DHeatTransfer {
                         .local_rhs_values = local_rhs});
         }
 
-        this->graph->submit(exec);
+        this->graph->submit(pool.get(0));
     }
 
     Parameters params;

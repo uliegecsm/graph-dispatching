@@ -34,7 +34,7 @@ using memory_space = typename execution_space::memory_space;
 namespace tests::newton {
 
 template <typename UseGraph>
-struct NewtonPCGTest : public ::testing::Test {
+struct NewtonPCGTest : public ::testing::Test, public utils::ExecutionSpacePoolFixture<execution_space, 2> {
    public:
     using problem_t = ::apps::heat::NonLinear1DHeatTransfer<memory_space, execution_space, UseGraph::value>;
 
@@ -92,15 +92,13 @@ TYPED_TEST(NewtonPCGTest, Jacobi) {
         typename TestFixture::subtract_t
     >;
 
-    const execution_space exec{};
-
-    typename TestFixture::problem_t problem{exec, typename TestFixture::problem_t::Parameters{.num_elems = 100}};
-    typename TestFixture::linear_solver_t linear_solver{exec, problem.local_matrix, problem.local_rhs};
+    typename TestFixture::problem_t problem{this->pool.get(0), typename TestFixture::problem_t::Parameters{.num_elems = 100}};
+    typename TestFixture::linear_solver_t linear_solver{this->pool.get(0), problem.local_matrix, problem.local_rhs};
 
     const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
 
     const auto [res_nrm2, num_iters] =
-        solver.solve(exec, {.tolerance = 1.e-6, .max_iters = 10}, {.tolerance = 1.e-6, .max_iters = 100});
+        solver.solve(this->pool, {.tolerance = 1.e-6, .max_iters = 10}, {.tolerance = 1.e-6, .max_iters = 100});
 
     const auto sol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, solver.problem.local_sol);
 

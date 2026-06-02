@@ -42,7 +42,7 @@ using namespace Kokkos::utils::callbacks;
 template <template <typename> class Preconditioner>
 class PCGSingleQueueTest : public ::testing::Test,
                            public Kokkos::utils::tests::scoped::callbacks::Manager,
-                           public Kokkos::utils::tests::scoped::ExecutionSpace<execution_space>
+                           public utils::ExecutionSpacePoolFixture<execution_space, 2>
 {
 public:
     using helper_t = cg::NbyNSolverTestHelper<execution_space>;
@@ -95,12 +95,15 @@ TEST_F(PCGSingleQueueIdentityPreconditionerTest, 10x10)
     Kokkos::utils::callbacks::Manager::register_listener(recorder);
 #endif
 
-    RUN_AND_CHECK(exec, 10, 1.e-12, 9)
+    RUN_AND_CHECK(this->pool, 10, 1.e-12, 9)
 
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::utils::callbacks::Manager::unregister_listener(recorder.get());
 
     recorder->report(std::cout);
+
+    const auto& exec_A = pool.get(0);
+    const auto& exec_B = pool.get(1);
 
     /// When the backend is @c Cuda, there won't be any call to @c cublasDdot because of
     /// https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_dot_tpl_spec_avail.hpp#L81-L90.
@@ -111,10 +114,10 @@ TEST_F(PCGSingleQueueIdentityPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (quadratic)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
             MATCHER_FOR_POP_REGION(),
@@ -123,10 +126,10 @@ TEST_F(PCGSingleQueueIdentityPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (norm)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
             MATCHER_FOR_BEGIN_DEEP_COPY(
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
@@ -134,14 +137,14 @@ TEST_F(PCGSingleQueueIdentityPreconditionerTest, 10x10)
             ),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (residuals)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
                 MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec, "KokkosBlas::Axpby::S11"),
+                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
                 MATCHER_FOR_POP_REGION(),
             MATCHER_FOR_POP_REGION()
         )
@@ -161,10 +164,13 @@ TEST_F(PCGSingleQueueDiagonalPreconditionerTest, 10x10)
     Kokkos::utils::callbacks::Manager::register_listener(recorder);
 #endif
 
-    RUN_AND_CHECK(exec, 10, 1.e-12, 8)
+    RUN_AND_CHECK(this->pool, 10, 1.e-12, 8)
 
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::utils::callbacks::Manager::unregister_listener(recorder.get());
+
+    const auto& exec_A = pool.get(0);
+    const auto& exec_B = pool.get(1);
 
     recorder->report(std::cout);
 
@@ -177,10 +183,10 @@ TEST_F(PCGSingleQueueDiagonalPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (quadratic)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
             MATCHER_FOR_POP_REGION(),
@@ -189,22 +195,22 @@ TEST_F(PCGSingleQueueDiagonalPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (norm)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (residuals)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
                 MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec, "KokkosBlas::Axpby::S11"),
+                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
                 MATCHER_FOR_POP_REGION(),
             MATCHER_FOR_POP_REGION()
         )
@@ -224,12 +230,15 @@ TEST_F(PCGSingleQueueJacobiPreconditionerTest, 10x10)
     Kokkos::utils::callbacks::Manager::register_listener(recorder);
 #endif
 
-    RUN_AND_CHECK(exec, 10, 1.e-12, 4)
+    RUN_AND_CHECK(this->pool, 10, 1.e-12, 4)
 
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::utils::callbacks::Manager::unregister_listener(recorder.get());
 
     recorder->report(std::cout);
+
+    const auto& exec_A = pool.get(0);
+    const auto& exec_B = pool.get(1);
 
     /// When the backend is @c Cuda, there won't be any call to @c cublasDdot because of
     /// https://github.com/kokkos/kokkos-kernels/blob/9bca19c85b88aeca97209ec7cde858447e16696c/blas/tpls/KokkosBlas1_dot_tpl_spec_avail.hpp#L81-L90.
@@ -240,10 +249,10 @@ TEST_F(PCGSingleQueueJacobiPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (quadratic)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
             MATCHER_FOR_POP_REGION(),
@@ -252,37 +261,37 @@ TEST_F(PCGSingleQueueJacobiPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (norm)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec, (Kokkos::Impl::TypeInfo<typename preconditioner_t::ApplyFirstPass<rhs_t, rhs_t>>::name())),
-            MATCHER_FOR_BEGIN_PFOR(exec, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, (Kokkos::Impl::TypeInfo<typename preconditioner_t::ApplyFirstPass<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
             ),
-            MATCHER_FOR_BEGIN_PFOR(exec, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
             ),
-            MATCHER_FOR_BEGIN_PFOR(exec, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
                 (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
             ),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec, "KokkosBlas::dot<1D>"),
+                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
-            MATCHER_FOR_BEGIN_FENCE(exec, "waiting for dot (residuals)"),
+            MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
                 MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec, "KokkosBlas::Axpby::S11"),
+                    MATCHER_FOR_BEGIN_PFOR(exec_B, "KokkosBlas::Axpby::S11"),
                 MATCHER_FOR_POP_REGION(),
             MATCHER_FOR_POP_REGION()
         )

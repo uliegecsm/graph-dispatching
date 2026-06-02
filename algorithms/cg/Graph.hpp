@@ -11,6 +11,7 @@
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/cg/Helpers.hpp"
+#include "utils/pool.hpp"
 
 namespace algorithms::cg
 {
@@ -28,7 +29,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
     VectorType rhs;
 
     template <Kokkos::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
-    std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const typename base_t::Parameters& params) const
+    std::tuple<mag_t, SizeType> apply(const utils::ExecutionSpacePool<Exec>& pool, const VectorType& sol, const typename base_t::Parameters& params) const
     {
         const Region region_setup("CGGraph - setup");
 
@@ -37,6 +38,9 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 #if defined(KOKKOS_ENABLE_CUDA)
         algorithms::cg::check_cublas_uses_host_pointer_mode();
 #endif
+
+        const auto& exec = pool.get(0);
+        const auto device_handle = Kokkos::Experimental::get_device_handle(exec);
 
         //! Pre-compute the residual.
         VectorType res(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual"), rhs.size());
@@ -104,7 +108,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 
         //! Create the graph.
         const Region region_create_graph("CGGraph - create graph");
-        Kokkos::Experimental::Graph graph(Kokkos::Experimental::get_device_handle(exec));
+        Kokkos::Experimental::Graph graph{device_handle};
 
         //! Compute @c alpha.
         const auto alpha_spmv = ::algorithms::cg::spmv(graph.root_node(), &handle, "N", 1., mat, dir, 0., mat_dir);
@@ -117,7 +121,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
                     [=]           { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             } else {
                 return alpha_dot.then(
-                    Kokkos::Experimental::node_props("alpha", Kokkos::Experimental::get_device_handle(exec)),
+                    Kokkos::Experimental::node_props("alpha", device_handle),
                     KOKKOS_LAMBDA { alpha() = res_dot_old() / tmp(); alpha_neg() = -alpha(); });
             }
         }();
@@ -136,7 +140,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
                     Kokkos::Experimental::node_props("beta"), std::move(das));
             } else {
                 return res_dot.then(
-                    Kokkos::Experimental::node_props("beta", Kokkos::Experimental::get_device_handle(exec)), std::move(das));
+                    Kokkos::Experimental::node_props("beta", device_handle), std::move(das));
             }
         }();
 

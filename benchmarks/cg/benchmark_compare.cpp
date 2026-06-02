@@ -56,14 +56,16 @@ protected:
     using sequence_t       = Kokkos::utils::callbacks::SequenceOfRegionTimerListener<event_matcher_t>;
     using region_matcher_t = typename sequence_t::matcher_t;
 
+    using pool_t = utils::ExecutionSpacePool<execution_space>;
+
 public:
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State&) override {
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->pool = pool_t{2};
     }
 
     void TearDown(const ::benchmark::State&) override {
-        this->exec = std::nullopt;
+        this->pool = std::nullopt;
     }
 
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(SetUp)
@@ -80,7 +82,7 @@ public:
     {
         sequence->reset();
 
-        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(1) * 2)});
+        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*pool, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(1) * 2)});
 
         CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, static_cast<size_t>(state.range(1)))
 
@@ -96,7 +98,7 @@ public:
     {
         sequence->reset();
 
-        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*exec, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = 1});
+        const auto [elapsed, res_nrm2, num_iters, sol] = T::run(*pool, state.range(0), typename T::solver_t::Parameters{.tolerance = tolerance, .max_iters = 1});
 
         CHECK_SEQUENCE_AND_NUM_ITERS(sequence, num_iters, 1)
 
@@ -160,7 +162,7 @@ protected:
     using graph_t           = ::tests::cg::NbyNSolverTest<::algorithms::cg::CGGraph      <matrix_t, rhs_t, false>>;
     using graph_with_host_t = ::tests::cg::NbyNSolverTest<::algorithms::cg::CGGraph      <matrix_t, rhs_t, true>>;
 
-    std::optional<execution_space> exec = std::nullopt;
+    std::optional<pool_t> pool = std::nullopt;
 
     std::shared_ptr<sequence_t> sequence = nullptr;
 
