@@ -3,3 +3,6 @@ build*/*
 
 # ccache
 .ccache/*
+
+# Related to Python.
+__pycache__

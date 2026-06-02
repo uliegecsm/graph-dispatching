@@ -59,7 +59,7 @@ class PCGBenchmark(BenchmarkBase):
         )
 
     @typeguard.typechecked
-    def run(self, *, args : typing.List[str] = []) -> None:
+    def run(self, *, args : typing.List[str]) -> None:
         """
         Run the benchmark.
         """

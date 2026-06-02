@@ -106,5 +106,6 @@ target_link_libraries(
 )
 
 add_subdirectory(cg)
+add_subdirectory(graph)
 add_subdirectory(newton)
 add_subdirectory(pcg)
