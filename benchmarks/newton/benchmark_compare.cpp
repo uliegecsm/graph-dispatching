@@ -75,7 +75,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
 
     using newton_t = ::algorithms::newton::Solver<problem_t, linear_solver_t, subtract_t>;
 
-    static constexpr typename problem_t::local_ordinal_t num_elems = 1000;
+    static constexpr typename problem_t::local_ordinal_t num_elems = 1000000;
 
    public:
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.

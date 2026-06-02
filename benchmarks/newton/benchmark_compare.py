@@ -96,6 +96,7 @@ class NewtonBenchmark(BenchmarkBase):
             self.target,
             '--benchmark_out=' + str(self.results['repeated']),
             '--benchmark_out_format=json',
+            '--benchmark_min_time=10s',
             '--benchmark_enable_random_interleaving=true',
             '--benchmark_filter=.*repeat.*',
             *args,
