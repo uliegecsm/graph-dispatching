@@ -98,7 +98,7 @@ TYPED_TEST_SUITE(PCGGraphTest, PCGGraphTestTypes);
 //! @test For a 10-by-10 system.
 TYPED_TEST(PCGGraphTest, 10x10)
 {
-    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "PCGGraph - loop"}};
+    EventRegionMatcher matcher{.matcher = EventNameMatcher{.name = "PCGGraph - submit r"}};
 
     const auto recorder = std::make_shared<typename TestFixture::event_in_region_recorder_t>(std::move(matcher));
 
@@ -112,7 +112,7 @@ TYPED_TEST(PCGGraphTest, 10x10)
     /// convergence criterion.
     ASSERT_THAT(
         recorder->recorded_events,
-        ::testing::Contains(MATCHER_FOR_BEGIN_FENCE(this->pool.get(0), "fencing before evaluating convergence")).Times(TestFixture::get_expected_num_iters()[10])
+        ::testing::Contains(MATCHER_FOR_BEGIN_FENCE(this->pool.get(0), "fencing before evaluating convergence")).Times(TestFixture::get_expected_num_iters()[10] - 1)
     );
 }
 

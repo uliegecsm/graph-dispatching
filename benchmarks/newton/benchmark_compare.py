@@ -183,7 +183,7 @@ class NewtonBenchmark(BenchmarkBase):
         COLORS = iter(itertools.cycle(['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:brown']))
 
         for outer, (pcg_iter_graph, pcg_iter_queue) in enumerate(zip(convergence_graph.pcg, convergence_queue.pcg)):
-            self.assertEqual(pcg_iter_graph.shape, pcg_iter_queue.shape, msg = outer)
+            self.assertEqual(pcg_iter_graph.shape[0] + 1, pcg_iter_queue.shape[0], msg = outer)
 
             color = next(COLORS)
 

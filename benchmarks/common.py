@@ -22,3 +22,6 @@ def step_like_plot(ax, x, y, predicate, color):
                 right = (x[i] + x[i+1]) / 2
             ax.hlines(y[i], left, right, color=color)
     ax.scatter(x[predicate], y[predicate], marker='.', color=color)
+
+def S_n(n_T_E, T_G_d, T_G_i, T_G_s0, n_m1_T_G_sr):
+    return n_T_E / (T_G_d + T_G_i + T_G_s0 + n_m1_T_G_sr)

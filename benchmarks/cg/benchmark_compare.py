@@ -14,7 +14,7 @@ import pandas
 import typeguard
 
 from benchmarks.base import BenchmarkBase, parse_args
-from benchmarks.common import asymptotic_speedup, n_be, step_like_plot
+from benchmarks.common import asymptotic_speedup, n_be, step_like_plot, S_n
 
 class CGFlavor(enum.StrEnum):
     """
@@ -28,9 +28,6 @@ class CGFlavor(enum.StrEnum):
 class Parameters:
     flavor: CGFlavor
     num_rows: int
-
-def S_n(n_T_E, T_G_d, T_G_i, T_G_s0, n_m1_T_G_sr):
-    return n_T_E / (T_G_d + T_G_i + T_G_s0 + n_m1_T_G_sr)
 
 class CGBenchmark(BenchmarkBase):
 
@@ -101,7 +98,7 @@ class CGBenchmark(BenchmarkBase):
         time_unit = None
 
         for bench_case in benchmark_results['benchmarks']:
-            logging.info(f'Analysing results of the benchmark case {bench_case['name']} (it ran {bench_case["iterations"]} times, average real time {bench_case["real_time"]} {bench_case["time_unit"]}).')
+            logging.info(f'Analysing results of the benchmark case {bench_case["name"]} (it ran {bench_case["iterations"]} times, average real time {bench_case["real_time"]} {bench_case["time_unit"]}).')
 
             if time_unit is None:
                 time_unit = bench_case['time_unit']
@@ -192,7 +189,7 @@ class CGBenchmark(BenchmarkBase):
             # Plot 'n_be' where it makes sense (i.e. where S >= 1) (right axis).
             COLOR_N_BE = 'tab:blue'
 
-            if (mask := data[flavor]['S'] >= 1).any():
+            if (mask := data[flavor]['n_be_integer'] > 0).any():
                 ax_n_be = ax_S.twinx()
                 step_like_plot(
                     ax=ax_n_be,

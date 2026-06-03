@@ -13,6 +13,7 @@ PATTERNS=(
     'algorithms/newton/*.hpp'
     'apps/**.hpp'
     'benchmarks/cg/benchmark_compare.cpp'
+    'benchmarks/pcg/benchmark_compare.cpp'
     'benchmarks/newton/benchmark_compare.cpp'
     'examples/**.cpp'
     'examples/**.hpp'
