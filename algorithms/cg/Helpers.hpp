@@ -52,15 +52,6 @@ struct Region
     static void pop() { Kokkos::Profiling::popRegion(); }
 };
 
-//! Retrieve the device handle of the graph of @p node.
-template <typename Node, typename... Args>
-constexpr auto get_graph_device_handle(Node&& node) -> decltype(auto)
-{
-    return Kokkos::Impl::GraphAccess::get_graph_weak_ptr(std::forward<Node>(node))
-            .lock()
-            ->get_device_handle();
-}
-
 /// Ideally, the update of the solution could be in-flight while the solver returns.
 /// The user would need to synchronize the reading of the solution.
 /// Yet, it was decided to fence so we can ease the measurements.
