@@ -74,9 +74,7 @@ decltype(auto) spmv(const Pred& pred, const Handle&, const char mode[], Alpha&& 
         );
     } else {
         return pred.then_parallel_for(
-            Kokkos::Experimental::node_props(
-                "algorithms::cg::spmv",
-                get_graph_device_handle(pred)),
+            Kokkos::Experimental::node_props("algorithms::cg::spmv"),
             Kokkos::RangePolicy<execution_space>(0, num_rows),
             std::move(functor)
         );
@@ -109,9 +107,7 @@ decltype(auto) dot(const Pred& pred, Result&& result, ViewX&& vec_x, ViewY&& vec
         );
     } else {
         return pred.then_parallel_reduce(
-            Kokkos::Experimental::node_props(
-                "algorithms::cg::dot",
-                get_graph_device_handle(pred)),
+            Kokkos::Experimental::node_props("algorithms::cg::dot"),
             Kokkos::RangePolicy<execution_space>(0, functor.m_x.size()),
             std::move(functor),
             std::forward<Result>(result)
@@ -179,9 +175,7 @@ decltype(auto) axpby(const Pred& pred, Alpha&& alpha, ViewX&& vec_x, Beta&& beta
         );
     } else {
         return pred.then_parallel_for(
-            Kokkos::Experimental::node_props(
-                "algorithms::cg::axpby",
-                get_graph_device_handle(pred)),
+            Kokkos::Experimental::node_props("algorithms::cg::axpby"),
             Kokkos::RangePolicy<execution_space>(0, size),
             std::move(functor)
         );
