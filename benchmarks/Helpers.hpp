@@ -55,8 +55,8 @@ struct BenchmarkBase : public benchmark::Fixture
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define CHECK_NUMBER_OF_ITERS(_iters_, _exptd_)                      \
-    if(_iters_ != _exptd_)                                           \
+#define CHECK_NUMBER_OF_ITERS(_iters_, _cmp_, _exptd_)               \
+    if(_iters_ _cmp_ _exptd_)                                        \
     {                                                                \
         std::ostringstream oss;                                      \
         oss << state.name() << ": mismatched number of iterations: " \

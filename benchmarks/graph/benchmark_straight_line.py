@@ -16,7 +16,8 @@ import typeguard
 import matplot2tikz
 
 from benchmarks.base import BenchmarkBase, parse_args
-from benchmarks.graph.common import Method, asymptotic_speedup, n_be
+from benchmarks.common import asymptotic_speedup, n_be, step_like_plot
+from benchmarks.graph.common import Method
 
 @dataclasses.dataclass(frozen=True)
 class Parameters:
@@ -178,20 +179,18 @@ class StraightLineBenchmark(BenchmarkBase):
         ax_n_be = ax_S.twinx()
 
         mask = data_graph['S'] >= 1
-        first = data_graph.loc[mask, 'num_nodes'].iloc[0]
-        values = data_graph['n_be_integer'].where(mask, numpy.nan)
 
-        ax_n_be.stairs(
-            edges=numpy.concatenate([[first], data_graph['num_nodes'].to_numpy() + 1]),
-            values=values,
-            fill=False,
+        step_like_plot(
+            ax=ax_n_be,
+            x=data_graph['num_nodes'].values,
+            y=data_graph['n_be_integer'].values,
+            predicate=mask,
             color=COLOR_N_BE,
-            baseline=None,
         )
         ax_n_be.set_ylabel(r'$n_{\text{be}}$ [-]', color=COLOR_N_BE)
         ax_n_be.tick_params(axis='y', labelcolor=COLOR_N_BE)
 
-        n_be_integer_max = int(data_graph['n_be_integer'].max())
+        n_be_integer_max = int(data_graph['n_be_integer'][mask].max())
         n_be_num_ticks = min(5, n_be_integer_max + 1)
         n_be_ticks = numpy.unique(numpy.linspace(0, n_be_integer_max, n_be_num_ticks).round().astype(int))
         n_be_min, n_be_max = 0., max(n_be_ticks) + 0.5

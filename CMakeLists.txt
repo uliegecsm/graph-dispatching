@@ -171,6 +171,9 @@ enable_testing()
 add_subdirectory(kokkos_ext)
 add_subdirectory(tests)
 
+#---- Utilities.
+add_subdirectory(utils)
+
 #---- Examples.
 add_subdirectory(examples)
 

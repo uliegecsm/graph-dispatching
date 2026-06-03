@@ -10,7 +10,7 @@
 #include "algorithms/newton/Solver.hpp"
 #include "algorithms/pcg/Graph.hpp"
 #include "algorithms/pcg/Preconditioners.hpp"
-#include "algorithms/pcg/SingleQueue.hpp"
+#include "algorithms/pcg/Queue.hpp"
 #include "apps/heat/NonLinear1DHeatTransfer.hpp"
 
 #include "tests/cg/Helpers.hpp"
@@ -26,7 +26,7 @@
  *
  * These benchmarks compare the performance of @ref algorithms::newton::Solver while using the following
  * linear solvers:
- *  - @ref algorithms::pcg::PCGSingleQueue
+ *  - @ref algorithms::pcg::PCGQueue
  *  - @ref algorithms::pcg::PCGGraph
  *
  * The preconditioner is always @ref algorithms::pcg::JacobiPreconditioner.
@@ -48,6 +48,8 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
    public:
     using problem_t = ::apps::heat::NonLinear1DHeatTransfer<memory_space, execution_space, UseGraph>;
 
+    using pool_t = utils::ExecutionSpacePool<execution_space>;
+
     using preconditioner_t = ::algorithms::pcg::JacobiPreconditioner<typename problem_t::local_matrix_t>;
 
     using solver_graph_t = algorithms::pcg::PCGGraph<
@@ -57,7 +59,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
         preconditioner_t
     >;
 
-    using solver_single_queue_t = algorithms::pcg::PCGSingleQueue<
+    using solver_queue_t = algorithms::pcg::PCGQueue<
         typename problem_t::local_matrix_t,
         typename problem_t::scalar_1d_view_t,
         preconditioner_t,
@@ -66,7 +68,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
         ::algorithms::cg::Axpby
     >;
 
-    using linear_solver_t = std::conditional_t<UseGraph, solver_graph_t, solver_single_queue_t>;
+    using linear_solver_t = std::conditional_t<UseGraph, solver_graph_t, solver_queue_t>;
 
     using subtract_t =
         ::tests::newton::Subtract<typename problem_t::scalar_1d_view_t, typename problem_t::scalar_1d_view_t>;
@@ -79,7 +81,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State& state) override {
         this->name = std::regex_replace(state.name(), std::regex("[<>,]"), "_");
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->pool = pool_t{2};
 
         if constexpr (DetailedCollection) {
             const auto output_dir = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name;
@@ -98,7 +100,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     }
 
     void TearDown(const ::benchmark::State&) override {
-        this->exec = std::nullopt;
+        this->pool = std::nullopt;
 
         if constexpr (DetailedCollection) {
             logger.reset();
@@ -110,8 +112,8 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
 
     auto run(::benchmark::State& state) {
-        problem_t problem{*exec, typename problem_t::Parameters{.num_elems = num_elems}};
-        linear_solver_t linear_solver{*exec, problem.local_matrix, problem.local_rhs};
+        problem_t problem{pool->get(0), typename problem_t::Parameters{.num_elems = num_elems}};
+        linear_solver_t linear_solver{pool->get(0), problem.local_matrix, problem.local_rhs};
 
         linear_solver.get_preconditioner().num_sweeps = 8;
 
@@ -119,7 +121,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
 
         timer.start();
         [[maybe_unused]] const auto [res_nrm2, num_iters] = solver.solve(
-            *exec,
+            *pool,
             typename newton_t::Parameters{.tolerance = 1.e-8, .max_iters = std::numeric_limits<size_t>::max()},
             typename linear_solver_t::Parameters{.tolerance = 1.e-8, .max_iters = num_elems});
         timer.stop();
@@ -152,7 +154,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
    protected:
     std::string name;
 
-    std::optional<execution_space> exec = std::nullopt;
+    std::optional<pool_t> pool = std::nullopt;
 
     Kokkos::utils::timer::Timer<void> timer;
 
@@ -178,7 +180,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     }                                                                                                                  \
     BENCHMARK_REGISTER_F(NewtonBenchmark, collect_##_which_)->UseManualTime()->Iterations(1);
 
-NEWTONBENCHMARK(single_queue, false)
+NEWTONBENCHMARK(queue, false)
 NEWTONBENCHMARK(graph, true)
 
 } // namespace benchmarks::newton

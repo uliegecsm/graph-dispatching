@@ -1,7 +1,7 @@
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/pcg/Graph.hpp"
 #include "algorithms/pcg/Preconditioners.hpp"
-#include "algorithms/pcg/SingleQueue.hpp"
+#include "algorithms/pcg/Queue.hpp"
 
 #include "tests/cg/Helpers.hpp"
 
@@ -14,7 +14,7 @@
  * ---------------------------
  *
  * These benchmarks compare the performance of the PCG implementations:
- *  - @ref algorithms::pcg::PCGSingleQueue
+ *  - @ref algorithms::pcg::PCGQueue
  *  - @ref algorithms::pcg::PCGGraph
  *
  * The preconditioner is always @ref algorithms::pcg::JacobiPreconditioner.
@@ -34,6 +34,8 @@ namespace benchmarks::pcg
 class PCGBenchmark : public benchmarks::BenchmarkBase
 {
 public:
+    using pool_t = utils::ExecutionSpacePool<execution_space>;
+
     static constexpr unsigned short state_nrows   = 0;
     static constexpr unsigned short state_niters  = 1;
     static constexpr unsigned short state_nsweeps = 2;
@@ -41,11 +43,11 @@ public:
 public:
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State&) override {
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->pool = pool_t{2};
     }
 
     void TearDown(const ::benchmark::State&) override {
-        this->exec = std::nullopt;
+        this->pool = std::nullopt;
     }
 
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(SetUp)
@@ -55,14 +57,14 @@ public:
     auto run_once(::benchmark::State& state) const
     {
         const auto [elapsed, res_nrm2, num_iters, sol] = T::run(
-            *exec,
+            *pool,
             state.range(state_nrows), {.tolerance = tolerance, .max_iters = static_cast<size_t>(state.range(state_niters)) * 2},
             [num_sweeps = state.range(state_nsweeps)](auto& solver) {
                 solver.get_preconditioner().num_sweeps = num_sweeps;
             }
         );
 
-        CHECK_NUMBER_OF_ITERS(static_cast<int64_t>(num_iters), state.range(state_niters))
+        CHECK_NUMBER_OF_ITERS(static_cast<int64_t>(num_iters), !=, state.range(state_niters))
 
         state.SetIterationTime(std::chrono::duration_cast<Kokkos::utils::timer::seconds>(elapsed).count());
 
@@ -96,12 +98,12 @@ protected:
 
     using preconditioner_t = ::algorithms::pcg::JacobiPreconditioner<matrix_t>;
 
-    using solver_single_queue_t = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGSingleQueue<matrix_t, rhs_t,          preconditioner_t, ::algorithms::cg::Spmv, ::algorithms::cg::Dot, algorithms::cg::Axpby>>;
-    using solver_graph_t        = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGGraph      <matrix_t, rhs_t, graph_t, preconditioner_t>>;
+    using solver_queue_t = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGQueue<matrix_t, rhs_t,          preconditioner_t, ::algorithms::cg::Spmv, ::algorithms::cg::Dot, algorithms::cg::Axpby>>;
+    using solver_graph_t        = ::tests::cg::NbyNSolverTest<::algorithms::pcg::PCGGraph<matrix_t, rhs_t, graph_t, preconditioner_t>>;
 
-    std::optional<execution_space> exec = std::nullopt;
+    std::optional<pool_t> pool = std::nullopt;
 
-    static constexpr typename solver_single_queue_t::solver_t::mag_t tolerance = 1.e-12;
+    static constexpr typename solver_queue_t::solver_t::mag_t tolerance = 1.e-12;
 };
 
 #define PCGBENCHMARK_DEFINE_F(_which_)                                 \
@@ -143,10 +145,10 @@ void CustomArguments(benchmark::Benchmark* benchmark) {
     ;
 }
 
-PCGBENCHMARK_DEFINE_F(single_queue)
+PCGBENCHMARK_DEFINE_F(queue)
 PCGBENCHMARK_DEFINE_F(graph)
 
-PCGBENCHMARK_REGISTER_F(single_queue)->Apply(CustomArguments);
+PCGBENCHMARK_REGISTER_F(queue)->Apply(CustomArguments);
 PCGBENCHMARK_REGISTER_F(graph       )->Apply(CustomArguments);
 
 } // namespace benchmarks::pcg

@@ -22,7 +22,7 @@
  * Preconditioned conjugate gradient solver with @c Kokkos::Graph
  * --------------------------------------------------------------
  *
- * This group of tests check the behavior of @ref algorithms::pcg::PCGSingleQueue.
+ * This group of tests check the behavior of @ref algorithms::pcg::PCGQueue.
  *
  * The test can be found in @ref tests/pcg/test_graph.cpp.
  */
@@ -69,7 +69,8 @@ public:
 
 template <typename Preconditioner>
 class PCGGraphTest : public PCGGraphTestBase<Preconditioner>,
-                     public cg::NbyNSolverTest<typename PCGGraphTestBase<Preconditioner>::solver_t>
+                     public cg::NbyNSolverTest<typename PCGGraphTestBase<Preconditioner>::solver_t>,
+                     public utils::ExecutionSpacePoolFixture<execution_space, 1>
 {
 protected:
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -103,7 +104,7 @@ TYPED_TEST(PCGGraphTest, 10x10)
 
     Manager::register_listener(recorder);
 
-    RUN_AND_CHECK(this->exec, 10, 1.e-12, TestFixture::get_expected_num_iters()[10])
+    RUN_AND_CHECK(this->pool, 10, 1.e-12, TestFixture::get_expected_num_iters()[10])
 
     Manager::unregister_listener(recorder.get());
 
@@ -111,14 +112,14 @@ TYPED_TEST(PCGGraphTest, 10x10)
     /// convergence criterion.
     ASSERT_THAT(
         recorder->recorded_events,
-        ::testing::Contains(MATCHER_FOR_BEGIN_FENCE(this->exec, "fencing before evaluating convergence")).Times(TestFixture::get_expected_num_iters()[10])
+        ::testing::Contains(MATCHER_FOR_BEGIN_FENCE(this->pool.get(0), "fencing before evaluating convergence")).Times(TestFixture::get_expected_num_iters()[10])
     );
 }
 
 //! @test For a 90-by-90 system.
 TYPED_TEST(PCGGraphTest, 90x90)
 {
-    RUN_AND_CHECK(this->exec, 90, 1.e-12, TestFixture::get_expected_num_iters()[90])
+    RUN_AND_CHECK(this->pool, 90, 1.e-12, TestFixture::get_expected_num_iters()[90])
 }
 
 } // namespace tests::pcg

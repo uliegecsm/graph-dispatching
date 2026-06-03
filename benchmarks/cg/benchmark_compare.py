@@ -1,6 +1,5 @@
+import dataclasses
 import enum
-import functools
-import itertools
 import json
 import logging
 import pathlib
@@ -9,11 +8,13 @@ import subprocess
 import typing
 
 import matplotlib.pyplot
-import matplotlib.patches
+import matplot2tikz
 import numpy
+import pandas
 import typeguard
 
 from benchmarks.base import BenchmarkBase, parse_args
+from benchmarks.common import asymptotic_speedup, n_be, step_like_plot
 
 class CGFlavor(enum.StrEnum):
     """
@@ -21,89 +22,48 @@ class CGFlavor(enum.StrEnum):
     """
     GRAPH           = 'graph'
     GRAPH_WITH_HOST = 'graph_with_host'
-    SINGLEQUEUE     = 'single_queue'
+    QUEUE           = 'queue'
 
-    @property
-    @typeguard.typechecked
-    def is_graph_based(self) -> bool:
-        return self != CGFlavor.SINGLEQUEUE
+@dataclasses.dataclass(frozen=True)
+class Parameters:
+    flavor: CGFlavor
+    num_rows: int
 
-class CollectionMethod(enum.StrEnum):
-    """
-    Method used for results collection.
-    """
-    SINGLE_ITER = 'CollectionMethod::SINGLE_ITER'
-    CONVERGENCE = 'CollectionMethod::CONVERGENCE'
-
-    def get(self, x : str):
-        match self:
-            case CollectionMethod.SINGLE_ITER: return f'{x}single_iter'
-            case CollectionMethod.CONVERGENCE: return f'{x}convergence'
-            case _:
-                raise ValueError()
+def S_n(n_T_E, T_G_d, T_G_i, T_G_s0, n_m1_T_G_sr):
+    return n_T_E / (T_G_d + T_G_i + T_G_s0 + n_m1_T_G_sr)
 
 class CGBenchmark(BenchmarkBase):
 
     @typeguard.typechecked
     def __init__(self, target: pathlib.Path) -> None:
         super().__init__(target=target)
-        self.results = {
-            CollectionMethod.CONVERGENCE: pathlib.Path(str(self.target) + '.CONVERGENCE.json'),
-            CollectionMethod.SINGLE_ITER: pathlib.Path(str(self.target) + '.SINGLE_ITER.json'),
-        }
-
-    @functools.cached_property
-    @typeguard.typechecked
-    def pairs(self) -> typing.Dict[typing.Tuple[str, str], typing.Tuple[CollectionMethod, CGFlavor]]:
-        pairs = {}
-        for collection in CollectionMethod:
-            for flavor in CGFlavor:
-                pairs[((collection, collection.get(str(flavor))))] = (collection, flavor)
-        return pairs
+        self.results: typing.Final[pathlib.Path] = pathlib.Path(f'{self.target}.json')
 
     @typeguard.typechecked
-    def params(self, *, name : str) -> typing.Tuple[CollectionMethod, CGFlavor, int, int]:
+    def params(self, *, name : str) -> Parameters:
         """
         Retrieve benchmark parameters from its name.
         """
-        pattern = rf'CGBenchmark<({"|".join([x[0] for x in self.pairs.keys()])})>/({"|".join([x[1] for x in self.pairs.keys()])})/nrows:([0-9]+)/niters:([0-9]+)/manual_time'
+        pattern = rf'CGBenchmark/({"|".join(CGFlavor)})/num_rows:([0-9]+)/manual_time'
 
         self.assertRegex(name, pattern)
 
         match = re.match(pattern, name)
 
-        pair = self.pairs[match.group(1), match.group(2)]
-
-        return *pair, int(match.group(3)), int(match.group(4))
+        return Parameters(flavor=CGFlavor(match.group(1)), num_rows=int(match.group(2)))
 
     @typeguard.typechecked
     def run(self, *, args : typing.List[str]) -> None:
         """
         Run the benchmark.
         """
-        # First, run the benchmark for collecting the timings related to sub-regions, i.e. 'SINGLE_ITER'.
         cmd = [
             self.target,
-            '--benchmark_out=' + str(self.results[CollectionMethod.SINGLE_ITER]),
+            '--benchmark_out=' + str(self.results),
             '--benchmark_out_format=json',
             '--benchmark_min_time=1x',
-            '--benchmark_filter=SINGLE_ITER',
             '--benchmark_enable_random_interleaving=true',
-            *args,
-        ]
-
-        logging.info(f'Running benchmark with {cmd}.')
-
-        subprocess.check_call(cmd)
-
-        # Then, run the benchmark for collecting the timings related to 'CONVERGENCE'.
-        cmd = [
-            self.target,
-            '--benchmark_out=' + str(self.results[CollectionMethod.CONVERGENCE]),
-            '--benchmark_out_format=json',
-            '--benchmark_min_time=1x',
-            '--benchmark_filter=CONVERGENCE',
-            '--benchmark_enable_random_interleaving=true',
+            '--benchmark_min_warmup_time=0',
             *args,
         ]
 
@@ -118,251 +78,152 @@ class CGBenchmark(BenchmarkBase):
         """
         # Load benchmark results.
         logging.info(f'Loading results from {self.results}.')
-        benchmark_results = {}
-        for collection, filename in self.results.items():
-            with open(filename, 'r') as fin:
-                benchmark_results[collection] = json.load(fin)
+        with open(self.results, 'r') as fin:
+            benchmark_results = json.load(fin)
+
+        # Regions of the graph implementation.
+        FIELDS = ('graph definition', 'graph instantiation', 'graph submit 0', 'graph submit r')
 
         # Collect data for each case.
-        data      = {x : {} for x in CollectionMethod}
+        data = {}
+        data[CGFlavor.QUEUE] = {
+            'num_rows': [],
+            'real_time': [],
+            'num_iters': [],
+            'loop': [],
+        }
+        for flavor in (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST):
+            data[flavor] = {x: [] for x in FIELDS}
+            data[flavor]['num_rows'] = []
+            data[flavor]['real_time'] = []
+            data[flavor]['num_iters'] = []
+
         time_unit = None
 
-        for collection in CollectionMethod:
-            for bench_case in benchmark_results[collection]['benchmarks']:
-                logging.info(f'Analysing results of the benchmark case {bench_case['name']} (it ran {bench_case["iterations"]} times, average real time {bench_case["real_time"]} {bench_case["time_unit"]}).')
+        for bench_case in benchmark_results['benchmarks']:
+            logging.info(f'Analysing results of the benchmark case {bench_case['name']} (it ran {bench_case["iterations"]} times, average real time {bench_case["real_time"]} {bench_case["time_unit"]}).')
 
-                if time_unit is None:
-                    time_unit = bench_case['time_unit']
-                else:
-                    self.assertEqual(time_unit, bench_case['time_unit'])
+            if time_unit is None:
+                time_unit = bench_case['time_unit']
+            else:
+                self.assertEqual(time_unit, bench_case['time_unit'])
 
-                parsed_collection, flavor, nrows, niters = self.params(name = bench_case['name'])
+            params = self.params(name = bench_case['name'])
 
-                self.assertEqual(collection, parsed_collection)
+            data[params.flavor]['num_rows'].append(params.num_rows)
+            data[params.flavor]['real_time' ].append(bench_case['real_time'])
+            data[params.flavor]['num_iters'].append(bench_case['num_iters'])
 
-                data[collection][(flavor, nrows)] = {}
-                data[collection][(flavor, nrows)]['niters'    ] = niters
-                data[collection][(flavor, nrows)]['real_time' ] = bench_case['real_time']
+            match params.flavor:
+                case CGFlavor.GRAPH | CGFlavor.GRAPH_WITH_HOST:
+                    for field in FIELDS:
+                        self.assertGreater(bench_case[field], 0)
+                        data[params.flavor][field].append(bench_case[field])
 
-                match collection:
-                    case CollectionMethod.SINGLE_ITER:
-                        data[collection][(flavor, nrows)]['setup'            ] = bench_case['setup']
-                        data[collection][(flavor, nrows)]['create_graph'     ] = bench_case['create-graph']
-                        data[collection][(flavor, nrows)]['instantiate_graph'] = bench_case['instantiate-graph']
+                case CGFlavor.QUEUE:
+                    self.assertGreater(bench_case['loop'], 0.)
+                    data[params.flavor]['loop'].append(bench_case['loop'])
 
-                        if flavor == CGFlavor.SINGLEQUEUE:
-                            raise RuntimeError(f'The {flavor} is not supposed to report for {collection}.')
+                case _:
+                    raise ValueError(params.flavor)
 
-                        if any(data[collection][(flavor, nrows)][x] == 0 for x in ['setup', 'create_graph', 'instantiate_graph']):
-                            raise RuntimeError(f'The {flavor} reported zero for at least one sub-region ({data[collection][(flavor, nrows)]}).')
+        # Transform to Pandas dataframes.
+        data = {flavor: pandas.DataFrame(data[flavor]) for flavor in CGFlavor}
 
-                    case CollectionMethod.CONVERGENCE:
-                        data[collection][(flavor, nrows)]['loop'] = bench_case['loop']
-                        self.assertGreater(bench_case['loop'], 0.)
-
-                    case _:
-                        raise ValueError(collection)
-
-        # Number of rows set.
-        nrows_sorted_set = sorted(set([x[1] for x in data[CollectionMethod.CONVERGENCE].keys()]))
-        self.assertEqual(  sorted(set([x[1] for x in data[CollectionMethod.SINGLE_ITER].keys()])), nrows_sorted_set)
-
-        nrows_sorted_set = numpy.asarray(nrows_sorted_set)
-
-        # The baseline is the 'single_queue' flavor.
-        BASELINE = CGFlavor.SINGLEQUEUE
-
-        # Collection data for 'CONVERGENCE' (all flavors).
-        ratios_full     = {x : [] for x in CGFlavor}
-        ratios_per_iter = {x : [] for x in CGFlavor}
-        times_per_iter  = {x : [] for x in CGFlavor}
-
-        # Collected data for 'SINGLE_ITER' (graph flavors only).
-        times_setup    = {x : [] for x in CGFlavor if x.is_graph_based}
-        times_create_g = {x : [] for x in CGFlavor if x.is_graph_based}
-        times_instan_g = {x : [] for x in CGFlavor if x.is_graph_based}
-
-        for collection, nrows in itertools.product(CollectionMethod, nrows_sorted_set):
-
-            # All flavors should converge with the same number of iterations.
-            if collection == CollectionMethod.CONVERGENCE:
-                for flavor in CGFlavor:
-                    self.assertEqual(data[collection][(flavor, nrows)]['niters'], data[collection][(BASELINE, nrows)]['niters'])
-
-            for flavor in CGFlavor:
-                if collection == CollectionMethod.SINGLE_ITER and not flavor.is_graph_based:
-                    continue
-
-                match collection:
-                    case CollectionMethod.SINGLE_ITER:
-                        flavor_setup    = data[collection][(flavor, nrows)]['setup']
-                        flavor_create_g = data[collection][(flavor, nrows)]['create_graph']
-                        flavor_instan_g = data[collection][(flavor, nrows)]['instantiate_graph']
-
-                        times_setup   [flavor].append(flavor_setup)
-                        times_create_g[flavor].append(flavor_create_g)
-                        times_instan_g[flavor].append(flavor_instan_g)
-
-                    case CollectionMethod.CONVERGENCE:
-                        baseline_retime = data[collection][(BASELINE, nrows)]['real_time']
-                        baseline_loop   = data[collection][(BASELINE, nrows)]['loop']
-                        baseline_niters = data[collection][(BASELINE, nrows)]['niters']
-
-                        flavor_retime   = data[collection][(flavor, nrows)]['real_time']
-                        flavor_loop     = data[collection][(flavor, nrows)]['loop']
-
-                        ratios_full    [flavor].append(flavor_retime / baseline_retime)
-                        ratios_per_iter[flavor].append(flavor_loop   / baseline_loop)
-                        times_per_iter [flavor].append(flavor_loop   / baseline_niters)
-                    case _:
-                        raise ValueError()
-
-        # Consistency check.
-        self.assertTrue(all(x == 1. for x in ratios_full    [BASELINE]))
-        self.assertTrue(all(x == 1. for x in ratios_per_iter[BASELINE]))
-
-        # Colors for each flavor.
-        COLORS = {
-            CGFlavor.GRAPH          : 'red',
-            CGFlavor.GRAPH_WITH_HOST: 'green',
-            CGFlavor.SINGLEQUEUE    : 'blue',
-        }
-
-        # Line style for each flavor (for black and white).
-        LINESTYLES = {
-            CGFlavor.GRAPH          : '-.',
-            CGFlavor.GRAPH_WITH_HOST: '--',
-            CGFlavor.SINGLEQUEUE    : ':',
-        }
-
-        # Markers.
-        MARKER_RATIO_FULL     = '^'
-        MARKER_RATIO_PER_ITER = 's'
-        MARKER_TIMES_PER_ITER = 'o'
-
-        # Create figure for 'CONVERGENCE' related data.
-        _, convergence_axes = matplotlib.pyplot.subplots(nrows = 2, ncols = 1, figsize = (10, 7))
-        convergence_ax_per_i = convergence_axes[0]
-        convergence_ax_ratio = convergence_axes[1]
-
-        convergence_ax_ratio.set_xscale('log')
-        convergence_ax_ratio.set_xlabel('size [-]')
-        convergence_ax_ratio.set_ylabel('ratio [-]')
-
-        convergence_ax_per_i.set_xscale('log')
-        convergence_ax_per_i.set_ylabel(f'avg. iteration [{time_unit}]')
-
+        # Sort according to increasing number of rows.
         for flavor in CGFlavor:
-            convergence_ax_per_i.plot(
-                nrows_sorted_set,
-                times_per_iter[flavor],
-                marker    = MARKER_TIMES_PER_ITER,
-                linestyle = LINESTYLES[flavor] ,
-                color     = COLORS[flavor],
-                label     = f'{flavor}',
+            data[flavor] = data[flavor].sort_values(by=['num_rows']).reset_index(drop=True)
+
+        # Assert the available number of rows match
+        num_rows = data[CGFlavor.QUEUE]['num_rows'].unique()
+        numpy.testing.assert_array_equal(num_rows, data[CGFlavor.GRAPH]['num_rows'].unique())
+        numpy.testing.assert_array_equal(num_rows, data[CGFlavor.GRAPH_WITH_HOST]['num_rows'].unique())
+
+        # Normalize the 'queue' loop time w.r.t. the number of iterations.
+        data[CGFlavor.QUEUE]['T_E'] = data[CGFlavor.QUEUE]['loop'] / data[CGFlavor.QUEUE]['num_iters']
+
+        # Compute T_G_s0, T_G_sr, asymptotic speedup, n_be and S_n.
+        for flavor in (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST):
+            data[flavor]['T_G_s0'] = data[flavor]['graph submit 0']
+            data[flavor]['T_G_sr'] = data[flavor]['graph submit r'] / (data[flavor]['num_iters'] - 1)
+            data[flavor]['S'] = asymptotic_speedup(T_E=data[CGFlavor.QUEUE]['T_E'], T_G_sr=data[flavor]['T_G_sr'])
+            data[flavor]['n_be'] = n_be(
+                T_E=data[CGFlavor.QUEUE]['T_E'],
+                T_G_d=data[flavor]['graph definition'],
+                T_G_i=data[flavor]['graph instantiation'],
+                T_G_s0=data[flavor]['T_G_s0'],
+                T_G_sr=data[flavor]['T_G_sr'],
             )
-
-            if flavor == BASELINE or flavor == CGFlavor.GRAPH_WITH_HOST:
-                continue
-
-            convergence_ax_ratio.plot(
-                nrows_sorted_set,
-                ratios_full[flavor],
-                marker    = MARKER_RATIO_FULL,
-                linestyle = LINESTYLES[flavor],
-                color     = COLORS[flavor],
-                label     = 'overall',
+            data[flavor]['S_n'] = S_n(
+                n_T_E=data[CGFlavor.QUEUE]['loop'],
+                T_G_d=data[flavor]['graph definition'],
+                T_G_i=data[flavor]['graph instantiation'],
+                T_G_s0=data[flavor]['T_G_s0'],
+                n_m1_T_G_sr=data[flavor]['graph submit r'],
             )
-            convergence_ax_ratio.plot(
-                nrows_sorted_set,
-                ratios_per_iter[flavor],
-                marker    = MARKER_RATIO_PER_ITER,
-                linestyle = LINESTYLES[flavor],
-                color     = COLORS[flavor],
-                label     = 'per iteration',
-            )
+            data[flavor]['n_be_integer'] = data[flavor]['n_be'].apply(numpy.ceil).astype(int)
 
-        # Plot the 'one' ratio.
-        convergence_ax_ratio.axhline(y = 1., color = 'black', linestyle = '-')
-
-        # Enable grid.
-        convergence_ax_ratio.grid(True)
-        convergence_ax_per_i.grid(True)
-
-        # Legend.
-        convergence_ax_per_i.legend(framealpha=1., loc = 'upper left')
-        convergence_ax_ratio.legend(framealpha=1., loc = 'upper right')
-
-        # Save figure.
-        for ext in ('png', 'svg', 'eps'):
-            output = self.results[CollectionMethod.CONVERGENCE].with_suffix('.' + ext).resolve()
-            logging.info(f'Saving figure to {output}.')
-            matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
-
-        # Plot the time it takes for the CG initial setup, graph creation and instantiation.
-        # See also https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html#grouped-bar-chart-with-labels.
-        EDGECOLOR        = 'black'
-        HATCH_SETUP      = ''
-        HATCH_CREATE     = '///'
-        HATCH_INSTAN     = '\\\\\\'
-
-        _, single_iter_ax = matplotlib.pyplot.subplots(figsize = (10, 7))
-
-        offset = 0
-
-        COMMON = {
-            'width'     : 0.25,
-            'edgecolor' : EDGECOLOR,
-        }
-
-        SCALE = 10
-
+        # Debug logging.
         for flavor in CGFlavor:
-            if not flavor.is_graph_based:
-                continue
+            logging.info(f'Collected data for flavor {flavor}:\n{data[flavor]}')
 
-            bottom = numpy.zeros(shape = nrows_sorted_set.shape)
+        # Create the figure (one per graph flavor).
+        for flavor in (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST):
+            fig, ax = matplotlib.pyplot.subplots(nrows=1, ncols=1)
 
-            positions = [x + offset / 4. for x,_ in enumerate(nrows_sorted_set)]
+            # Plot the speedup after n submissions (S_n) and the asymptotic speedup (S) (left axis).
+            COLOR_S = 'tab:red'
+            ax_S = ax
 
-            times_setup[flavor] = numpy.asarray(times_setup[flavor])
+            ax_S_min = numpy.floor(data[flavor]['S'].min() * 2) / 2
+            ax_S_max = numpy.ceil (data[flavor]['S'].max() * 2) / 2
 
-            single_iter_ax.bar(positions, times_setup   [flavor] / SCALE, facecolor = COLORS[flavor], hatch = HATCH_SETUP,  bottom = bottom, **COMMON) ; bottom += times_setup   [flavor] / SCALE
-            single_iter_ax.bar(positions, times_create_g[flavor],         facecolor = COLORS[flavor], hatch = HATCH_CREATE, bottom = bottom, **COMMON) ; bottom += times_create_g[flavor]
-            single_iter_ax.bar(positions, times_instan_g[flavor],         facecolor = COLORS[flavor], hatch = HATCH_INSTAN, bottom = bottom, **COMMON) ; bottom += times_instan_g[flavor]
+            ax_S.plot(num_rows, data[flavor]['S'],   linestyle='-', marker='o', color=COLOR_S)
+            ax_S.set_ylabel('$S$ [-]', color=COLOR_S)
+            ax_S.set_xlabel('Number of rows [-]')
+            ax_S.tick_params(axis='y', labelcolor=COLOR_S)
+            ax_S.set_xlim(min(num_rows), max(num_rows))
+            ax_S.set_ylim(ax_S_min, ax_S_max)
+            ax_S.set_xscale('log')
+            ax_S.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(
+                lambda x, _: f'{x:.1f}'.rstrip('0').rstrip('.')
+            ))
 
-            offset += 1
+            # Plot 'n_be' where it makes sense (i.e. where S >= 1) (right axis).
+            COLOR_N_BE = 'tab:blue'
 
-        single_iter_ax.set_xticks([x for x, _ in enumerate(nrows_sorted_set)])
-        single_iter_ax.set_xticklabels(nrows_sorted_set, rotation = 65)
+            if (mask := data[flavor]['S'] >= 1).any():
+                ax_n_be = ax_S.twinx()
+                step_like_plot(
+                    ax=ax_n_be,
+                    x=data[flavor]['num_rows'].values,
+                    y=data[flavor]['n_be_integer'].values,
+                    predicate=mask,
+                    color=COLOR_N_BE,
+                )
+                ax_n_be.set_ylabel(r'$n_{\text{be}}$ [-]', color=COLOR_N_BE)
+                ax_n_be.tick_params(axis='y', labelcolor=COLOR_N_BE)
 
-        single_iter_ax.set_xlabel('size [-]')
-        single_iter_ax.set_ylabel(f'time [{time_unit}]')
+                n_be_integer_max = int(data[flavor]['n_be_integer'][mask].max())
+                n_be_num_ticks = min(5, n_be_integer_max + 1)
+                n_be_ticks = numpy.unique(numpy.linspace(0, n_be_integer_max, n_be_num_ticks).round().astype(int))
+                n_be_min, n_be_max = 0., max(n_be_ticks) + 0.5
+                ax_n_be.set_ylim(n_be_min, n_be_max)
+                ax_n_be.set_yticks(n_be_ticks)
 
-        # Legend.
-        legend = {
-            # Flavors.
-            'graph'            : matplotlib.patches.Patch(edgecolor = EDGECOLOR, facecolor = COLORS[CGFlavor.GRAPH],           linestyle = ''),
-            'graph with host'  : matplotlib.patches.Patch(edgecolor = EDGECOLOR, facecolor = COLORS[CGFlavor.GRAPH_WITH_HOST], linestyle = ''),
-            # Type of data.
-            f'setup / {SCALE}' : matplotlib.patches.Patch(edgecolor = EDGECOLOR, hatch = HATCH_SETUP,  facecolor = 'white', linestyle = ''),
-            'create'           : matplotlib.patches.Patch(edgecolor = EDGECOLOR, hatch = HATCH_CREATE, facecolor = 'white', linestyle = ''),
-            'instantiate'      : matplotlib.patches.Patch(edgecolor = EDGECOLOR, hatch = HATCH_INSTAN, facecolor = 'white', linestyle = ''),
-        }
-        single_iter_ax.legend(
-            legend.values(),
-            legend.keys(),
-            loc = 'upper left',
-        )
+                # Align S ticks to n_be ticks so the horizontal grid looks clean.
+                fractions = (n_be_ticks - n_be_min) / (n_be_max - n_be_min)
+                ax_S.set_yticks(ax_S_min + fractions * (ax_S_max - ax_S_min))
 
-        # Save figure.
-        output = self.results[CollectionMethod.SINGLE_ITER].with_suffix('.svg')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = True)
+            ax_S.yaxis.grid(True, linestyle='--', alpha=0.5)
 
-        output = self.results[CollectionMethod.SINGLE_ITER].with_suffix('.png')
-        logging.info(f'Saving figure to {output}.')
-        matplotlib.pyplot.savefig(output, bbox_inches = 0, transparent = False)
+            # Save the figure.
+            for ext in ('svg', 'eps'):
+                saved_to = self.target.with_suffix(f'.{flavor}.S_and_n_be.{ext}')
+                logging.info(f'Saving plot of n_be to {saved_to}.')
+                fig.savefig(saved_to, bbox_inches=0, transparent=False)
+
+            matplot2tikz.save(figure=fig, filepath=self.target.with_suffix(f'.{flavor}.S_and_n_be.tex'))
 
 if __name__ == '__main__':
 

@@ -11,6 +11,7 @@
 #include "algorithms/cg/Base.hpp"
 #include "algorithms/cg/Functors.hpp"
 #include "algorithms/cg/Helpers.hpp"
+#include "utils/pool.hpp"
 
 namespace algorithms::cg
 {
@@ -28,7 +29,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
     VectorType rhs;
 
     template <Kokkos::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
-    std::tuple<mag_t, SizeType> apply(const Exec& exec, const VectorType& sol, const typename base_t::Parameters& params) const
+    std::tuple<mag_t, SizeType> apply(const utils::ExecutionSpacePool<Exec>& pool, const VectorType& sol, const typename base_t::Parameters& params) const
     {
         const Region region_setup("CGGraph - setup");
 
@@ -37,6 +38,9 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 #if defined(KOKKOS_ENABLE_CUDA)
         algorithms::cg::check_cublas_uses_host_pointer_mode();
 #endif
+
+        if(pool.size() < 1) Kokkos::abort("The pool size must be at least 1.");
+        const auto& exec = pool.get(0);
 
         //! Pre-compute the residual.
         VectorType res(Kokkos::view_alloc(Kokkos::WithoutInitializing, exec, "residual"), rhs.size());
@@ -103,7 +107,7 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         region_setup.pop();
 
         //! Create the graph.
-        const Region region_create_graph("CGGraph - create graph");
+        const Region region_graph_definition("CGGraph - graph definition");
         Kokkos::Experimental::Graph graph(Kokkos::Experimental::get_device_handle(exec));
 
         //! Compute @c alpha.
@@ -146,29 +150,27 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
             1., res, tmp, dir
         );
 
-        exec.fence("CGGraph - fence before popping create graph region");
-        region_create_graph.pop();
+        region_graph_definition.pop();
 
         //! Instantiate and upload the graph. This is important to ensure that the first submission directly runs.
-        const Region region_instantiate_graph("CGGraph - instantiate graph");
+        const Region region_graph_instantiation("CGGraph - graph instantiation");
 
         graph.instantiate();
 
-#if defined(KOKKOS_ENABLE_CUDA)
-        KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphUpload(graph.native_graph_exec(), exec.cuda_stream()));
-#endif
+        region_graph_instantiation.pop();
 
-#if defined(KOKKOS_ENABLE_HIP)
-        KOKKOS_IMPL_HIP_SAFE_CALL(hipGraphUpload(graph.native_graph_exec(), exec.hip_stream()));
-#endif
+        //! Submit the first time outside the loop, for the same reason as in @ref benchmarks::graph::StraightLineBenchmark::run_graph.
+        const Region region_graph_submit_0("CGGraph - submit 0");
+        graph.submit(exec);
+        exec.fence("fencing before evaluating convergence");
+        res_nrm2 = Kokkos::sqrt(Kokkos::abs(res_dot_old()));
 
-        exec.fence("CGGraph - fence before popping instantiate graph region");
-        region_instantiate_graph.pop();
+        region_graph_submit_0.pop();
 
-        const Kokkos::Profiling::ScopedRegion region("CGGraph - loop");
+        const Kokkos::Profiling::ScopedRegion region_graph_submit_r("CGGraph - submit r");
 
         //! Loop until the norm of the residual is smaller than @p tol or the maximum number of iterations is reached.
-        SizeType iter = 0;
+        SizeType iter = 1;
         while(res_nrm2 > params.tolerance && iter < params.max_iters)
         {
             graph.submit(exec);
