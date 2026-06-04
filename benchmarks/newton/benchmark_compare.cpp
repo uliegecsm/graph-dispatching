@@ -81,7 +81,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State& state) override {
         this->name = std::regex_replace(state.name(), std::regex("[<>,]"), "_");
-        this->pool = pool_t{2};
+        this->pool = pool_t{3};
 
         if constexpr (DetailedCollection) {
             const auto output_dir = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name;

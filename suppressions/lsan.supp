@@ -1,3 +1,0 @@
-# Suppress indirect leaks originating from Kokkos.
-leak:Kokkos::HostSpace::impl_allocate
-leak:Kokkos::Experimental::GraphNodeRef

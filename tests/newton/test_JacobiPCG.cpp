@@ -36,7 +36,7 @@ namespace tests::newton {
 template <typename UseGraph>
 struct NewtonPCGTest
     : public ::testing::Test
-    , public utils::ExecutionSpacePoolFixture<execution_space, 2> {
+    , public utils::ExecutionSpacePoolFixture<execution_space, 3> {
    public:
     using problem_t = ::apps::heat::NonLinear1DHeatTransfer<memory_space, execution_space, UseGraph::value>;
 

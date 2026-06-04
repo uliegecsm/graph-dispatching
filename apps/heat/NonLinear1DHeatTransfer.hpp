@@ -5,6 +5,48 @@
 
 namespace apps::heat {
 
+template <typename scalar_3d_view_t, typename scalar_2d_view_t, typename scalar_1d_view_t, typename parameters_t>
+struct Fill {
+    scalar_3d_view_t stacked_elem_matrices;
+    scalar_2d_view_t stacked_elem_rhss;
+
+    scalar_1d_view_t local_sol;
+
+    parameters_t params;
+
+    //! Fill Jacobian and residual for element @c ielem.
+    template <std::integral T>
+    KOKKOS_FUNCTION void operator()(const T ielem) const noexcept {
+        using Kokkos::utils::view::slice;
+
+        const auto elem_mat = slice<3>(stacked_elem_matrices, ielem);
+        const auto elem_rhs = slice<2>(stacked_elem_rhss, ielem);
+
+        const auto idof_l = ielem;
+        const auto idof_r = ielem + 1;
+
+        //! For readability.
+        const auto sol_l = local_sol(idof_l);
+        const auto sol_r = local_sol(idof_r);
+
+        //! Residual.
+        const auto contr_stiff = (sol_l - sol_r) / params.h;
+        elem_rhs(0) = contr_stiff
+                    + params.h * params.k
+                          * (1. / 4. * sol_l * sol_l + 1. / 6. * sol_l * sol_r + 1. / 12. * sol_r * sol_r);
+        elem_rhs(1) = -contr_stiff
+                    + params.h * params.k
+                          * (1. / 12. * sol_l * sol_l + 1. / 6. * sol_l * sol_r + 1. / 4. * sol_r * sol_r);
+
+        //! Jacobian.
+        elem_mat(0, 0) = 1. / params.h + params.h * params.k * (sol_l / 2. + sol_r / 6.);
+        elem_mat(1, 1) = 1. / params.h + params.h * params.k * (sol_l / 6. + sol_r / 2.);
+        elem_mat(0, 1) = -1. / params.h + params.h * params.k * (sol_l / 6. + sol_r / 6.);
+
+        elem_mat(1, 0) = elem_mat(0, 1);
+    }
+};
+
 template <typename scalar_3d_view_t, typename scalar_2d_view_t, typename scalar_1d_view_t>
 struct Scatter {
     scalar_3d_view_t stacked_elem_matrices;
@@ -14,7 +56,7 @@ struct Scatter {
     scalar_1d_view_t local_rhs_values;
 
     template <std::integral T>
-    KOKKOS_FUNCTION void operator()(const T elm_id) const {
+    KOKKOS_FUNCTION void operator()(const T elm_id) const noexcept {
         using Kokkos::utils::view::slice;
 
         const auto elm_matrix = slice<3>(stacked_elem_matrices, elm_id);
@@ -70,10 +112,6 @@ struct NonLinear1DHeatTransfer {
     using local_graph_entries_t = typename local_graph_t::entries_type::non_const_type;
     using local_matrix_values_t = typename local_matrix_t::values_type;
 
-    using scatter_t = Scatter<scalar_3d_view_t, scalar_2d_view_t, scalar_1d_view_t>;
-
-    using graph_t = std::conditional_t<UseGraph, Kokkos::Experimental::Graph<ExecutionSpace>, bool>;
-
     struct Parameters {
         //! @name Given parameters.
         ///@{
@@ -88,6 +126,13 @@ struct NonLinear1DHeatTransfer {
         scalar_t h = length / num_elems;
         ///@}
     };
+
+    using parameters_t = Parameters;
+
+    using scatter_t = Scatter<scalar_3d_view_t, scalar_2d_view_t, scalar_1d_view_t>;
+    using fill_t = Fill<scalar_3d_view_t, scalar_2d_view_t, scalar_1d_view_t, parameters_t>;
+
+    using graph_t = std::conditional_t<UseGraph, Kokkos::Experimental::Graph<ExecutionSpace>, bool>;
 
     template <typename ViewType>
     struct InitialGuess {
@@ -106,7 +151,7 @@ struct NonLinear1DHeatTransfer {
     };
 
     template <Kokkos::ExecutionSpace Exec>
-    NonLinear1DHeatTransfer(const Exec& exec, Parameters params_)
+    NonLinear1DHeatTransfer(const Exec& exec, parameters_t params_)
         : params(std::move(params_)) // NOLINT(performance-move-const-arg)
     {
         this->init(exec);
@@ -167,50 +212,26 @@ struct NonLinear1DHeatTransfer {
             Kokkos::view_alloc(exec, "stacked elm rhss", Kokkos::WithoutInitializing), params.num_elems, 2);
     }
 
-    //! Fill Jacobian and residual for element @c ielem.
-    template <std::integral T>
-    KOKKOS_FUNCTION void operator()(const T ielem) const {
-        using Kokkos::utils::view::slice;
-
-        const auto elem_mat = slice<3>(stacked_elem_matrices, ielem);
-        const auto elem_rhs = slice<2>(stacked_elem_rhss, ielem);
-
-        const auto idof_l = ielem;
-        const auto idof_r = ielem + 1;
-
-        //! For readability.
-        const auto sol_l = local_sol(idof_l);
-        const auto sol_r = local_sol(idof_r);
-
-        //! Residual.
-        const auto contr_stiff = (sol_l - sol_r) / params.h;
-        elem_rhs(0) = contr_stiff
-                    + params.h * params.k
-                          * (1. / 4. * sol_l * sol_l + 1. / 6. * sol_l * sol_r + 1. / 12. * sol_r * sol_r);
-        elem_rhs(1) = -contr_stiff
-                    + params.h * params.k
-                          * (1. / 12. * sol_l * sol_l + 1. / 6. * sol_l * sol_r + 1. / 4. * sol_r * sol_r);
-
-        //! Jacobian.
-        elem_mat(0, 0) = 1. / params.h + params.h * params.k * (sol_l / 2. + sol_r / 6.);
-        elem_mat(1, 1) = 1. / params.h + params.h * params.k * (sol_l / 6. + sol_r / 2.);
-        elem_mat(0, 1) = -1. / params.h + params.h * params.k * (sol_l / 6. + sol_r / 6.);
-
-        elem_mat(1, 0) = elem_mat(0, 1);
-    }
-
     template <Kokkos::ExecutionSpace Exec>
     requires(!UseGraph)
     void assemble(const utils::ExecutionSpacePool<Exec>& pool) const {
         const auto& exec_A = pool.get(0);
         const auto& exec_B = pool.get(1);
+        const auto& exec_C = pool.get(2);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy(exec_A, 0, params.num_elems), *this);
+        Kokkos::parallel_for(
+            Kokkos::RangePolicy(exec_A, 0, params.num_elems),
+            fill_t{
+                .stacked_elem_matrices = stacked_elem_matrices,
+                .stacked_elem_rhss = stacked_elem_rhss,
+                .local_sol = local_sol,
+                .params = params});
 
         Kokkos::deep_copy(exec_B, local_rhs, 0.);
-        Kokkos::deep_copy(exec_A, local_matrix.values, 0.);
+        Kokkos::deep_copy(exec_C, local_matrix.values, 0.);
 
         exec_B.fence();
+        exec_C.fence();
 
         Kokkos::parallel_for(
             Kokkos::RangePolicy(exec_A, 0, params.num_elems),
@@ -230,7 +251,13 @@ struct NonLinear1DHeatTransfer {
             this->graph.emplace(device_handle);
 
             auto node_fill = this->graph->root_node().then_parallel_for(
-                Kokkos::Experimental::node_props(device_handle), Kokkos::RangePolicy<Exec>(0, params.num_elems), *this);
+                Kokkos::Experimental::node_props(device_handle),
+                Kokkos::RangePolicy<Exec>(0, params.num_elems),
+                fill_t{
+                    .stacked_elem_matrices = stacked_elem_matrices,
+                    .stacked_elem_rhss = stacked_elem_rhss,
+                    .local_sol = local_sol,
+                    .params = params});
 
             auto node_local_rhs_reset = ::algorithms::pcg::then_deep_copy(this->graph->root_node(), local_rhs, 0.);
             auto node_local_mat_reset =
@@ -251,7 +278,7 @@ struct NonLinear1DHeatTransfer {
         this->graph->submit(pool.get(0));
     }
 
-    Parameters params;
+    parameters_t params;
 
     local_matrix_t local_matrix;
     scalar_1d_view_t local_rhs;
