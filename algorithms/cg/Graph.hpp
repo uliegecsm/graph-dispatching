@@ -31,8 +31,6 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
     template <Kokkos::ExecutionSpace Exec, typename SizeType = typename Exec::size_type>
     std::tuple<mag_t, SizeType> apply(const utils::ExecutionSpacePool<Exec>& pool, const VectorType& sol, const typename base_t::Parameters& params) const
     {
-        const Region region_setup("CGGraph - setup");
-
         typename base_t::template spmv_handle_t<Exec> handle {};
 
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -102,9 +100,6 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         const auto alpha_neg = Kokkos::subview(scalars_on_device, 2);
 
         static_assert(std::remove_cvref_t<decltype(tmp)>::rank() == 0);
-
-        exec.fence("CGGraph - fence before popping setup region");
-        region_setup.pop();
 
         //! Create the graph.
         const Region region_graph_definition("CGGraph - graph definition");
