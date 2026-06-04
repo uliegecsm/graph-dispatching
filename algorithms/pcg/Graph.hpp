@@ -120,8 +120,7 @@ public:
         //! Create the graph.
         if(!graph.has_value())
         {
-            const ::algorithms::cg::Region region_create_graph("PCGGraph - create graph");
-
+            const ::algorithms::cg::Region region_graph_definition("PCGGraph - graph definition");
             graph.emplace(Kokkos::Experimental::get_device_handle(exec));
 
             const auto tmp       = Kokkos::subview(scalars_on_device, 0);
@@ -153,26 +152,28 @@ public:
                 1., res_p, tmp, dir
             );
 
-            exec.fence("PCGGraph - fence before popping create graph region");
-            region_create_graph.pop();
+            region_graph_definition.pop();
 
             //! Instantiate and upload the graph. This is important to ensure that the first submission directly runs.
-            const ::algorithms::cg::Region region_instantiate_graph("PCGGraph - instantiate graph");
+            const ::algorithms::cg::Region region_graph_instantiation("PCGGraph - graph instantiation");
 
             graph->instantiate();
 
-    #if defined(KOKKOS_ENABLE_CUDA)
-            KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphUpload(graph->native_graph_exec(), exec.cuda_stream()));
-    #endif
-
-            exec.fence("PCGGraph - fence before popping instantiate graph region");
-            region_instantiate_graph.pop();
+            region_graph_instantiation.pop();
         }
 
-        const Kokkos::Profiling::ScopedRegion region("PCGGraph - loop");
+         //! Submit the first time outside the loop, for the same reason as in @ref benchmarks::graph::StraightLineBenchmark::run_graph.
+        const ::algorithms::cg::Region region_graph_submit_0("PCGGraph - submit 0");
+        graph->submit(exec);
+        exec.fence("fencing before evaluating convergence");
+        res_nrm2 = Kokkos::sqrt(Kokkos::abs(res_dot()));
+
+        region_graph_submit_0.pop();
+
+        const Kokkos::Profiling::ScopedRegion region_graph_submit_r("PCGGraph - submit r");
 
         //! Loop until the norm of the residual is smaller than @p tol or the maximum number of iterations is reached.
-        decltype(base_t::Parameters::max_iters) iter = 0;
+        decltype(base_t::Parameters::max_iters) iter = 1;
         while(res_nrm2 > params.tolerance && iter < params.max_iters)
         {
             graph->submit(exec);
