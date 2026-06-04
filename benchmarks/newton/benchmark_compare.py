@@ -101,8 +101,6 @@ class NewtonBenchmark(BenchmarkBase):
             *args,
         ]
 
-        logging.info(f'Collecting details of the convergence with {cmd}.')
-
         subprocess.check_call(cmd)
 
     @typeguard.typechecked

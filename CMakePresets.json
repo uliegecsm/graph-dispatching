@@ -172,13 +172,6 @@
             }
         },
         {
-            "name": "lsan-suppressions",
-            "hidden": true,
-            "environment": {
-                "LSAN_OPTIONS": "suppressions=${sourceDir}/suppressions/lsan.supp"
-            }
-        },
-        {
             "name"            : "gcc-OpenMP",
             "configurePreset" : "gcc-OpenMP",
             "inherits"        : "default"
@@ -186,12 +179,12 @@
         {
             "name"            : "clang-OpenMP",
             "configurePreset" : "clang-OpenMP",
-            "inherits"        : ["default", "lsan-suppressions"]
+            "inherits"        : ["default"]
         },
         {
             "name"            : "clang-HPX",
             "configurePreset" : "clang-HPX",
-            "inherits"        : ["default", "lsan-suppressions"]
+            "inherits"        : ["default"]
         },
         {
             "name"            : "gcc-Cuda",
