@@ -49,8 +49,7 @@ class PCGBenchmark
     static constexpr size_t capped_max_iters = 10;
 
     static constexpr unsigned short state_nrows = 0;
-    static constexpr unsigned short state_niters = 1;
-    static constexpr unsigned short state_nsweeps = 2;
+    static constexpr unsigned short state_nsweeps = 1;
 
    public:
     //! We need to create @c Kokkos objects in the @c SetUp, not using the constructor or in-class default member initializers.
@@ -164,29 +163,22 @@ class PCGBenchmark
 void CustomArguments(benchmark::Benchmark* benchmark) {
     benchmark->UseManualTime()
         ->Unit(benchmark::kMillisecond)
-        ->ArgNames({"nrows", "niters", "nsweeps"})
+        ->ArgNames({"nrows", "nsweeps"})
 
-        ->Args({10, 4, 4})
-        ->Args({10, 4, 8})
-        ->Args({10, 4, 12})
-        ->Args({20, 9, 4})
-        ->Args({20, 9, 8})
-        ->Args({20, 8, 12})
-        ->Args({50, 23, 4})
-        ->Args({50, 19, 8})
-        ->Args({50, 16, 12})
+        ->Args({10, 4})
+        ->Args({10, 8})
+        ->Args({10, 12})
+        ->Args({20, 4})
+        ->Args({20, 8})
+        ->Args({20, 12})
+        ->Args({50, 4})
+        ->Args({50, 8})
+        ->Args({50, 12})
 #if false
-    ->Args({   100,    43, 4})->Args({   100,    33, 8})->Args({   100,    28, 12})
-    ->Args({   150,    62, 4})->Args({   150,    47, 8})->Args({   150,    47, 12})
-    ->Args({   200,    81, 4})->Args({   200,    60, 8})->Args({   200,    60, 12})
-    ->Args({   300,   118, 4})->Args({   300,    87, 8})->Args({   300,    73, 12})
-    ->Args({   500,   190, 4})->Args({   500,   139, 8})->Args({   500,   116, 12})
-    ->Args({  1000,   371, 4})->Args({  1000,   268, 8})->Args({  1000,   268, 12})
-    ->Args({  2000,   729, 4})->Args({  2000,   522, 8})->Args({  2000,   522, 12})
-    ->Args({ 10000,  3571, 4})->Args({ 10000,  2536, 8})->Args({ 10000,  2076, 12})
-    ->Args({ 20000,  7115, 4})->Args({ 20000,  5044, 8})->Args({ 20000,  4126, 12})
-    ->Args({ 50000, 17735, 4})->Args({ 50000, 12558, 8})->Args({ 50000, 10263, 12})
-    ->Args({100000, 59954, 4})->Args({100000, 25074, 8})->Args({100000, 25074, 12})
+        ->ArgsProduct({
+            benchmark::CreateRange(128, 128<<15, 2),
+            {4, 8, 12}
+        })
 #endif
         ;
 }

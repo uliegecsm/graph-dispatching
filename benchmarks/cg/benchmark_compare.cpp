@@ -167,7 +167,11 @@ void parameters(benchmark::Benchmark* benchmark) {
         ->Arg(30)
         ->Arg(50)
         ->Arg(60)
-        ->Arg(70);
+        ->Arg(70)
+#if false
+        ->RangeMultiplier(2)->Range(128, 128<<15)
+#endif
+        ;
 }
 
 CGBENCHMARK_DEFINE_F(queue)

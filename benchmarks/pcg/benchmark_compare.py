@@ -27,7 +27,6 @@ class PCGFlavor(enum.StrEnum):
 @dataclasses.dataclass(eq = True, frozen = True)
 class Parameters:
     nrows : int
-    niters : int
     nsweeps : int
 
 @dataclasses.dataclass(frozen = True)
@@ -48,7 +47,7 @@ class PCGBenchmark(BenchmarkBase):
         """
         Retrieve benchmark case parameters from its name.
         """
-        pattern = rf'PCGBenchmark/({"|".join(list(PCGFlavor))})/nrows:([0-9]+)/niters:([0-9]+)/nsweeps:([0-9]+)/manual_time'
+        pattern = rf'PCGBenchmark/({"|".join(list(PCGFlavor))})/nrows:([0-9]+)/nsweeps:([0-9]+)/manual_time'
 
         self.assertRegex(name, pattern)
 
@@ -56,8 +55,7 @@ class PCGBenchmark(BenchmarkBase):
 
         return PCGFlavor(match.group(1)), Parameters(
             nrows = int(match.group(2)),
-            niters = int(match.group(3)),
-            nsweeps = int(match.group(4)),
+            nsweeps = int(match.group(3)),
         )
 
     @typeguard.typechecked
@@ -69,8 +67,9 @@ class PCGBenchmark(BenchmarkBase):
             self.target,
             '--benchmark_out=' + str(self.results),
             '--benchmark_out_format=json',
-            '--benchmark_min_time=2x',
+            '--benchmark_min_time=1x',
             '--benchmark_enable_random_interleaving=true',
+            '--benchmark_min_warmup_time=0',
             *args,
         ]
 
