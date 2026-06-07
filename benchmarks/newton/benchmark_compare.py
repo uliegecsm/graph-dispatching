@@ -10,6 +10,7 @@ import typing
 
 import matplotlib.pyplot
 import numpy
+import pandas
 import typeguard
 
 from benchmarks.base import BenchmarkBase, parse_args
@@ -37,6 +38,7 @@ class Case(typing.NamedTuple):
     method: Method
     detailed_collection: bool
     name: str
+    num_elems: int
 
 class ExtractedConvergence(typing.NamedTuple):
     pcg: list[numpy.ndarray]
@@ -57,7 +59,7 @@ class NewtonBenchmark(BenchmarkBase):
         """
         Retrieve benchmark parameters from its name.
         """
-        pattern = rf'NewtonBenchmark<(true|false),(true|false)>/([a-z_]+)/(.*)manual_time'
+        pattern = rf'NewtonBenchmark<(true|false),(true|false)>/([a-z_]+)/num_elems:([0-9]+)/(.*)manual_time'
 
         self.assertRegex(name, pattern)
 
@@ -69,7 +71,8 @@ class NewtonBenchmark(BenchmarkBase):
             method=Method.from_strbool(value = match.group(1)),
             detailed_collection=True if match.group(2) == 'true' else False,
             name=match.group(3),
-        ), match.group(4)
+            num_elems=int(match.group(4))
+        ), match.group(5)
 
     @typeguard.typechecked
     def run(self, *, args : typing.List[str]) -> None:
@@ -82,6 +85,7 @@ class NewtonBenchmark(BenchmarkBase):
             '--benchmark_out=' + str(self.results['details']),
             '--benchmark_out_format=json',
             '--benchmark_min_time=1x',
+            '--benchmark_min_warmup_time=0s',
             '--benchmark_enable_random_interleaving=true',
             '--benchmark_filter=.*collect.*',
             *args,
@@ -98,6 +102,8 @@ class NewtonBenchmark(BenchmarkBase):
             '--benchmark_out_format=json',
             '--benchmark_enable_random_interleaving=true',
             '--benchmark_filter=.*repeat.*',
+            '--benchmark_min_time=1x',
+            '--benchmark_min_warmup_time=0s',
             *args,
         ]
 
@@ -113,13 +119,15 @@ class NewtonBenchmark(BenchmarkBase):
         # Load benchmark results for the details of the convergence, check it made a single iteration.
         logging.info(f'Loading results from {self.results["details"]}.')
         with open(self.results['details'], 'r') as fin:
-            self.benchmark_results = json.load(fin)
+            benchmark_results = json.load(fin)
 
         fig, ax = matplotlib.pyplot.subplots(nrows = 1, ncols = 1, figsize = (10, 7))
 
         details = {}
 
-        for bench_case in self.benchmark_results['benchmarks']:
+        self.assertEqual(len(benchmark_results['benchmarks']), 2)
+
+        for bench_case in benchmark_results['benchmarks']:
             params, iterations = self.params(name = bench_case['name'])
 
             logging.info(f'Checking that {bench_case["name"]} ({params}) made a single iteration.')
@@ -201,11 +209,11 @@ class NewtonBenchmark(BenchmarkBase):
         # We just need a ratio.
         logging.info(f'Loading results from {self.results["repeated"]}.')
         with open(self.results['repeated'], 'r') as fin:
-            self.benchmark_results = json.load(fin)
+            benchmark_results = json.load(fin)
 
-        timing = {x: None for x in Method}
+        timings = {x: {'num_elems': [], 'time to solution': []} for x in Method}
         time_unit = None
-        for bench_case in self.benchmark_results['benchmarks']:
+        for bench_case in benchmark_results['benchmarks']:
             params, iterations = self.params(name = bench_case['name'])
 
             if not time_unit:
@@ -213,14 +221,18 @@ class NewtonBenchmark(BenchmarkBase):
             else:
                 self.assertEqual(time_unit, bench_case['time_unit'])
 
-            avg = bench_case['real_time']
+            logging.info(f'Average time of {bench_case["name"]} ({params}): {bench_case["real_time"]} [{time_unit}].')
 
-            logging.info(f'Average time of {bench_case["name"]} ({params}): {avg} [{time_unit}].')
+            timings[params.method]['num_elems'].append(params.num_elems)
+            timings[params.method]['time to solution'].append(bench_case['real_time'])
 
-            timing[params.method] = avg
+        timings_graph = pandas.DataFrame(timings[Method.GRAPH]).sort_values(by=['num_elems'])
+        timings_queue = pandas.DataFrame(timings[Method.QUEUE]).sort_values(by=['num_elems'])
 
-        ratio = timing[Method.QUEUE] / timing[Method.GRAPH]
-        logging.info(f'Ratio is {ratio}.')
+        timings_graph['speedup'] = timings_queue['time to solution'] / timings_graph['time to solution']
+
+        logging.info(f'Timings for the {Method.QUEUE}:\n{timings_queue}')
+        logging.info(f'Timings for the {Method.GRAPH}:\n{timings_graph}')
 
     @typeguard.typechecked
     def extract_from_output(self, file: pathlib.Path, method: Method) -> ExtractedConvergence:
