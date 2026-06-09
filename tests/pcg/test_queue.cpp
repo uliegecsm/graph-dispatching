@@ -30,52 +30,53 @@
 
 using execution_space = Kokkos::DefaultExecutionSpace;
 
-namespace tests::pcg
-{
+namespace tests::pcg {
 
 DEFINE_FUNCTOR(KokkosSparseSpmv, KokkosSparse::spmv)
-DEFINE_FUNCTOR(KokkosBlasDot,    KokkosBlas::dot)
-DEFINE_FUNCTOR(KokkosBlasAxpby,  KokkosBlas::axpby)
+DEFINE_FUNCTOR(KokkosBlasDot, KokkosBlas::dot)
+DEFINE_FUNCTOR(KokkosBlasAxpby, KokkosBlas::axpby)
 
 using namespace Kokkos::utils::callbacks;
 
 template <template <typename> class Preconditioner>
-class PCGQueueTest : public ::testing::Test,
-                           public Kokkos::utils::tests::scoped::callbacks::Manager,
-                           public utils::ExecutionSpacePoolFixture<execution_space, 2>
-{
-public:
+class PCGQueueTest
+    : public Kokkos::utils::tests::scoped::callbacks::Manager
+    , public utils::ExecutionSpacePoolFixture<execution_space, 2> {
+   public:
     using helper_t = cg::NbyNSolverTestHelper<execution_space>;
 
     using scalar_t = helper_t::initializer_t::rhs_t::non_const_value_type;
 
-    using event_types_list_t = Kokkos::Impl::type_list<BeginFenceEvent, BeginParallelForEvent, BeginParallelReduceEvent, BeginDeepCopyEvent,  PushRegionEvent, PopRegionEvent>;
+    using event_types_list_t = Kokkos::Impl::type_list<
+        BeginFenceEvent,
+        BeginParallelForEvent,
+        BeginParallelReduceEvent,
+        BeginDeepCopyEvent,
+        PushRegionEvent,
+        PopRegionEvent
+    >;
 
     using event_in_region_recorder_t = RecorderListener<EventRegionMatcher<EventNameMatcher>, event_types_list_t>;
 
     using matrix_t = helper_t::initializer_t::matrix_t;
-    using rhs_t    = helper_t::initializer_t::rhs_t;
+    using rhs_t = helper_t::initializer_t::rhs_t;
 
     using preconditioner_t = Preconditioner<matrix_t>;
 
-    using solver_t = ::algorithms::pcg::PCGQueue<
-        matrix_t,
-        rhs_t,
-        preconditioner_t,
-        KokkosSparseSpmv,
-        KokkosBlasDot,
-        KokkosBlasAxpby
-    >;
+    using solver_t =
+        ::algorithms::pcg::PCGQueue<matrix_t, rhs_t, preconditioner_t, KokkosSparseSpmv, KokkosBlasDot, KokkosBlasAxpby>;
 };
 
-#define TEST_BASE(_preconditioner_)                                       \
-    class PCGQueue##_preconditioner_##Test                          \
-        : public PCGQueueTest<::algorithms::pcg::_preconditioner_>, \
-          public cg::NbyNSolverTest<typename PCGQueueTest<::algorithms::pcg::_preconditioner_>::solver_t> {};
+#define TEST_BASE(_preconditioner_, _suffix_, ...)                                                                     \
+    class PCGQueue##_preconditioner_##_suffix_                                                                         \
+        : public PCGQueueTest<::algorithms::pcg::_preconditioner_>                                                     \
+        , __VA_ARGS__                                                                                                  \
+          __VA_OPT__(                                                                                                  \
+              , ) public cg::NbyNSolverTest<typename PCGQueueTest<::algorithms::pcg::_preconditioner_>::solver_t> { };
 
-TEST_BASE(IdentityPreconditioner)
-TEST_BASE(DiagonalPreconditioner)
-TEST_BASE(JacobiPreconditioner)
+TEST_BASE(IdentityPreconditioner, Test, public testing::Test)
+TEST_BASE(DiagonalPreconditioner, Test, public testing::Test)
+TEST_BASE(JacobiPreconditioner, Test, public testing::Test)
 
 /**
  * @test The PCG must behave like the CG when the preconditioner is the identity.
@@ -84,8 +85,7 @@ TEST_BASE(JacobiPreconditioner)
  *
  * This is an important sanity check.
  */
-TEST_F(PCGQueueIdentityPreconditionerTest, 10x10)
-{
+TEST_F(PCGQueueIdentityPreconditionerTest, 10x10) {
     static_assert(Kokkos::utils::impl::is_instance_of_v<preconditioner_t, ::algorithms::pcg::IdentityPreconditioner>);
 
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -114,7 +114,7 @@ TEST_F(PCGQueueIdentityPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
@@ -126,35 +126,34 @@ TEST_F(PCGQueueIdentityPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
             MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual",                          .size = 10 * sizeof(scalar_t)})
-            ),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"},
+                    .name = "residual of preconditioned system",
+                    .size = 10 * sizeof(scalar_t)}),
+                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual", .size = 10 * sizeof(scalar_t)})),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
-                MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
-                MATCHER_FOR_POP_REGION(),
-            MATCHER_FOR_POP_REGION()
-        )
-    );
+            MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
+            MATCHER_FOR_POP_REGION(),
+            MATCHER_FOR_POP_REGION()));
 #endif
 }
 
 //! @test Use @ref algorithms::pcg::DiagonalPreconditioner as preconditioner.
-TEST_F(PCGQueueDiagonalPreconditionerTest, 10x10)
-{
+TEST_F(PCGQueueDiagonalPreconditionerTest, 10x10) {
     static_assert(Kokkos::utils::impl::is_instance_of_v<preconditioner_t, ::algorithms::pcg::DiagonalPreconditioner>);
 
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -183,7 +182,7 @@ TEST_F(PCGQueueDiagonalPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
@@ -195,32 +194,30 @@ TEST_F(PCGQueueDiagonalPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(
+                exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
-                MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
-                MATCHER_FOR_POP_REGION(),
-            MATCHER_FOR_POP_REGION()
-        )
-    );
+            MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
+            MATCHER_FOR_POP_REGION(),
+            MATCHER_FOR_POP_REGION()));
 #endif
 }
 
 //! @test Use @ref algorithms::pcg::JacobiPreconditioner as preconditioner.
-TEST_F(PCGQueueJacobiPreconditionerTest, 10x10)
-{
+TEST_F(PCGQueueJacobiPreconditionerTest, 10x10) {
     static_assert(Kokkos::utils::impl::is_instance_of_v<preconditioner_t, ::algorithms::pcg::JacobiPreconditioner>);
 
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -249,7 +246,7 @@ TEST_F(PCGQueueJacobiPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_A, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_A, "waiting for dot (quadratic)"),
@@ -261,42 +258,82 @@ TEST_F(PCGQueueJacobiPreconditionerTest, 10x10)
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (norm)"),
 
-            MATCHER_FOR_BEGIN_PFOR(exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::ApplyFirstPass<rhs_t, rhs_t>>::name())),
-            MATCHER_FOR_BEGIN_PFOR(exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(
+                exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::ApplyFirstPass<rhs_t, rhs_t>>::name())),
+            MATCHER_FOR_BEGIN_PFOR(
+                exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
-            ),
-            MATCHER_FOR_BEGIN_PFOR(exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"},
+                    .name = "residual of preconditioned system",
+                    .size = 10 * sizeof(scalar_t)}),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage", .size = 10 * sizeof(scalar_t)})),
+            MATCHER_FOR_BEGIN_PFOR(
+                exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
-            ),
-            MATCHER_FOR_BEGIN_PFOR(exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"},
+                    .name = "residual of preconditioned system",
+                    .size = 10 * sizeof(scalar_t)}),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage", .size = 10 * sizeof(scalar_t)})),
+            MATCHER_FOR_BEGIN_PFOR(
+                exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "residual of preconditioned system", .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{.kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage",          .size = 10 * sizeof(scalar_t)})
-            ),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"},
+                    .name = "residual of preconditioned system",
+                    .size = 10 * sizeof(scalar_t)}),
+                (AllocDescriptor{
+                    .kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage", .size = 10 * sizeof(scalar_t)})),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::dot[noETI]"),
-                MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
+            MATCHER_FOR_BEGIN_PRED(exec_B, "KokkosBlas::dot<1D>"),
             MATCHER_FOR_POP_REGION(),
 
             MATCHER_FOR_BEGIN_FENCE(exec_B, "waiting for dot (residuals)"),
 
             MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[TPL_CUBLAS,complex<double>]"),
-                MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
-                    MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
-                MATCHER_FOR_POP_REGION(),
-            MATCHER_FOR_POP_REGION()
-        )
-    );
+            MATCHER_FOR_PUSH_REGION("KokkosBlas::axpby[noETI]"),
+            MATCHER_FOR_BEGIN_PFOR(exec_A, "KokkosBlas::Axpby::S11"),
+            MATCHER_FOR_POP_REGION(),
+            MATCHER_FOR_POP_REGION()));
 #endif
 }
+
+struct VaryingSweepParameters {
+    typename PCGQueueJacobiPreconditionerTest::preconditioner_t::sweep_t num_sweeps;
+    size_t num_iters;
+};
+
+TEST_BASE(JacobiPreconditioner, VaryingSweepsTest, public testing::TestWithParam<VaryingSweepParameters>)
+
+//! @test Use @ref algorithms::pcg::JacobiPreconditioner as preconditioner and vary the number of sweeps.
+TEST_P(PCGQueueJacobiPreconditionerVaryingSweepsTest, 25x25) {
+    static_assert(Kokkos::utils::impl::is_instance_of_v<preconditioner_t, ::algorithms::pcg::JacobiPreconditioner>);
+
+    auto set_num_sweeps = [this](auto& solver) {
+        solver.get_preconditioner().num_sweeps = this->GetParam().num_sweeps;
+    };
+
+    RUN_AND_CHECK(this->pool, 25, 1.e-11, this->GetParam().num_iters, set_num_sweeps)
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PCGQueueJacobiPreconditionerVaryingNumSweep,
+    PCGQueueJacobiPreconditionerVaryingSweepsTest,
+    testing::Values(
+        VaryingSweepParameters{.num_sweeps = 1, .num_iters = 24},
+        VaryingSweepParameters{.num_sweeps = 2, .num_iters = 12},
+        VaryingSweepParameters{.num_sweeps = 3, .num_iters = 22},
+        VaryingSweepParameters{.num_sweeps = 4, .num_iters = 12},
+        VaryingSweepParameters{.num_sweeps = 5, .num_iters = 19},
+        VaryingSweepParameters{.num_sweeps = 6, .num_iters = 11}));
 
 } // namespace tests::pcg
