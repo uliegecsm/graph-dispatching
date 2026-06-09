@@ -29,12 +29,6 @@ class Parameters:
     nrows : int
     nsweeps : int
 
-@dataclasses.dataclass(frozen = True)
-class Results:
-    nreps : int
-    mean : float
-    timings : numpy.typing.NDArray[float] = None
-
 class PCGBenchmark(BenchmarkBase):
 
     @typeguard.typechecked
