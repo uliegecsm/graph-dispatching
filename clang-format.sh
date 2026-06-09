@@ -11,6 +11,7 @@ fi
 
 PATTERNS=(
     'algorithms/newton/*.hpp'
+    'algorithms/pcg/Preconditioners.hpp'
     'apps/**.hpp'
     'benchmarks/cg/benchmark_compare.cpp'
     'benchmarks/pcg/benchmark_compare.cpp'
