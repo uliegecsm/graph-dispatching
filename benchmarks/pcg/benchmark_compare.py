@@ -90,6 +90,7 @@ class PCGBenchmark(BenchmarkBase):
             'nrows': [],
             'real_time': [],
             'niters': [],
+            'iterations': [],
             'nsweeps': [],
             'loop': [],
         }
@@ -97,6 +98,7 @@ class PCGBenchmark(BenchmarkBase):
             'nrows': [],
             'real_time': [],
             'niters': [],
+            'iterations': [],
             'nsweeps': [],
             'graph definition': [],
             'graph instantiation': [],
@@ -117,7 +119,8 @@ class PCGBenchmark(BenchmarkBase):
             flavor, params = self.params(name = bench_case['name'])
 
             data[flavor]['nrows'].append(params.nrows)
-            data[flavor]['real_time' ].append(bench_case['real_time'])
+            data[flavor]['real_time'].append(bench_case['real_time'])
+            data[flavor]['iterations'].append(bench_case['iterations'])
             data[flavor]['niters'].append(bench_case['num_iters'])
             data[flavor]['nsweeps'].append(params.nsweeps)
 
@@ -180,7 +183,7 @@ class PCGBenchmark(BenchmarkBase):
         fig, ax = matplotlib.pyplot.subplots(nrows=1, ncols=1)
 
         data_graph = data[PCGFlavor.GRAPH]
-        
+
         # Plot the speedup after n submissions (S_n) and the asymptotic speedup (S) (left axis).
         COLOR_S = 'tab:red'
         ax_S = ax
@@ -196,6 +199,7 @@ class PCGBenchmark(BenchmarkBase):
             ax_S.plot(data_nrows, data_S, linestyle=linestyle, marker=marker, color=COLOR_S)
 
         ax_S.set_ylabel('$S$ [-]', color=COLOR_S)
+        ax.hlines(y=1, xmin=min(nrows_sorted_set), xmax=max(nrows_sorted_set), color='black')
         ax_S.set_xlabel('Number of rows [-]')
         ax_S.tick_params(axis='y', labelcolor=COLOR_S)
         ax_S.set_xlim(min(nrows_sorted_set), max(nrows_sorted_set))
@@ -208,7 +212,7 @@ class PCGBenchmark(BenchmarkBase):
         # Plot 'n_be' where it makes sense (i.e. where S >= 1) (right axis).
         COLOR_N_BE = 'tab:blue'
 
-        nsweeps_for_plot = 8 
+        nsweeps_for_plot = 8
         data_nrows = data[PCGFlavor.GRAPH][data[PCGFlavor.GRAPH]['nsweeps'] == nsweeps_for_plot]['nrows'].values
         data_S = data[PCGFlavor.GRAPH][data[PCGFlavor.GRAPH]['nsweeps'] == nsweeps_for_plot]['S'].values
         data_n_be_integer = data[PCGFlavor.GRAPH][data[PCGFlavor.GRAPH]['nsweeps'] == nsweeps_for_plot]['n_be_integer'].values
@@ -237,7 +241,7 @@ class PCGBenchmark(BenchmarkBase):
             ax_S.set_yticks(ax_S_min + fractions * (ax_S_max - ax_S_min))
 
         ax_S.yaxis.grid(True, linestyle='--', alpha=0.5)
-    
+
         # Save the figure.
         for ext in ('svg', 'eps'):
             saved_to = self.target.with_suffix(f'.{PCGFlavor.GRAPH}.{nsweeps_for_plot}._and_n_be.{ext}')
