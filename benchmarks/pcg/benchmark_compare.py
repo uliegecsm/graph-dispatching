@@ -188,7 +188,7 @@ class PCGBenchmark(BenchmarkBase):
         ax_S_min = numpy.floor(data_graph['S'].min() * 2) / 2
         ax_S_max = numpy.ceil (data_graph['S'].max() * 2) / 2
 
-        STYLES = {('-', 'o'), ('--', '^'), (':', 's')}
+        STYLES = (('-', 'o'), ('--', '^'), (':', 's'))
 
         for nsweeps, (linestyle, marker) in zip(nsweeps_sorted_set, STYLES, strict=True):
             data_nrows = data[PCGFlavor.GRAPH][data[PCGFlavor.GRAPH]['nsweeps'] == nsweeps]['nrows'].values
