@@ -82,18 +82,11 @@ consteval bool test_sndr_traits() {
                   Kokkos::Experimental::details::execution_space::ParallelForSender<schd_sndr_t, functor_t, policy_t>
     >);
 
-    /**
-     * It is not no throw connectable because the @c ParallelForClosure is not no throw move constructible.
-     * This is so because it holds a functor that holds a @c Kokkos::View, and the latter are not no throw
-     * move constructible.
-     *
-     * See also https://github.com/kokkos/kokkos/pull/8792.
-     */
-    static_assert(!std::is_nothrow_move_constructible_v<typename ParallelForTest::view_s_t>);
-    static_assert(!std::is_nothrow_move_constructible_v<functor_t>);
+    static_assert(std::is_nothrow_move_constructible_v<typename ParallelForTest::view_s_t>);
+    static_assert(std::is_nothrow_move_constructible_v<functor_t>);
     using closure_t = Kokkos::Experimental::details::execution_space::ParallelForClosure<functor_t, policy_t>;
-    static_assert(!std::is_nothrow_move_constructible_v<closure_t>);
-    static_assert(!::stdexec::__nothrow_connectable<pfor_sndr_t, tests::stdexec::SinkReceiver>);
+    static_assert(std::is_nothrow_move_constructible_v<closure_t>);
+    static_assert(::stdexec::__nothrow_connectable<pfor_sndr_t, tests::stdexec::SinkReceiver>);
 
     return true;
 }
@@ -145,7 +138,7 @@ consteval bool test_closure_traits() {
 
     return true;
 }
-static_assert(test_closure_traits<typename ParallelForTest::view_s_t, false>());
+static_assert(test_closure_traits<typename ParallelForTest::view_s_t, true>());
 static_assert(test_closure_traits<std::span<int>, true>());
 
 //! @test Check @ref Kokkos::Experimental::parallel_for with a team policy.

@@ -17,7 +17,10 @@ struct Values {
         Kokkos::parallel_reduce(
             policy_t(exec, 0, data.size()),
             KOKKOS_LAMBDA(const typename policy_t::index_type index, bool& current) {
-                const auto expt_value = value_A + (index >= data.size() / 2 ? value_C : value_B) + value_D;
+                const auto expt_value = value_A
+                                      + (index >= static_cast<typename policy_t::index_type>(data.size()) / 2 ? value_C
+                                                                                                              : value_B)
+                                      + value_D;
                 current = data(index) == expt_value && current;
             },
             Kokkos::LAnd<bool>(result));

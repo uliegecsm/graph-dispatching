@@ -26,18 +26,18 @@
             "value" : "1.11.0"
         },
         "kokkos" : {
-            "value"  : "5.0.99",
+            "value"  : "5.1.99",
             "branch" : "develop",
-            "sha"    : "1f5f4b6d82c07939f036263e4651d27a543c2049",
+            "sha"    : "d61242a6ed983727202cfa5d67e8346c96491b44",
             "url"    : "kokkos"
         },
         "kokkos-kernels" : {
-            "branch" : "5.0.0",
-            "sha"    : "5.0.0"
+            "branch" : "5.1.1",
+            "sha"    : "5.1.1"
         },
         "kokkos-utils" : {
             "branch" : "develop",
-            "sha"    : "80c94b76be72f74c151272c554cb9f0c97e54a13"
+            "sha"    : "6f861f019050b47570ba0b54097b89fba357f0c7"
         },
         "nvidia" : {
             "stdexec" : {

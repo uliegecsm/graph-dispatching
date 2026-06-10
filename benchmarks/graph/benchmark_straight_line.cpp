@@ -92,7 +92,7 @@ public:
             timer_A.start();
             graph_t graph{Kokkos::Experimental::get_device_handle(*exec)};
 
-            auto current = graph.root_node();
+            Kokkos::Experimental::GraphNodeRef<execution_space> current = graph.root_node();
 
             for(state_range_t inode = 0; inode < state.range(index_num_nodes); ++inode) {
                 current = current.then(Increment{.data = data});
