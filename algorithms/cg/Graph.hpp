@@ -107,7 +107,18 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
 
         //! Compute @c alpha.
         const auto alpha_spmv = ::algorithms::cg::spmv(graph.root_node(), &handle, "N", 1., mat, dir, 0., mat_dir);
+#if defined(KOKKOS_ENABLE_HIP) && (HIP_VERSION_MAJOR == 7 && HIP_VERSION_MINOR == 2 && HIP_VERSION_PATCH == 53211)
+        //! Related to https://github.com/ROCm/ROCm/issues/6343.
+        const auto alpha_dot = [&](){
+            if constexpr (std::same_as<Exec, Kokkos::HIP> && UseHostNode) {
+                return algorithms::cg::dot(alpha_spmv, tmp, dir, mat_dir).then([](){});
+            } else {
+                return algorithms::cg::dot(alpha_spmv, tmp, dir, mat_dir);
+            }
+        }();
+#else
         const auto alpha_dot  = ::algorithms::cg::dot(alpha_spmv, tmp, dir, mat_dir);
+#endif
 
         const auto alpha_div = [&]() {
             if constexpr (UseHostNode) {
@@ -126,7 +137,18 @@ struct CGGraph : public algorithms::cg::CGBase<MatrixType, VectorType>
         const auto update_res = ::algorithms::cg::axpby(alpha_div, alpha_neg, mat_dir, 1., res);
 
         //! @todo At this point, we could already check the condition and exit with an if node and avoid the extra beta and search update if converged.
+#if defined(KOKKOS_ENABLE_HIP) && (HIP_VERSION_MAJOR == 7 && HIP_VERSION_MINOR == 2 && HIP_VERSION_PATCH == 53211)
+        //! Related to https://github.com/ROCm/ROCm/issues/6343.
+        const auto res_dot = [&](){
+            if constexpr (std::same_as<Exec, Kokkos::HIP> && UseHostNode) {
+                return algorithms::cg::dot(update_res, tmp, res, res).then([](){});
+            } else {
+                return algorithms::cg::dot(update_res, tmp, res, res);
+            }
+        }();
+#else
         const auto res_dot = ::algorithms::cg::dot(update_res, tmp, res, res);
+#endif
 
         //! Compute @c beta.
         const auto beta_div = [&, das = algorithms::cg::DivideAndSwap{.a = tmp, .b = res_dot_old}]() mutable {
