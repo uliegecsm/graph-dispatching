@@ -102,7 +102,7 @@ function(add_one_test)
         aot_args
         ""
         ""
-        "LAUNCHER"
+        "LAUNCHER;TARGET_ARGS"
         ${ARGN}
     )
 
@@ -115,6 +115,9 @@ function(add_one_test)
             set(TEST_COMMAND)
         endif()
         list(APPEND TEST_COMMAND $<TARGET_FILE:${aot_args_EXECUTABLE_NAME}> --gtest_fail_if_no_test_linked)
+        if(DEFINED aot_args_TARGET_ARGS)
+            list(APPEND TEST_COMMAND ${aot_args_TARGET_ARGS})
+        endif()
         add_test(NAME ${aot_args_EXECUTABLE_NAME} COMMAND ${TEST_COMMAND})
 
         # Ensure that GTest will shuffle the tests.
