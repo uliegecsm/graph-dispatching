@@ -62,10 +62,10 @@ TEST_F(LetValueTest, scoped_allocation) {
                   ::stdexec::__mset<::stdexec::set_value_t(view_of_5_t)>
     >);
 
-    //! @c Kokkos view is not nothrow movable, so the error channel is added.
+    //! @c Kokkos view is nothrow movable, so the error channel is not added.
     static_assert(::tests::stdexec::has_completion_signatures<
                   decltype(allocate),
-                  ::stdexec::__mset<::stdexec::set_value_t(view_of_5_t), ::stdexec::set_error_t(std::exception_ptr)>,
+                  ::stdexec::__mset<::stdexec::set_value_t(view_of_5_t)>,
                   ::stdexec::env<>
     >);
 

@@ -99,7 +99,7 @@ public:
             graph_t graph{Kokkos::Experimental::get_device_handle(execs.at(0))};
 
             for(state_range_t ibranch = 0; ibranch < state.range(index_num_branches); ++ibranch) {
-                auto current = graph.root_node();
+                Kokkos::Experimental::GraphNodeRef<execution_space> current = graph.root_node();
                 for(state_range_t inode = 0; inode < state.range(index_num_nodes); ++inode) {
                     current = current.then(Increment{.data = data, .index = ibranch});
                 }

@@ -80,7 +80,7 @@ runs:
           with:
               context: .
               platforms: ${{ inputs.platforms }}
-              push: true #${{ github.ref == 'refs/heads/main' }}
+              push: ${{ github.ref == 'refs/heads/main' }}
               file: docker/dockerfile
               tags: ${{ inputs.tag }}
               cache-from: type=registry,ref=${{ inputs.tag }}

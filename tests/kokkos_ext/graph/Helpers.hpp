@@ -87,7 +87,7 @@ constexpr bool check_node_type() {
 
 //! Type of the @c Kokkos graph root node.
 template <Kokkos::ExecutionSpace Exec>
-using root_node_t = Kokkos::Experimental::GraphNodeRef<Exec>;
+using root_node_t = Kokkos::Experimental::Graph<Exec>::root_t;
 
 template <Kokkos::ExecutionSpace Exec>
 struct AggregateNode {
