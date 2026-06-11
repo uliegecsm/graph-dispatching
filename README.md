@@ -49,7 +49,7 @@ named `create_graph`. A first attempt was to name it `just`, but it felt wrong.
 
 This repository provides several `Docker` images. They have the same name, only the *tag* changes.
 
-1. `gcc-OpenMP` uses the `g++` compiler, and the `Kokkos::OpenMP` backend is enabled.
+1. `gnu-OpenMP` uses the `g++` compiler, and the `Kokkos::OpenMP` backend is enabled.
 2. `clang-OpenMP` uses the `clang++` compiler, and the `Kokkos::OpenMP` backend is enabled.
 3. `clang-HPX` uses the `clang++` compiler, and the `Kokkos::Experimental::HPX` backend is enabled.
 
