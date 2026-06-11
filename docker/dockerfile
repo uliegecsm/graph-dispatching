@@ -21,11 +21,49 @@ RUN <<EOF
     apt clean && rm -rf /var/lib/apt/lists/*
 EOF
 
-FROM requirements-python AS requirements-compiler-rocm
+FROM requirements-python AS requirements-cmake
+
+ARG TARGETARCH
+ARG CMAKE_VERSION
+
+RUN <<EOF
+    set -ex
+
+    apt-helpers install-packages --update --clean --packages wget
+
+    if [ "${TARGETARCH}" = "amd64" ];then
+        SUFFIX=x86_64
+    elif [ "${TARGETARCH}" = "arm64" ];then
+        SUFFIX=aarch64
+    else
+        echo "unsupported target arch ${TARGETARCH}"
+    fi
+
+    INSTALLER=cmake-${CMAKE_VERSION}-linux-${SUFFIX}.sh
+
+    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${INSTALLER}
+
+    mkdir -p /opt/cmake-${CMAKE_VERSION}
+
+    sh ${INSTALLER} --skip-license --prefix=/opt/cmake-${CMAKE_VERSION}/
+
+    rm ${INSTALLER}
+EOF
+
+ARG CMAKE_PACKAGE_MANAGER_VERSION
+ARG CMAKE_PACKAGE_MANAGER_SHA256
+
+ADD --checksum=sha256:${CMAKE_PACKAGE_MANAGER_SHA256} \
+    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CMAKE_PACKAGE_MANAGER_VERSION}/CPM.cmake \
+    /opt/cpm-${CMAKE_PACKAGE_MANAGER_VERSION}/
+
+ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
+
+FROM requirements-cmake AS requirements-compiler-rocm
 
 ENV PATH=/opt/rocm/bin:${PATH}
 
-FROM requirements-python AS requirements-compiler-gnu
+FROM requirements-cmake AS requirements-compiler-gnu
 
 ARG COMPILER_VERSION
 
@@ -46,7 +84,7 @@ RUN <<EOF
     g++ -dumpfullversion -dumpversion
 EOF
 
-FROM requirements-python AS requirements-compiler-clang
+FROM requirements-cmake AS requirements-compiler-clang
 
 ARG COMPILER_VERSION
 
@@ -86,40 +124,6 @@ RUN --mount=target=/requirements,type=bind,source=requirements <<EOF
 
     python3 -m pip install -r /requirements/requirements.python.benchmarks.txt
 EOF
-
-ARG TARGETARCH
-ARG CMAKE_VERSION
-
-RUN <<EOF
-    set -ex
-
-    if [ "${TARGETARCH}" = "amd64" ];then
-        SUFFIX=x86_64
-    elif [ "${TARGETARCH}" = "arm64" ];then
-        SUFFIX=aarch64
-    else
-        echo "unsupported target arch ${TARGETARCH}"
-    fi
-
-    INSTALLER=cmake-${CMAKE_VERSION}-linux-${SUFFIX}.sh
-
-    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${INSTALLER}
-
-    mkdir -p /opt/cmake-${CMAKE_VERSION}
-
-    sh ${INSTALLER} --skip-license --prefix=/opt/cmake-${CMAKE_VERSION}/
-
-    rm ${INSTALLER}
-EOF
-
-ARG CMAKE_PACKAGE_MANAGER_VERSION
-ARG CMAKE_PACKAGE_MANAGER_SHA256
-
-ADD --checksum=sha256:${CMAKE_PACKAGE_MANAGER_SHA256} \
-    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CMAKE_PACKAGE_MANAGER_VERSION}/CPM.cmake \
-    /opt/cpm-${CMAKE_PACKAGE_MANAGER_VERSION}/
-
-ENV PATH=/opt/cmake-${CMAKE_VERSION}/bin:${PATH}
 
 FROM requirements AS requirements-backend
 
