@@ -67,9 +67,14 @@ class NewtonBenchmark(BenchmarkBase):
 
         self.assertEqual(match.group(0), name)
 
+        method = Method.from_strbool(value = match.group(1))
+        detailed_collection = True if match.group(2) == 'true' else False
+
+        self.assertEqual(f'{"collect" if detailed_collection else "repeat"}_{str(method).lower()}', match.group(3))
+
         return Case(
-            method=Method.from_strbool(value = match.group(1)),
-            detailed_collection=True if match.group(2) == 'true' else False,
+            method=method,
+            detailed_collection=detailed_collection,
             name=match.group(3),
             num_elems=int(match.group(4))
         ), match.group(5)
@@ -211,7 +216,7 @@ class NewtonBenchmark(BenchmarkBase):
         with open(self.results['repeated'], 'r') as fin:
             benchmark_results = json.load(fin)
 
-        timings = {x: {'num_elems': [], 'time to solution': [], 'iterations': []} for x in Method}
+        timings = {x: {'num_elems': [], 'time to solution': [], 'iterations': [], 'num_iters': []} for x in Method}
         time_unit = None
         for bench_case in benchmark_results['benchmarks']:
             params, iterations = self.params(name = bench_case['name'])
@@ -226,6 +231,7 @@ class NewtonBenchmark(BenchmarkBase):
             timings[params.method]['num_elems'].append(params.num_elems)
             timings[params.method]['time to solution'].append(bench_case['real_time'])
             timings[params.method]['iterations'].append(bench_case['iterations'])
+            timings[params.method]['num_iters'].append(bench_case['num_iters'])
 
         timings_graph = pandas.DataFrame(timings[Method.GRAPH]).sort_values(by=['num_elems']).reset_index(drop=True)
         timings_queue = pandas.DataFrame(timings[Method.QUEUE]).sort_values(by=['num_elems']).reset_index(drop=True)
