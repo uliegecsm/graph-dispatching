@@ -218,12 +218,12 @@ jobs:
                       kokkos_archs   : [AMPERE86]
                     - backend        : HIP
                       compiler_family: rocm
-                      base_image     : rocm/dev-ubuntu-24.04:7.0.2
+                      base_image     : rocm/dev-ubuntu-24.04:7.2.4
                       platforms      : linux/amd64
                       kokkos_archs   : [ZEN5, AMD_GFX1201]
                     - backend        : HIP
                       compiler_family: rocm
-                      base_image     : rocm/dev-ubuntu-24.04:7.2
+                      base_image     : rocm/dev-ubuntu-24.04:7.2.4
                       platforms      : linux/amd64
                       kokkos_archs   : [SPR, AMD_GFX942]
         steps:
