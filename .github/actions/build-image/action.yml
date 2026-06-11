@@ -9,15 +9,11 @@ inputs:
         required: true
         type: string
 
-    compiler_family:
+    compiler:
         description: >
-            Compiler family for... compiling.
+            Compiler family and version for... compiling.
         required: true
-        type: choice
-        options:
-            - gcc
-            - clang
-            - rocm
+        type: string
 
     kokkos_archs:
         description: >
@@ -47,8 +43,6 @@ runs:
     steps:
         - shell: sh
           run  : |
-            echo "CLANG_VERSION=$(jq '.dependencies.clang.value' version.json -j)" >> $GITHUB_ENV
-
             echo "CMAKE_PACKAGE_MANAGER_VERSION=$(jq '.dependencies.cpm.value'  version.json -j)" >> $GITHUB_ENV
             echo "CMAKE_PACKAGE_MANAGER_SHA256=$( jq '.dependencies.cpm.sha256' version.json -j)" >> $GITHUB_ENV
 
@@ -88,13 +82,13 @@ runs:
               build-args: |
                   BASE_IMAGE=${{ inputs.base_image }}
                   BACKEND=${{ inputs.backend }}
-                  CLANG_VERSION=${{ env.CLANG_VERSION }}
 
                   CMAKE_PACKAGE_MANAGER_VERSION=${{ env.CMAKE_PACKAGE_MANAGER_VERSION }}
                   CMAKE_PACKAGE_MANAGER_SHA256=${{  env.CMAKE_PACKAGE_MANAGER_SHA256 }}
 
                   CMAKE_VERSION=${{ env.CMAKE_VERSION }}
-                  COMPILER_FAMILY=${{ inputs.compiler_family }}
+                  COMPILER_FAMILY=${{ fromJSON(inputs.compiler).family }}
+                  COMPILER_VERSION=${{ fromJSON(inputs.compiler).version }}
                   DOXYGEN_VERSION=${{ env.DOXYGEN_VERSION }}
 
                   GOOGLEBENCHMARK_VERSION=${{ env.GOOGLEBENCHMARK_VERSION }}
@@ -104,7 +98,7 @@ runs:
 
                   KOKKOS_ARCHS=${{ inputs.kokkos_archs && join(fromJSON(inputs.kokkos_archs), ',') || '' }}
                   KOKKOS_BRANCH=${{ env.KOKKOS_BRANCH }}
-                  KOKKOS_PRESET=${{ inputs.compiler_family }}-${{ inputs.backend }}
+                  KOKKOS_PRESET=${{ fromJSON(inputs.compiler).family }}-${{ inputs.backend }}
                   KOKKOS_SHA=${{ env.KOKKOS_SHA }}
                   KOKKOS_URL=${{ env.KOKKOS_URL }}
 

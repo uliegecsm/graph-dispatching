@@ -28,8 +28,8 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER_LAUNCHER" : "ccache"}
         },
         {
-            "$comment": "Inherit from this preset to use the gcc compiler family.",
-            "name"           : "gcc",
+            "$comment": "Inherit from this preset to use the gnu compiler family.",
+            "name"           : "gnu",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
         },
@@ -64,8 +64,8 @@
             "cacheVariables" : {"CMAKE_CXX_STANDARD": "23"}
         },
         {
-            "name"           : "gcc-OpenMP",
-            "inherits"       : ["default", "gcc", "ccache"],
+            "name"           : "gnu-OpenMP",
+            "inherits"       : ["default", "gnu", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP"
             }
@@ -87,7 +87,7 @@
             }
         },
         {
-            "name"           : "gcc-Cuda",
+            "name"           : "gnu-Cuda",
             "inherits"       : ["default", "Cuda", "ccache"],
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OPENMP;CUDA"
@@ -124,8 +124,8 @@
             "inheritConfigureEnvironment" : true
         },
         {
-            "name"            : "gcc-OpenMP",
-            "configurePreset" : "gcc-OpenMP",
+            "name"            : "gnu-OpenMP",
+            "configurePreset" : "gnu-OpenMP",
             "inherits"        : "default"
         },
         {
@@ -139,8 +139,8 @@
             "inherits"        : "default"
         },
         {
-            "name"            : "gcc-Cuda",
-            "configurePreset" : "gcc-Cuda",
+            "name"            : "gnu-Cuda",
+            "configurePreset" : "gnu-Cuda",
             "inherits"        : "default"
         },
         {
@@ -172,8 +172,8 @@
             }
         },
         {
-            "name"            : "gcc-OpenMP",
-            "configurePreset" : "gcc-OpenMP",
+            "name"            : "gnu-OpenMP",
+            "configurePreset" : "gnu-OpenMP",
             "inherits"        : "default"
         },
         {
@@ -187,8 +187,8 @@
             "inherits"        : ["default"]
         },
         {
-            "name"            : "gcc-Cuda",
-            "configurePreset" : "gcc-Cuda",
+            "name"            : "gnu-Cuda",
+            "configurePreset" : "gnu-Cuda",
             "inherits"        : "default"
         },
         {

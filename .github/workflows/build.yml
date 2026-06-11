@@ -160,69 +160,69 @@ jobs:
             matrix:
                 include:
                     - backend        : OpenMP
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
                     - backend        : OpenMP
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
                     - backend        : HPX
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : ubuntu:24.04
                       platforms      : linux/amd64
                     - backend        : Cuda
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                       base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [VOLTA70]
                     - backend        : HIP
-                      compiler_family: rocm
+                      compiler       : {family: rocm, version: 6.4}
                       base_image     : rocm/dev-ubuntu-24.04:6.4
                       platforms      : linux/amd64
                       kokkos_archs   : [AMD_GFX906]
                     - backend        : HPX
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : ubuntu:24.04
                       platforms      : linux/arm64
                       runs-on        : "['self-hosted', 'linux', 'docker', 'arm64']"
                     - backend        : Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [BLACKWELL120]
                     - backend        : Cuda
-                      compiler_family: gcc
-                      base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
+                      compiler       : {family: gnu, version: 14}
+                      base_image     : nvcr.io/nvidia/cuda:13.3.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [BLACKWELL120]
                     - backend        : HPX-Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [VOLTA70]
                     - backend        : Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [AMPERE80]
                     - backend        : Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [ZEN3, AMPERE86]
                     - backend        : Cuda
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                       base_image     : nvcr.io/nvidia/cuda:13.0.0-devel-ubuntu24.04
                       platforms      : linux/amd64
                       kokkos_archs   : [AMPERE86]
                     - backend        : HIP
-                      compiler_family: rocm
+                      compiler       : {family: rocm, version: 7.2.4}
                       base_image     : rocm/dev-ubuntu-24.04:7.2.4
                       platforms      : linux/amd64
                       kokkos_archs   : [ZEN5, AMD_GFX1201]
                     - backend        : HIP
-                      compiler_family: rocm
+                      compiler       : {family: rocm, version: 7.2.4}
                       base_image     : rocm/dev-ubuntu-24.04:7.2.4
                       platforms      : linux/amd64
                       kokkos_archs   : [SPR, AMD_GFX942]
@@ -253,10 +253,10 @@ jobs:
               with:
                   backend        : ${{ matrix.backend }}
                   base_image     : ${{ matrix.base_image }}
-                  compiler_family: ${{ matrix.compiler_family }}
+                  compiler       : ${{ toJSON(matrix.compiler) }}
                   kokkos_archs   : ${{ toJSON(matrix.kokkos_archs) }}
                   platforms      : ${{ matrix.platforms }}
-                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ steps.compute-tag-suffix.outputs.TAG_SUFFIX }}
+                  tag            : ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler.family }}-${{ matrix.compiler.version }}-${{ matrix.backend }}${{ steps.compute-tag-suffix.outputs.TAG_SUFFIX }}
 
     clang-format:
         needs: [set-vars, build-images]
@@ -277,39 +277,39 @@ jobs:
             matrix:
                 include:
                     - backend        : OpenMP
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                     - backend        : OpenMP
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                     - backend        : HPX
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                     - backend        : Cuda
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70', 'gpu:0']"
                       tag_suffix     : -volta70
                     - backend        : Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120', 'gpu:0', 'gpu:1']"
                       tag_suffix     : -blackwell120
                     - backend        : Cuda
-                      compiler_family: gcc
+                      compiler       : {family: gnu, version: 14}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'blackwell120', 'gpu:0', 'gpu:1']"
                       tag_suffix     : -blackwell120
                     - backend        : HPX-Cuda
-                      compiler_family: clang
+                      compiler       : {family: clang, version: 22}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'volta70', 'gpu:0']"
                       tag_suffix     : -volta70
                     - backend        : HIP
-                      compiler_family: rocm
+                      compiler       : {family: rocm, version: 6.4}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx906', 'gpu:0', 'gpu:1']"
                       docker_run_args: --privileged
                       tag_suffix     : -amd_gfx906
                     - backend        : HIP
-                      compiler_family: rocm
+                      compiler       : {family: rocm, version: 7.2.4}
                       runs-on        : "['self-hosted', 'linux', 'docker', 'amd64', 'amd_gfx1201', 'gpu:0']"
                       docker_run_args: --privileged
                       tag_suffix     : -zen5-amd_gfx1201
         container:
-            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler_family }}-${{ matrix.backend }}${{ matrix.tag_suffix }}
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:${{ matrix.compiler.family }}-${{ matrix.compiler.version }}-${{ matrix.backend }}${{ matrix.tag_suffix }}
             # The 'options' field cannot be empty. Provide '--annotation' to ensure that if 'docker_run_args' is empty, the workflow is still valid.
             options: "--annotation ref=${{ github.ref }} ${{ matrix.docker_run_args }}"
         steps:
@@ -331,14 +331,14 @@ jobs:
                       --output=$GITHUB_ENV
 
             - run : |
-                  cmake -S .    --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
-                  cmake --build --preset=${{ matrix.compiler_family }}-${{ matrix.backend }} -j$(nproc)
+                  cmake -S .    --preset=${{ matrix.compiler.family }}-${{ matrix.backend }}
+                  cmake --build --preset=${{ matrix.compiler.family }}-${{ matrix.backend }} -j$(nproc)
 
             - run : |
-                  python3 tests/check_tests.py --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  python3 tests/check_tests.py --preset=${{ matrix.compiler.family }}-${{ matrix.backend }}
 
             - run : |
-                  ctest --preset=${{ matrix.compiler_family }}-${{ matrix.backend }}
+                  ctest --preset=${{ matrix.compiler.family }}-${{ matrix.backend }}
 
     build-documentation:
         needs: [set-vars, build-images]

@@ -21,7 +21,7 @@
             }
         },
         {
-            "name"     : "gcc",
+            "name"     : "gnu",
             "inherits" : "default"
         },
         {
