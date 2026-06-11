@@ -112,7 +112,8 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
 
     void run(::benchmark::State& state) {
-        std::optional<size_t> check_num_iters = std::nullopt;
+        std::optional<size_t> check_num_outer_iters = std::nullopt;
+        std::optional<size_t> check_num_inner_iters = std::nullopt;
 
         for (auto sample: state) {
             problem_t problem{
@@ -126,7 +127,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
             const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
 
             timer.start();
-            [[maybe_unused]] const auto [res_nrm2, num_iters] = solver.solve(
+            [[maybe_unused]] const auto [res_nrm2, num_outer_iters, num_inner_iters] = solver.solve(
                 *pool,
                 typename newton_t::Parameters{.tolerance = 1.e-8, .max_iters = std::numeric_limits<size_t>::max()},
                 typename linear_solver_t::Parameters{
@@ -135,10 +136,12 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
 
             state.SetIterationTime(timer.template duration<Kokkos::utils::timer::seconds>().count());
 
-            if (!check_num_iters.has_value())
-                check_num_iters = num_iters;
-            if (*check_num_iters != num_iters)
-                Kokkos::abort("All samples must converge in the same number of outer iterations.");
+            if (!check_num_outer_iters.has_value()) {
+                check_num_outer_iters = num_outer_iters;
+                check_num_inner_iters = num_inner_iters;
+            } else if (*check_num_outer_iters != num_outer_iters || *check_num_inner_iters != num_inner_iters) {
+                Kokkos::abort("All samples must converge in the same number of iterations.");
+            }
 
             if constexpr (DetailedCollection) {
                 const auto output = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name / "solution.bin";
@@ -148,7 +151,10 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
             }
         }
 
-        state.counters["num_iters"] = ::benchmark::Counter(*check_num_iters, ::benchmark::Counter::Flags::kDefaults);
+        state.counters["num_outer_iters"] =
+            ::benchmark::Counter(*check_num_outer_iters, ::benchmark::Counter::Flags::kDefaults);
+        state.counters["num_inner_iters"] =
+            ::benchmark::Counter(*check_num_inner_iters, ::benchmark::Counter::Flags::kDefaults);
     }
 
    protected:

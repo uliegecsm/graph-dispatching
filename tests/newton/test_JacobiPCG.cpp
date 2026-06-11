@@ -101,13 +101,15 @@ TYPED_TEST(NewtonPCGTest, Jacobi) {
 
     const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
 
-    const auto [res_nrm2, num_iters] =
+    const auto [res_nrm2, num_outer_iters, num_inner_iters] =
         solver.solve(this->pool, {.tolerance = 1.e-6, .max_iters = 10}, {.tolerance = 1.e-6, .max_iters = 100});
 
     const auto sol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, solver.problem.local_sol);
 
-    ASSERT_EQ(num_iters, 3);
+    ASSERT_EQ(num_outer_iters, 3);
+    ASSERT_EQ(num_inner_iters, 120);
     ASSERT_EQ(sol(0), 1.);
+    ASSERT_NEAR(sol(100), 0.712254594, 1.e-7);
 
     for (size_t ielem = 0; ielem < sol.size() - 1; ++ielem) {
         ASSERT_GT(sol(ielem), sol(ielem + 1)) << "The solution should be decaying.";
