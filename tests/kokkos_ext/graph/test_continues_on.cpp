@@ -104,11 +104,11 @@ TEST_F(ContinuesOnTest, transition_to_same_graph) {
     using outer_6 = typename outer_5::inner_opstate_t;
     static_assert(::stdexec::__is_instance_of<outer_6, ::stdexec::__opstate>);
 
-    using then_a_t = impl::then_node_t<execution_space, functor_t, impl::root_node_t<execution_space>>;
-    using then_b_t = impl::then_node_t<execution_space, functor_t, then_a_t>;
-    using then_c_t = impl::then_node_t<execution_space, functor_t, then_b_t>;
+    using then_a_t = utils::then_node_t<execution_space, functor_t, utils::root_node_t<execution_space>>;
+    using then_b_t = utils::then_node_t<execution_space, functor_t, then_a_t>;
+    using then_c_t = utils::then_node_t<execution_space, functor_t, then_b_t>;
 
-    static_assert(impl::check_node_type<outer_5, impl::root_node_t<execution_space>>());
+    static_assert(impl::check_node_type<outer_5, utils::root_node_t<execution_space>>());
     static_assert(impl::check_node_type<outer_4, const then_a_t&>());
     static_assert(impl::check_node_type<outer_3, const then_a_t&>());
     static_assert(impl::check_node_type<outer_2, const then_b_t&>());

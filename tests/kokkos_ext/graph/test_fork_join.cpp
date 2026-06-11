@@ -88,7 +88,7 @@ TEST_F(ForkJoinTest, three_branches) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
@@ -151,7 +151,7 @@ TEST_F(ForkJoinTest, diamond) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
@@ -195,7 +195,7 @@ TEST_F(ForkJoinTest, double_diamond) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
@@ -238,7 +238,7 @@ TEST_F(ForkJoinTest, after_a_continues_on) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
@@ -278,7 +278,7 @@ TEST_F(ForkJoinTest, before_a_continues_on) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(execution_space{}));
@@ -321,20 +321,20 @@ TEST_F(ForkJoinTest, nested) {
 
     static_assert(impl::check_node_type<
                   outer_0,
-                  const impl::then_node_t<execution_space, functor_t, impl::aggregate_node_t<execution_space>>&
+                  const utils::then_node_t<execution_space, functor_t, utils::aggregate_node_t<execution_space>>&
     >());
 
     using outer_1 = typename outer_0::inner_opstate_t;
     static_assert(::stdexec::__is_instance_of<outer_1, Kokkos::Experimental::details::graph::ForkJoinOpState>);
 
-    static_assert(impl::check_node_type<outer_1, const impl::aggregate_node_t<execution_space>&>());
+    static_assert(impl::check_node_type<outer_1, const utils::aggregate_node_t<execution_space>&>());
 
     std::vector<::testing::Matcher<variant_t>> matchers{
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph instantiate")),
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));

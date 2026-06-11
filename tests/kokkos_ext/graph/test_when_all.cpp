@@ -66,7 +66,7 @@ TEST_F(WhenAllTest, one_branch) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
@@ -101,7 +101,7 @@ TEST_F(WhenAllTest, two_branches) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
@@ -138,7 +138,7 @@ TEST_F(WhenAllTest, three_branches) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
@@ -175,7 +175,7 @@ TEST_F(WhenAllTest, one_branch_and_one_after_on_inline_scheduler) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_ENDOF_SINK_SYNC(execution_space{}));
@@ -220,7 +220,7 @@ TEST_F(WhenAllTest, join_topology) {
 
     static_assert(impl::check_node_type<
                   outer_0,
-                  const impl::then_node_t<execution_space, functor_t, impl::aggregate_node_t<execution_space>> &
+                  const utils::then_node_t<execution_space, functor_t, utils::aggregate_node_t<execution_space>> &
     >());
 
     static_assert(std::same_as<
@@ -259,7 +259,7 @@ TEST_F(WhenAllTest, join_topology) {
         MATCHER_FOR_PROFILE_EVENT(dispatch_label(exec, "graph submit")),
         KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(exec)};
 
-    if constexpr (::tests::kokkos_ext::impl::is_graph_defaulted<execution_space>) {
+    if constexpr (::tests::utils::is_graph_defaulted<execution_space>) {
         if (execution_space{} != exec) {
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
             matchers.push_back(KOKKOS_DEFAULTED_GRAPH_SINK_SYNC(exec));
