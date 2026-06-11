@@ -1,6 +1,8 @@
 #ifndef GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_DEF_HPP
 #define GRAPH_DISPATCHING_TESTS_CUDA_APIWRAPPERS_DEF_HPP
 
+#include <algorithm>
+
 #include "tests/native/APIWrappers.hpp"
 
 namespace tests::cuda
