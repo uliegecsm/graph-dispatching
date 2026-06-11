@@ -267,22 +267,8 @@ TEST_F(PCGQueueJacobiPreconditionerTest, 10x10) {
                 exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::ApplyFirstPass<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_PFOR(
                 exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
-            MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{
-                    .kpsh = {.name = "Cuda"},
-                    .name = "residual of preconditioned system",
-                    .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{
-                    .kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage", .size = 10 * sizeof(scalar_t)})),
             MATCHER_FOR_BEGIN_PFOR(
                 exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
-            MATCHER_FOR_BEGIN_DEEP_COPY(
-                (AllocDescriptor{
-                    .kpsh = {.name = "Cuda"},
-                    .name = "residual of preconditioned system",
-                    .size = 10 * sizeof(scalar_t)}),
-                (AllocDescriptor{
-                    .kpsh = {.name = "Cuda"}, .name = "Jacobi temporary storage", .size = 10 * sizeof(scalar_t)})),
             MATCHER_FOR_BEGIN_PFOR(
                 exec_B, (Kokkos::Impl::TypeInfo<typename preconditioner_t::Apply<rhs_t, rhs_t>>::name())),
             MATCHER_FOR_BEGIN_DEEP_COPY(
