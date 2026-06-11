@@ -350,12 +350,12 @@ jobs:
         runs-on: [self-hosted, linux, docker, amd64]
         if: ${{ ! failure() && ! cancelled() }}
         container:
-            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gcc-OpenMP
+            image: ${{ needs.set-vars.outputs.CI_IMAGE }}:gnu-14-OpenMP
         steps:
             - uses: actions/checkout@v6
               with:
                   submodules: true
 
             - run : |
-                  cmake -S .    --preset=gcc-OpenMP -DENABLE_DOXYGEN:BOOL=ON
-                  cmake --build --preset=gcc-OpenMP --target=docs
+                  cmake -S .    --preset=gnu-OpenMP -DENABLE_DOXYGEN:BOOL=ON
+                  cmake --build --preset=gnu-OpenMP --target=docs
