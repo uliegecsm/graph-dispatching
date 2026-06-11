@@ -25,13 +25,30 @@ FROM requirements-python AS requirements-compiler-rocm
 
 ENV PATH=/opt/rocm/bin:${PATH}
 
-FROM requirements-python AS requirements-compiler-gcc
+FROM requirements-python AS requirements-compiler-gnu
 
-RUN apt-helpers install-packages --clean --update --packages g++
+ARG COMPILER_VERSION
+
+RUN <<EOF
+    set -ex
+
+    apt-helpers install-packages --clean --update --packages gcc-${COMPILER_VERSION} g++-${COMPILER_VERSION}
+
+    update-alternatives-helpers --prefix /usr/bin \
+        --display --level=10 \
+        --for-each-of \
+            gcc=gcc-${COMPILER_VERSION} \
+            g++=g++-${COMPILER_VERSION} \
+            $(uname -m)-linux-gnu-gcc=$(uname -m)-linux-gnu-gcc-${COMPILER_VERSION} \
+            $(uname -m)-linux-gnu-g++=$(uname -m)-linux-gnu-g++-${COMPILER_VERSION}
+
+    gcc -dumpfullversion -dumpversion
+    g++ -dumpfullversion -dumpversion
+EOF
 
 FROM requirements-python AS requirements-compiler-clang
 
-ARG CLANG_VERSION
+ARG COMPILER_VERSION
 
 RUN <<EOF
     set -ex
@@ -40,21 +57,21 @@ RUN <<EOF
 
     wget https://apt.llvm.org/llvm.sh
     chmod +x llvm.sh
-    ./llvm.sh ${CLANG_VERSION}
+    ./llvm.sh ${COMPILER_VERSION}
     rm llvm.sh
 
     apt-helpers install-packages --clean \
         --update --packages              \
-        clang-${CLANG_VERSION}           \
-        clang-tidy-${CLANG_VERSION}      \
-        clang-format-${CLANG_VERSION}    \
-        libomp-${CLANG_VERSION}-dev
+        clang-${COMPILER_VERSION}           \
+        clang-tidy-${COMPILER_VERSION}      \
+        clang-format-${COMPILER_VERSION}    \
+        libomp-${COMPILER_VERSION}-dev
 
     update-alternatives-helpers --prefix /usr/bin --level 10 \
         --display --for-each-of                              \
-        clang=clang-${CLANG_VERSION}                         \
-        clang++=clang++-${CLANG_VERSION}                     \
-        clang-tidy=clang-tidy-${CLANG_VERSION}
+        clang=clang-${COMPILER_VERSION}                         \
+        clang++=clang++-${COMPILER_VERSION}                     \
+        clang-tidy=clang-tidy-${COMPILER_VERSION}
 EOF
 
 FROM requirements-compiler-${COMPILER_FAMILY} AS requirements

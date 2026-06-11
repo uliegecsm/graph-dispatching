@@ -3,9 +3,6 @@
         "value" : "0.0.1"
     },
     "dependencies" : {
-        "clang" : {
-            "value" : "21"
-        },
         "cmake" : {
             "value" : "4.2.1"
         },

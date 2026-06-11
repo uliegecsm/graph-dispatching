@@ -16,8 +16,8 @@
             }
         },
         {
-            // Inherit from this preset to use the gcc compiler family.
-            "name"           : "gcc",
+            // Inherit from this preset to use the gnu compiler family.
+            "name"           : "gnu",
             "hidden"         : true,
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "g++"}
         },
@@ -34,8 +34,8 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
-            "name"     : "gcc-OpenMP",
-            "inherits" : ["default", "gcc"]
+            "name"     : "gnu-OpenMP",
+            "inherits" : ["default", "gnu"]
         },
         {
             "name"     : "clang-OpenMP",
@@ -46,8 +46,8 @@
             "inherits" : ["default", "clang"]
         },
         {
-            "name"     : "gcc-Cuda",
-            "inherits" : ["default", "gcc"]
+            "name"     : "gnu-Cuda",
+            "inherits" : ["default", "gnu"]
         },
         {
             "name"     : "clang-Cuda",
