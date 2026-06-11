@@ -112,32 +112,43 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
     FIXME_PARTIAL_OVERRIDE_WARNING_CUDA(TearDown)
 
     void run(::benchmark::State& state) {
-        problem_t problem{
-            pool->get(0),
-            typename problem_t::Parameters{
-                .num_elems = static_cast<typename problem_t::local_ordinal_t>(state.range(state_num_elems))}};
-        linear_solver_t linear_solver{pool->get(0), problem.local_matrix, problem.local_rhs};
+        std::optional<size_t> check_num_iters = std::nullopt;
 
-        linear_solver.get_preconditioner().num_sweeps = 8;
+        for (auto sample: state) {
+            problem_t problem{
+                pool->get(0),
+                typename problem_t::Parameters{
+                    .num_elems = static_cast<typename problem_t::local_ordinal_t>(state.range(state_num_elems))}};
+            linear_solver_t linear_solver{pool->get(0), problem.local_matrix, problem.local_rhs};
 
-        const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
+            linear_solver.get_preconditioner().num_sweeps = 8;
 
-        timer.start();
-        [[maybe_unused]] const auto [res_nrm2, num_iters] = solver.solve(
-            *pool,
-            typename newton_t::Parameters{.tolerance = 1.e-8, .max_iters = std::numeric_limits<size_t>::max()},
-            typename linear_solver_t::Parameters{
-                .tolerance = 1.e-8, .max_iters = static_cast<size_t>(state.range(state_num_elems))});
-        timer.stop();
+            const newton_t solver{.problem = std::move(problem), .linear_solver = std::move(linear_solver)};
 
-        state.SetIterationTime(timer.template duration<Kokkos::utils::timer::seconds>().count());
+            timer.start();
+            [[maybe_unused]] const auto [res_nrm2, num_iters] = solver.solve(
+                *pool,
+                typename newton_t::Parameters{.tolerance = 1.e-8, .max_iters = std::numeric_limits<size_t>::max()},
+                typename linear_solver_t::Parameters{
+                    .tolerance = 1.e-8, .max_iters = static_cast<size_t>(state.range(state_num_elems))});
+            timer.stop();
 
-        if constexpr (DetailedCollection) {
-            const auto output = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name / "solution.bin";
-            const auto sol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, solver.problem.local_sol);
-            using const_value_t = typename std::remove_cvref_t<decltype(sol)>::const_value_type;
-            this->write(output, std::span<const_value_t>{sol.data(), sol.size()});
+            state.SetIterationTime(timer.template duration<Kokkos::utils::timer::seconds>().count());
+
+            if (!check_num_iters.has_value())
+                check_num_iters = num_iters;
+            if (*check_num_iters != num_iters)
+                Kokkos::abort("All samples must converge in the same number of outer iterations.");
+
+            if constexpr (DetailedCollection) {
+                const auto output = std::filesystem::path(CMAKE_CURRENT_BINARY_DIR) / name / "solution.bin";
+                const auto sol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, solver.problem.local_sol);
+                using const_value_t = typename std::remove_cvref_t<decltype(sol)>::const_value_type;
+                this->write(output, std::span<const_value_t>{sol.data(), sol.size()});
+            }
         }
+
+        state.counters["num_iters"] = ::benchmark::Counter(*check_num_iters, ::benchmark::Counter::Flags::kDefaults);
     }
 
    protected:
@@ -154,12 +165,10 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
 
 #define NEWTONBENCHMARK(_which_, _use_graph_)                                                                          \
     /* Benchmark that will repeat until the timings have a statistical meaning. */                                     \
-    BENCHMARK_TEMPLATE2_DEFINE_F(NewtonBenchmark, repeat##_which_, _use_graph_, false)(benchmark::State & state) {     \
-        for (auto sample: state) {                                                                                     \
-            this->run(state);                                                                                          \
-        }                                                                                                              \
+    BENCHMARK_TEMPLATE2_DEFINE_F(NewtonBenchmark, repeat_##_which_, _use_graph_, false)(benchmark::State & state) {    \
+        this->run(state);                                                                                              \
     }                                                                                                                  \
-    BENCHMARK_REGISTER_F(NewtonBenchmark, repeat##_which_)                                                             \
+    BENCHMARK_REGISTER_F(NewtonBenchmark, repeat_##_which_)                                                            \
         ->UseManualTime()                                                                                              \
         ->Unit(benchmark::kMillisecond)                                                                                \
         ->ArgName("num_elems")                                                                                         \
@@ -167,8 +176,7 @@ class NewtonBenchmark : public benchmarks::BenchmarkBase {
         ->Arg(5000);                                                                                                   \
     /* Benchmark used to collect detailed information about convergence, runs once. */                                 \
     BENCHMARK_TEMPLATE2_DEFINE_F(NewtonBenchmark, collect_##_which_, _use_graph_, true)(benchmark::State & state) {    \
-        for (auto sample: state)                                                                                       \
-            this->run(state);                                                                                          \
+        this->run(state);                                                                                              \
     }                                                                                                                  \
     BENCHMARK_REGISTER_F(NewtonBenchmark, collect_##_which_)                                                           \
         ->UseManualTime()                                                                                              \
