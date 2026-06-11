@@ -36,7 +36,8 @@ PRAGMA_DIAGNOSTIC_POP
 
 #if defined(__HIPCC__)                                                                                                 \
     && (((HIP_VERSION_MAJOR == 6) && (HIP_VERSION_MINOR == 4))                                                         \
-        || ((HIP_VERSION_MAJOR == 7) && (HIP_VERSION_MINOR == 0)))
+        || ((HIP_VERSION_MAJOR == 7) && (HIP_VERSION_MINOR == 0))                                                      \
+        || ((HIP_VERSION_MAJOR == 7) && (HIP_VERSION_MINOR == 2)))
 #    define SKIP_IF_HIPCC                                                                                              \
         GTEST_SKIP() << "Skipping test when compiled with HIPCC " << HIP_VERSION_MAJOR << "." << HIP_VERSION_MINOR;
 #else
