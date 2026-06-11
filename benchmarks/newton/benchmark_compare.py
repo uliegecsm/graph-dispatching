@@ -216,7 +216,7 @@ class NewtonBenchmark(BenchmarkBase):
         with open(self.results['repeated'], 'r') as fin:
             benchmark_results = json.load(fin)
 
-        timings = {x: {'num_elems': [], 'time to solution': [], 'iterations': [], 'num_iters': []} for x in Method}
+        timings = {x: {'num_elems': [], 'time to solution': [], 'iterations': [], 'num_outer_iters': [], 'num_inner_iters': []} for x in Method}
         time_unit = None
         for bench_case in benchmark_results['benchmarks']:
             params, iterations = self.params(name = bench_case['name'])
@@ -231,7 +231,8 @@ class NewtonBenchmark(BenchmarkBase):
             timings[params.method]['num_elems'].append(params.num_elems)
             timings[params.method]['time to solution'].append(bench_case['real_time'])
             timings[params.method]['iterations'].append(bench_case['iterations'])
-            timings[params.method]['num_iters'].append(bench_case['num_iters'])
+            timings[params.method]['num_outer_iters'].append(bench_case['num_outer_iters'])
+            timings[params.method]['num_inner_iters'].append(bench_case['num_inner_iters'])
 
         timings_graph = pandas.DataFrame(timings[Method.GRAPH]).sort_values(by=['num_elems']).reset_index(drop=True)
         timings_queue = pandas.DataFrame(timings[Method.QUEUE]).sort_values(by=['num_elems']).reset_index(drop=True)

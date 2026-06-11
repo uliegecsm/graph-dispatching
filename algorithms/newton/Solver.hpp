@@ -36,16 +36,18 @@ struct Solver {
             Kokkos::view_alloc(exec_A, "delta"), problem.local_sol.size());
 
         auto res_nrm2 = Kokkos::Experimental::finite_max_v<typename LinearSolverType::mag_t>;
-        size_t iter = 0;
+        size_t outer_iter = 0;
+        size_t num_inner_iters = 0;
 
         problem.assemble(pool);
         res_nrm2 = KokkosBlas::nrm2(exec_A, problem.local_rhs);
 
-        while (res_nrm2 > params.tolerance && iter < params.max_iters) {
-            PLOG_INFO << "Newton(solve): iteration " << iter;
+        while (res_nrm2 > params.tolerance && outer_iter < params.max_iters) {
+            PLOG_INFO << "Newton(solve): iteration " << outer_iter;
 
             [[maybe_unused]] const auto [linear_solver_res_nrm2, linear_solver_num_iters] =
                 linear_solver.apply(pool, delta, params_linear_solver);
+            num_inner_iters += linear_solver_num_iters;
 
             Kokkos::parallel_for(
                 Kokkos::RangePolicy(exec_A, 0, problem.params.num_dofs),
@@ -55,10 +57,10 @@ struct Solver {
             res_nrm2 = KokkosBlas::nrm2(exec_A, problem.local_rhs);
 
             PLOG_INFO << "Newton(solve): res nrm2 " << res_nrm2;
-            ++iter;
+            ++outer_iter;
         }
 
-        return std::tuple{res_nrm2, iter};
+        return std::tuple{res_nrm2, outer_iter, num_inner_iters};
     }
 };
 
