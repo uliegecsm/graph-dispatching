@@ -211,7 +211,7 @@ class NewtonBenchmark(BenchmarkBase):
         with open(self.results['repeated'], 'r') as fin:
             benchmark_results = json.load(fin)
 
-        timings = {x: {'num_elems': [], 'time to solution': []} for x in Method}
+        timings = {x: {'num_elems': [], 'time to solution': [], 'iterations': []} for x in Method}
         time_unit = None
         for bench_case in benchmark_results['benchmarks']:
             params, iterations = self.params(name = bench_case['name'])
@@ -225,9 +225,10 @@ class NewtonBenchmark(BenchmarkBase):
 
             timings[params.method]['num_elems'].append(params.num_elems)
             timings[params.method]['time to solution'].append(bench_case['real_time'])
+            timings[params.method]['iterations'].append(bench_case['iterations'])
 
-        timings_graph = pandas.DataFrame(timings[Method.GRAPH]).sort_values(by=['num_elems'])
-        timings_queue = pandas.DataFrame(timings[Method.QUEUE]).sort_values(by=['num_elems'])
+        timings_graph = pandas.DataFrame(timings[Method.GRAPH]).sort_values(by=['num_elems']).reset_index(drop=True)
+        timings_queue = pandas.DataFrame(timings[Method.QUEUE]).sort_values(by=['num_elems']).reset_index(drop=True)
 
         timings_graph['speedup'] = timings_queue['time to solution'] / timings_graph['time to solution']
 
