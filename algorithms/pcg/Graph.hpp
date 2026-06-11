@@ -139,11 +139,21 @@ public:
             const auto update_sol = ::algorithms::cg::axpby(alpha_div, alpha,     dir,     1., sol);
             const auto update_res = ::algorithms::cg::axpby(alpha_div, alpha_neg, mat_dir, 1., res);
 
-            ::algorithms::cg::dot(update_res, res_dot, res, res);
+            const auto dot_res_res = algorithms::cg::dot(update_res, res_dot, res, res);
 
             const auto prec_apply = preconditioner.apply(update_res, res_p, res);
 
+            /**
+             * @bug Parallel reduce nodes with the same device handle must be serialized in a @c Kokkos::Experimental::Graph,
+             *      otherwise they may use the same execution-space-instance-bound scratch space, leading to wrong results.
+             */
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || defined(KOKKOS_ENABLE_SYCL)
+            const auto res_p_res_dot = algorithms::cg::dot(
+                        Kokkos::Experimental::when_all(prec_apply, dot_res_res),
+                        tmp, res_p, res);
+#else
             const auto res_p_res_dot = ::algorithms::cg::dot(prec_apply, tmp, res_p, res);
+#endif
 
             const auto beta_div = res_p_res_dot.then("beta", algorithms::cg::DivideAndSwap{.a = tmp, .b = res_res_p_dot_old});
 
