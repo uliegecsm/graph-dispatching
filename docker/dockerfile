@@ -205,7 +205,8 @@ ARG KOKKOS_URL=kokkos
 
 RUN git clone --shallow-since=2024-08-05 --branch=${KOKKOS_BRANCH} https://github.com/${KOKKOS_URL}/kokkos /kokkos-sources
 
-RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
+RUN --mount=target=/patches/kokkos-clang-cuda-unreachable.patch,type=bind,source=docker/patches/kokkos-clang-cuda-unreachable.patch \
+    --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kokkos.json \
     --mount=target=/cmake/presets/kokkos.py,type=bind,source=cmake/presets/kokkos.py \
     --mount=target=/cmake/presets/generate.py,type=bind,source=cmake/presets/generate.py <<EOF
     set -ex
@@ -213,6 +214,8 @@ RUN --mount=target=/cmake/presets/kokkos.json,type=bind,source=cmake/presets/kok
     cd /kokkos-sources
 
     git checkout ${KOKKOS_SHA}
+
+    patch -p1 < /patches/kokkos-clang-cuda-unreachable.patch
 
     python3 /cmake/presets/kokkos.py \
         --input-file  /cmake/presets/kokkos.json \
