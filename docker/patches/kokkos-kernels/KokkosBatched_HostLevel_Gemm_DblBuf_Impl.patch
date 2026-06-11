@@ -1,0 +1,11 @@
+--- batched/dense/impl/KokkosBatched_HostLevel_Gemm_DblBuf_Impl.hpp.orig        2026-01-25 09:43:50
++++ batched/dense/impl/KokkosBatched_HostLevel_Gemm_DblBuf_Impl.hpp     2026-01-25 09:44:46
+@@ -230,7 +230,7 @@
+   template <class MemberType, int REG_M, int REG_N, int STRIDE_M, int STRIDE_N>
+   class Functor {
+    private:
+-    BatchedDblBufGemm &ei_;
++    BatchedDblBufGemm ei_;
+     AViewType A_;
+     BViewType B_;
+     CViewType C_;

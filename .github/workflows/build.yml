@@ -226,6 +226,11 @@ jobs:
                       base_image     : rocm/dev-ubuntu-24.04:7.2.4
                       platforms      : linux/amd64
                       kokkos_archs   : [SPR, AMD_GFX942]
+                    - backend        : SYCL
+                      compiler       : {family: intel, version: 2025.3}
+                      base_image     : nvcr.io/nvidia/cuda:12.8.1-devel-ubuntu24.04
+                      platforms      : linux/amd64
+                      kokkos_archs   : [VOLTA70]
         steps:
             - uses: actions/checkout@v6
               with:

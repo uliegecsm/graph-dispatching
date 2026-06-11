@@ -43,6 +43,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
+            // Inherit from this preset to use the Intel compiler family.
+            "name"           : "intel",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "icpx"}
+        },
+        {
             // Inherit from this preset to use the OpenMP backend.
             "name"           : "OpenMP",
             "hidden"         : true,
@@ -77,6 +83,14 @@
             }
         },
         {
+            "name" : "SYCL",
+            "hidden" : true,
+            "cacheVariables" : {
+                REPL_STR_KOKKOS_ARCH_ENABLED
+                "Kokkos_ENABLE_SYCL" : "ON"
+            }
+        },
+        {
             "name"     : "gnu-OpenMP",
             "inherits" : ["default", "gnu", "OpenMP"]
         },
@@ -103,6 +117,18 @@
         {
             "name"     : "rocm-HIP",
             "inherits" : ["default", "rocm", "OpenMP", "HIP"]
+        },
+        {
+            "name"     : "intel-SYCL",
+            "inherits" : ["default", "intel", "OpenMP", "SYCL"],
+            "cacheVariables" : {
+                "$comment": "RDC is enabled because of https://github.com/uliegecsm/kokkos-execution/pull/114#issuecomment-4153192133. It requires building static libs.",
+                "Kokkos_ENABLE_SYCL_RELOCATABLE_DEVICE_CODE": "ON",
+                "BUILD_SHARED_LIBS": "OFF",
+                "Kokkos_ENABLE_ONEDPL" : "OFF",
+                "Kokkos_ENABLE_UNSUPPORTED_ARCHS" : "ON",
+                "CMAKE_CXX_FLAGS" : "-fp-model=precise"
+            }
         }
     ],
     "buildPresets" : [

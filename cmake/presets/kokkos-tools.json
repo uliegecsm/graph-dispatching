@@ -31,6 +31,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
+            // Inherit from this preset to use the Intel compiler family.
+            "name"           : "intel",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "icpx"}
+        },
+        {
             "name"     : "gnu-OpenMP",
             "inherits" : ["default", "gnu"]
         },
@@ -60,6 +66,10 @@
             "environment" : {
                 "ROCM_PATH" : "/opt/rocm"
             }
+        },
+        {
+            "name"     : "intel-SYCL",
+            "inherits" : ["default", "intel"]
         }
     ],
     "buildPresets" : [
