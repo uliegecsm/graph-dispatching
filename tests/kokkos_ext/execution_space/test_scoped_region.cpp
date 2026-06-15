@@ -32,7 +32,10 @@ class ScopedRegionTest
    public:
     using recorder_listener_t = RecorderListener<
         EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent, PushRegionEvent, PopRegionEvent
+        BeginFenceEvent,
+        BeginParallelForEvent,
+        PushRegionEvent,
+        PopRegionEvent
     >;
 };
 

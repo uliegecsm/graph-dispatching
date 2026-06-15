@@ -38,10 +38,8 @@ class SplitTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<
-        EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent
-    >;
+    using recorder_listener_t =
+        RecorderListener<EventDiscardMatcher<execution_space>, BeginFenceEvent, BeginParallelForEvent>;
 };
 
 //! @test Use @c exec::split and @c stdexec::sync_wait right after.

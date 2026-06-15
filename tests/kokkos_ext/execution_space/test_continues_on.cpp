@@ -30,10 +30,8 @@ class ContinuesOnTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<
-        EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent
-    >;
+    using recorder_listener_t =
+        RecorderListener<EventDiscardMatcher<execution_space>, BeginFenceEvent, BeginParallelForEvent>;
 };
 
 //! @test Check traits of the sender created by the customized @c continues_on.

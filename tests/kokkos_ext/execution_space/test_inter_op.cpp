@@ -39,10 +39,8 @@ class InterOpTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<
-        EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent
-    >;
+    using recorder_listener_t =
+        RecorderListener<EventDiscardMatcher<execution_space>, BeginFenceEvent, BeginParallelForEvent>;
 
     static constexpr bool on_device = ::tests::utils::on_device<execution_space>();
 };

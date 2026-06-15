@@ -5,7 +5,8 @@
 
 namespace tests::utils {
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || (defined(KOKKOS_ENABLE_SYCL) && defined(KOKKOS_IMPL_SYCL_GRAPH_SUPPORT))
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)                                                          \
+    || (defined(KOKKOS_ENABLE_SYCL) && defined(KOKKOS_IMPL_SYCL_GRAPH_SUPPORT))
 #    define KOKKOS_DEFAULTED_GRAPH_SUBMIT_FENCE(_exec_)
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
