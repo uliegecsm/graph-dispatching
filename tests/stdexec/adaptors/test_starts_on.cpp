@@ -115,10 +115,12 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op) {
     /// but by pool A, since we started the chain with it.
     std::vector<size_t> data(size, 0);
 
-    ::stdexec::sender auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
-                                 | ::stdexec::bulk(::stdexec::par, size, [&](const auto index) {
-                                       data[index] = ::utils::get_thread_id();
-                                   });
+    ::stdexec::sender auto chain =
+        ::stdexec::schedule(pools.at(index_of_A).get_scheduler())
+        | ::stdexec::bulk(::stdexec::par, size, [&](const auto index) {
+              data[index] = // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                  ::utils::get_thread_id();
+          });
 
     ::stdexec::sync_wait(
         ::stdexec::starts_on(
