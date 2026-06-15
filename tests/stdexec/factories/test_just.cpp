@@ -2,6 +2,7 @@
 
 #include "tests/IgnoreWarnings.hpp"
 PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED_DEPRECATED_ATTRIBUTES
 PRAGMA_DIAGNOSTIC_IGNORED("-Wempty-body")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wmissing-field-initializers")
 PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
@@ -31,7 +32,7 @@ namespace tests::stdexec::factories {
  * Inspired by https://github.com/NVIDIA/stdexec/blob/5b0f1b1cfb7daa4f3798ee20aa643cd4f6e9e437/test/stdexec/algos/factories/test_just.cpp#L30.
  */
 constexpr auto test_constexpr() noexcept {
-    double placeholder = 0.;
+    double placeholder = 0.; // NOLINT(misc-const-correctness)
     auto opstate =
         ::stdexec::connect(::stdexec::just(6.66), ::tests::stdexec::ValueReceiver{std::addressof(placeholder)});
     ::stdexec::start(opstate);
