@@ -40,7 +40,7 @@ TEST(read_env, get_scheduler_default) {
 
 //! @test Use @c stdexec::read_env to retrieve the static thread pool scheduler type.
 TEST(read_env, get_scheduler_static_thread_pool) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     ::stdexec::sync_wait(::stdexec::schedule(pool.get_scheduler()) | ::stdexec::let_value([] {
                              return ::stdexec::read_env(::stdexec::get_scheduler)

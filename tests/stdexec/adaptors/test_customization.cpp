@@ -367,7 +367,7 @@ TEST_F(CustomizationTest, on_in_the_middle_otherwise_custom_scheduler) {
 TEST_F(CustomizationTest, on) {
     SETUP_TRACE(8, {'W', 'L'}, {'W', 'L'}, DEFAULT_PAIR, DEFAULT_PAIR, {'Y', 'L'}, DEFAULT_PAIR, {'Z', 'L'}, {'Z', 'L'})
 
-    exec::static_thread_pool pool{1};
+    exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     ::stdexec::sender auto chain = ::stdexec::schedule(DomainSpecificScheduler<Domain<'W'>>{}) | ADD_THEN(0)
                                  | ADD_THEN(1) | ::stdexec::continues_on(pool.get_scheduler()) | ADD_THEN(2)

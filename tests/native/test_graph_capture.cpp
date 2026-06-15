@@ -125,6 +125,7 @@ PRAGMA_DIAGNOSTIC_POP
 
         const auto mirror = dense.get_host_copy(stream);
         stream.fence();
+
         ASSERT_EQ(mirror, (std::vector<value_t>{2., 3., 4., 5., 6.}));
     }
 

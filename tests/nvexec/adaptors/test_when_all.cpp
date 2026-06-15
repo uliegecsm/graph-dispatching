@@ -48,7 +48,7 @@ TEST_F(StreamContextTest, same_type_children) {
 
 //! @test Check @c ::stdexec::when_all with one branch on stream scheduler and one on static thread pool scheduler.
 TEST_F(StreamContextTest, different_type_children) {
-    ::exec::static_thread_pool thread_ctx{1};
+    ::exec::static_thread_pool thread_ctx{1}; // NOLINT(misc-const-correctness)
 
     auto schd_thread = thread_ctx.get_scheduler();
     auto schd_stream = stream_ctx.get_scheduler();
