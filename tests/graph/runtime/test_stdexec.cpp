@@ -74,7 +74,7 @@ TEST_P(GraphTest, runtime_stdexec)
     const auto add_C = this->GetParam().at(1);
 
     //! Get some execution context.
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     //! Initialize the data.
     const view_t data(Kokkos::view_alloc("data"));

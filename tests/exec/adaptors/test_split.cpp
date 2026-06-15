@@ -31,7 +31,7 @@ namespace tests::stdexec::adaptors {
 
 //! @test Simple test for @c exec::split.
 TEST(stdexec, split) {
-    exec::static_thread_pool pool{2};
+    exec::static_thread_pool pool{2}; // NOLINT(misc-const-correctness)
 
     ::stdexec::scheduler auto scheduler = pool.get_scheduler();
 

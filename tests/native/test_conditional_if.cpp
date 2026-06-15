@@ -77,6 +77,7 @@ TEST_P(cuda, conditional_if)
     graph_exec.submit(stream);
 
     const auto mirror = data.get_host_copy(stream);
+    stream.fence();
 
     ASSERT_EQ(mirror.at(0), this->GetParam() ? 1 : 0);
 

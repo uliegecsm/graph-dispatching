@@ -27,7 +27,7 @@ namespace tests::stdexec {
 TEST(ValueReceiver, int) {
     ::stdexec::sender auto sndr = ::stdexec::just(int{42}) | ::stdexec::continues_on(::stdexec::inline_scheduler{});
 
-    int placeholder = 0;
+    int placeholder = 0; // NOLINT(misc-const-correctness)
 
     auto opstate = ::stdexec::connect(sndr, ValueReceiver<int>{.value = std::addressof(placeholder)});
 

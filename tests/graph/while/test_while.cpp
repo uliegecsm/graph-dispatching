@@ -81,7 +81,7 @@ public:
 public:
     void SetUp() override
     {
-        this->exec = Kokkos::Experimental::partition_space(Kokkos::Cuda{}, 1)[0];
+        this->exec = Kokkos::Experimental::partition_space(Kokkos::Cuda{}, 1).at(0);
         this->data = data_t(Kokkos::view_alloc(*exec, "data"), size);
     }
 

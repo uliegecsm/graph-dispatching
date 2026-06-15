@@ -85,6 +85,7 @@ TEST(cuda, conditional_while)
     graph_exec.submit(stream);
 
     const auto mirror = data.get_host_copy(stream);
+    stream.fence();
 
     EXPECT_EQ(mirror.at(0), 42);
 

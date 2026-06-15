@@ -153,7 +153,7 @@ TEST_F(InterOpTest, transition_to_static_thread_pool) {
     const context_t esc{exec};
     SHOW_EXEC_SPACE_ID(exec)
 
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto chain = ::stdexec::schedule(esc.get_scheduler())
                | ::stdexec::then(
@@ -187,7 +187,7 @@ TEST_F(InterOpTest, transition_from_static_thread_pool) {
     const context_t esc{exec};
     SHOW_EXEC_SPACE_ID(exec)
 
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto chain = ::stdexec::schedule(pool.get_scheduler())
                | ::stdexec::then(
@@ -221,7 +221,7 @@ TEST_F(InterOpTest, transition_from_static_thread_pool_and_back) {
     const context_t esc{exec};
     SHOW_EXEC_SPACE_ID(exec)
 
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto chain = ::stdexec::schedule(pool.get_scheduler())
                | ::stdexec::then(
