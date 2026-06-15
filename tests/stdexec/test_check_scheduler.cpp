@@ -36,7 +36,7 @@ TEST(check_scheduler, default) {
 
 //! @test @c exec::static_thread_pool scheduler.
 TEST(check_scheduler, static_thread_pool) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto chain = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
                | THEN_SHOW_ID;
@@ -50,7 +50,7 @@ TEST(check_scheduler, static_thread_pool) {
  * See also https://github.com/NVIDIA/stdexec/issues/1736#issuecomment-3720622409.
  */
 TEST(check_scheduler, split_when_all_no_forward) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
               | THEN_SHOW_ID | ::exec::split();
@@ -68,7 +68,7 @@ TEST(check_scheduler, split_when_all_no_forward) {
  * See also https://github.com/NVIDIA/stdexec/issues/1736#issuecomment-3720622409.
  */
 TEST(check_scheduler, split_transfer_when_all_no_forward) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto fork = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
               | THEN_SHOW_ID | ::exec::split();
@@ -83,7 +83,7 @@ TEST(check_scheduler, split_transfer_when_all_no_forward) {
 
 //! @test Multiple splits.
 TEST(check_scheduler, multiple_splits) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto fork_A = ::stdexec::schedule(pool.get_scheduler()) | check_scheduler<static_thread_pool_scheduler_t>()
                 | THEN_SHOW_ID | ::exec::split();

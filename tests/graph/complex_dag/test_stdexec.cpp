@@ -43,7 +43,7 @@ TEST(graph, complex_dag_stdexec)
     using view_t = Kokkos::View<int[size], memory_space>;
 
     //! Get some execution context.
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     //! Initialize the data.
     const view_t data(Kokkos::view_alloc("data"));

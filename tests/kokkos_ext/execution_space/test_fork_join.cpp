@@ -51,7 +51,7 @@ class ForkJoinTest
 TEST_F(ForkJoinTest, diamond) {
     const view_s_t data(Kokkos::view_alloc("data - shared space"));
 
-    ::exec::static_thread_pool pool{4};
+    ::exec::static_thread_pool pool{4}; // NOLINT(misc-const-correctness)
     const context_t esc{exec};
 
     auto chain =

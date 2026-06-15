@@ -62,7 +62,7 @@ TEST_F(SplitTest, split_and_sync_wait) {
 TEST_F(SplitTest, within) {
     const view_s_t data(Kokkos::view_alloc(exec, "data - shared space"));
 
-    ::exec::static_thread_pool pool{4};
+    ::exec::static_thread_pool pool{4}; // NOLINT(misc-const-correctness)
     const context_t esc{exec};
 
     ::stdexec::sender auto fork = ::stdexec::schedule(pool.get_scheduler()) | ::exec::split();

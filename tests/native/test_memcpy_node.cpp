@@ -74,6 +74,7 @@ TEST(cuda, memcpy_node)
     //! Check the values in @c dst and @c src are identical (and as expected).
     const auto src_h = src.get_host_copy(stream);
     const auto dst_h = dst.get_host_copy(stream);
+    stream.fence();
 
     std::vector<scalar_t> expected(size);
     std::iota(expected.begin(), expected.end(), 0);

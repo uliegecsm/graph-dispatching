@@ -74,7 +74,10 @@ TEST(cuda, subgraph)
     graph_exec.submit(stream);
 
     //! Check results.
-    ASSERT_EQ(data.get_host_copy(stream), (std::vector<value_t>{5, 5, 4}));
+    const auto mirror = data.get_host_copy(stream);
+    stream.fence();
+    
+    ASSERT_EQ(mirror, (std::vector<value_t>{5, 5, 4}));
 }
 
 } // namespace tests::cuda

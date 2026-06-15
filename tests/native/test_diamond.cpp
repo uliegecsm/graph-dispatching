@@ -55,6 +55,7 @@ TEST(cuda, diamond_graph)
     graph_exec.submit(stream);
 
     const auto mirror = data.get_host_copy(stream);
+    stream.fence();
 
     ASSERT_THAT(mirror, ::testing::ElementsAre(4));
 

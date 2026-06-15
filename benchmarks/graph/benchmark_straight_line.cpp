@@ -55,7 +55,7 @@ protected:
 public:
     //! We need to create @c Kokkos objects in the @ref SetUp, not using the constructor or in-class default member initializers.
     void SetUp(const ::benchmark::State&) override {
-        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1)[0];
+        this->exec = Kokkos::Experimental::partition_space(execution_space{}, 1).at(0);
         this->data = view_t(Kokkos::view_alloc(*exec));
     }
 
