@@ -250,7 +250,7 @@ struct DomainSpecificScheduler {
     ::stdexec::then([&trace]() noexcept {                                                                              \
         std::cout << "Then(" << thread_customization << ", " << __nth__ << "):"                                        \
                   << " got thread ID " << thread_id << " in thread " << std::this_thread::get_id() << std::endl;       \
-        trace[__nth__] = {thread_id, thread_customization};                                                            \
+        trace.at(__nth__) = {thread_id, thread_customization};                                                         \
     })
 
 //! Helper to setup the trace and the expected trace. // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -394,8 +394,8 @@ TEST_F(CustomizationTest, then_with_values) {
     ::stdexec::then([&trace](auto&& data) {                                                                            \
         if (data.at(0) != __value__)                                                                                   \
             throw std::runtime_error("The test failed.");                                                              \
-        ++data[0];                                                                                                     \
-        trace[__id__] = {thread_id, thread_customization};                                                             \
+        ++data.at(0);                                                                                                  \
+        trace.at(__id__) = {thread_id, thread_customization};                                                          \
         return std::move(data);                                                                                        \
     })
 

@@ -150,7 +150,7 @@ TEST_F(LetValueTest, for_branching) {
 
     std::atomic<bool> consumed{false};
 
-    auto shared = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids[0])
+    auto shared = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids.at(0))
                 | ::stdexec::then([&consumed]() -> double {
                       std::printf("Preliminary 'then' returning.\n"); // NOLINT(modernize-use-std-print)
                       if (consumed)
@@ -165,17 +165,17 @@ TEST_F(LetValueTest, for_branching) {
               std::cout << "Value received is " << value << ".\n";
               if (!consumed)
                   throw std::runtime_error("Not consumed yet.");
-              auto br_b = ::stdexec::schedule(pools.at(index_of_B).get_scheduler()) | THEN_STORE_ID(thrids[1]);
-              auto br_c = ::stdexec::schedule(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids[2]);
-              auto br_d = ::stdexec::schedule(pools.at(index_of_D).get_scheduler()) | THEN_STORE_ID(thrids[3]);
+              auto br_b = ::stdexec::schedule(pools.at(index_of_B).get_scheduler()) | THEN_STORE_ID(thrids.at(1));
+              auto br_c = ::stdexec::schedule(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids.at(2));
+              auto br_d = ::stdexec::schedule(pools.at(index_of_D).get_scheduler()) | THEN_STORE_ID(thrids.at(3));
               return ::stdexec::when_all(
                   std::move(br_b), std::move(br_c), std::move(br_d)); // NOLINT(performance-move-const-arg)
           }));
 
-    ASSERT_EQ(thrids[0], threads.at(index_of_A));
-    ASSERT_EQ(thrids[1], threads.at(index_of_B));
-    ASSERT_EQ(thrids[2], threads.at(index_of_C));
-    ASSERT_EQ(thrids[3], threads.at(index_of_D));
+    ASSERT_EQ(thrids.at(0), threads.at(index_of_A));
+    ASSERT_EQ(thrids.at(1), threads.at(index_of_B));
+    ASSERT_EQ(thrids.at(2), threads.at(index_of_C));
+    ASSERT_EQ(thrids.at(3), threads.at(index_of_D));
 
     ASSERT_TRUE(consumed);
 }

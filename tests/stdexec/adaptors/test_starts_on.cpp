@@ -48,7 +48,7 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk) {
     /// to the connected receiver.
     ::stdexec::sender auto chain = ::stdexec::just(std::vector<size_t>(size, 0))
                                  | ::stdexec::bulk(::stdexec::par, size, [](const auto index, auto& data) {
-                                       data[index] = ::utils::get_thread_id();
+                                       data[index] = ::utils::get_thread_id(); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
                                    });
 
     //! Run on pool A.
@@ -128,8 +128,8 @@ TEST_F(StartsOnTest, B_once_after_schedule_on_A_is_a_no_op) {
 TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain) {
     std::array<std::thread::id, 3> ids;
 
-    auto chain = ::stdexec::just() | ::stdexec::then([&ids] { ids[0] = std::this_thread::get_id(); })
-               | ::stdexec::then([&ids] { ids[1] = std::this_thread::get_id(); });
+    auto chain = ::stdexec::just() | ::stdexec::then([&ids] { ids.at(0) = std::this_thread::get_id(); })
+               | ::stdexec::then([&ids] { ids.at(1) = std::this_thread::get_id(); });
 
     static_assert(std::same_as<
                   ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(chain)>,
@@ -138,7 +138,7 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain) {
 
     auto work = ::stdexec::starts_on(
                     pools.at(index_of_A).get_scheduler(), std::move(chain)) // NOLINT(performance-move-const-arg)
-              | ::stdexec::then([&ids] { ids[2] = std::this_thread::get_id(); });
+              | ::stdexec::then([&ids] { ids.at(2) = std::this_thread::get_id(); });
 
     ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 
