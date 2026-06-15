@@ -105,6 +105,8 @@ target_link_libraries(
         Kokkos::kokkoscore
 )
 
+include(${CMAKE_SOURCE_DIR}/cmake/functions/ur_cuda_skip.cmake)
+
 add_subdirectory(cg)
 add_subdirectory(graph)
 add_subdirectory(newton)

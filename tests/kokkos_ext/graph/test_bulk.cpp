@@ -28,7 +28,10 @@ class BulkTest
     : public impl::GraphContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t = RecorderListener<BeginFenceEvent, BeginParallelForEvent, ProfileEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent, ProfileEvent
+    >;
 };
 
 //! @test Check that @ref Kokkos::Experimental::GraphContext does its duty well when used with @c bulk.

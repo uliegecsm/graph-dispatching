@@ -38,4 +38,29 @@
                 .dst = KOKKOS_IMPL_STRIP_PARENS(_dst_), .src = KOKKOS_IMPL_STRIP_PARENS(_src_)}))
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
+//! Matcher to filter out events that are just noise for tests.
+template <Kokkos::ExecutionSpace Exec>
+struct EventDiscardMatcher {
+#if defined(KOKKOS_ENABLE_SYCL)
+    //! Filter out any @ref Kokkos::utils::callbacks::BeginFenceEvent induced by https://github.com/kokkos/kokkos/blob/91584fc13aaf09330bc391466dbae0249895291f/core/src/SYCL/Kokkos_SYCL_Instance.hpp#L133.
+    bool operator()(const Kokkos::utils::callbacks::BeginFenceEvent& event) const
+        requires std::same_as<Exec, Kokkos::SYCL>
+    {
+        return event.name.find("Kokkos::SYCLInternal::USMObject") == std::string::npos;
+    }
+
+    //! Filter out any @ref Kokkos::utils::callbacks::AllocateDataEvent induced by https://github.com/kokkos/kokkos/blob/91584fc13aaf09330bc391466dbae0249895291f/core/src/SYCL/Kokkos_SYCL_Instance.cpp#L306.
+    bool operator()(const Kokkos::utils::callbacks::AllocateDataEvent& event) const
+        requires std::same_as<Exec, Kokkos::SYCL>
+    {
+        return event.alloc.name.find("Kokkos::SYCL::USMObject") == std::string::npos;
+    }
+#endif
+
+    template <Kokkos::utils::callbacks::Event EventType>
+    constexpr bool operator()(const EventType&) const {
+        return true;
+    }
+};
+
 #endif // GRAPH_DISPATCHING_TESTS_CALLBACKMATCHERS_HPP

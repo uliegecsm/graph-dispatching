@@ -3,6 +3,7 @@
 #include "kokkos_ext/Kokkos_Graph_Execution.hpp"
 
 #include "tests/graph/complex_dag/Helpers.hpp"
+#include "tests/sycl/ur_cuda_skip.hpp"
 
 /**
  * @addtogroup unittests
@@ -86,6 +87,8 @@ TEST(graph, complex_dag_outlook)
     Kokkos::Experimental::graph::submit(exec, node_C1);
 
     const auto mirror = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, data);
+
+    GRAPH_DISPATCHING_TESTS_SYCL_UR_CUDA_SKIP
 
     ASSERT_IT_WENT_FINE(mirror)
 }

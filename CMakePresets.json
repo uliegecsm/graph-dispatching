@@ -52,6 +52,12 @@
             "cacheVariables" : {"CMAKE_CXX_COMPILER" : "hipcc"}
         },
         {
+            "$comment": "Inherit from this preset to use the Intel compiler family.",
+            "name"           : "intel",
+            "hidden"         : true,
+            "cacheVariables" : {"CMAKE_CXX_COMPILER" : "icpx"}
+        },
+        {
             "$comment": "Inherit from this preset to use the Cuda compiler family.",
             "name"           : "Cuda",
             "hidden"         : true,
@@ -115,6 +121,13 @@
             "cacheVariables" : {
                 "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;HIP"
             }
+        },
+        {
+            "name"           : "intel-SYCL",
+            "inherits"       : ["default", "intel"],
+            "cacheVariables" : {
+                "EXPECTED_Kokkos_DEVICES" : "SERIAL;OpenMP;SYCL"
+            }
         }
     ],
     "buildPresets" : [
@@ -156,6 +169,11 @@
         {
             "name"            : "rocm-HIP",
             "configurePreset" : "rocm-HIP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "intel-SYCL",
+            "configurePreset" : "intel-SYCL",
             "inherits"        : "default"
         }
     ],
@@ -204,6 +222,11 @@
         {
             "name"            : "rocm-HIP",
             "configurePreset" : "rocm-HIP",
+            "inherits"        : "default"
+        },
+        {
+            "name"            : "intel-SYCL",
+            "configurePreset" : "intel-SYCL",
             "inherits"        : "default"
         }
     ]

@@ -30,8 +30,10 @@ class ScopedRegionTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t =
-        RecorderListener<BeginFenceEvent, BeginParallelForEvent, PushRegionEvent, PopRegionEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent, PushRegionEvent, PopRegionEvent
+    >;
 };
 
 /**

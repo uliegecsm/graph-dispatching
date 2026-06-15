@@ -36,8 +36,10 @@ class LetValueTest
     : public impl::ExecutionSpaceContextTest<execution_space>
     , public Kokkos::utils::tests::scoped::callbacks::Manager {
    public:
-    using recorder_listener_t =
-        RecorderListener<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent>;
+    using recorder_listener_t = RecorderListener<
+        EventDiscardMatcher<execution_space>,
+        BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent
+    >;
     using variant_t = std::variant<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent>;
 };
 

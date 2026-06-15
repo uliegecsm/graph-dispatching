@@ -35,6 +35,8 @@ def expected_number_of_tests(*, preset : str) -> int:
             count = 99
         case 'gnu-Cuda':
             count = 35
+        case 'intel-SYCL':
+            count = 85
         case _:
             raise ValueError(f'unsupported preset \'{preset}\'')
 

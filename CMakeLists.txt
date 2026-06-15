@@ -59,7 +59,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0140 NEW)
 #     stated in https://clang.llvm.org/docs/Toolchain.html#atomics-library.
 #     We are not sure why this is needed, i.e. why we don't get this automatically from
 #     Kokkos or HPX.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
     message(WARNING "Linking everything to 'atomic'.")
     add_link_options(-latomic)
 endif()
