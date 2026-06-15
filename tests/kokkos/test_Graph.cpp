@@ -7,6 +7,7 @@
 #include "kokkos-utils/concepts/View.hpp"
 #include "kokkos-utils/tests/scoped/ExecutionSpace.hpp"
 
+#include "tests/sycl/ur_cuda_skip.hpp"
 #include "tests/utils/Graph.hpp"
 
 namespace tests::kokkos {
@@ -160,6 +161,8 @@ TEST_F(GraphTest, simple) {
  */
 void test_large(const execution_space& exec) {
     using range_policy_t = Kokkos::RangePolicy<execution_space>;
+
+    GRAPH_DISPATCHING_TESTS_SYCL_UR_CUDA_SKIP
 
     constexpr unsigned short num_nodes = 55;
 
