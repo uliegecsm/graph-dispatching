@@ -123,7 +123,9 @@ PRAGMA_DIAGNOSTIC_POP
     {
         ASSERT_EQ(result, size * (size + 1) * (2 * size + 1) / 6);
 
-        ASSERT_EQ(dense.get_host_copy(stream), (std::vector<value_t>{2., 3., 4., 5., 6.}));
+        const auto mirror = dense.get_host_copy(stream);
+        stream.fence();
+        ASSERT_EQ(mirror, (std::vector<value_t>{2., 3., 4., 5., 6.}));
     }
 
     /// Ensure that the buffer was used to store the result of the dot product on device, and
@@ -133,6 +135,7 @@ PRAGMA_DIAGNOSTIC_POP
     {
         value_t buffer_value;
         buffer.get_host_copy(stream, &buffer_value);
+        stream.fence();
 
         ASSERT_EQ(buffer_value, result);
 
