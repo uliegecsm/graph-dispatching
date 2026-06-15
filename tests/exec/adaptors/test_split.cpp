@@ -40,7 +40,9 @@ TEST(stdexec, split) {
 
     auto start = ::stdexec::schedule(scheduler)
                | ::stdexec::bulk(
-                     ::stdexec::par, 2, [&](const auto index) -> void { bulk_thr[index] = std::this_thread::get_id(); })
+                     ::stdexec::par,
+                     2,
+                     [&](const auto index) -> void { bulk_thr.at(index) = std::this_thread::get_id(); })
                | ::exec::split();
 
     auto node_A = start | ::stdexec::then([&] { thr_A = std::this_thread::get_id(); });
@@ -51,7 +53,7 @@ TEST(stdexec, split) {
     ::stdexec::sync_wait(std::move(chain));
 
     //! Each @c bulk work item has been processed by a different thread.
-    ASSERT_NE(bulk_thr[0], bulk_thr[1]);
+    ASSERT_NE(bulk_thr.at(0), bulk_thr.at(1));
 
     //! However, both asynchronous @c then have been run by the same thread.
     ASSERT_EQ(thr_A, thr_B);
@@ -75,7 +77,7 @@ TEST_F(SplitTest, with_transition) {
     std::array<std::thread::id, 9> thrids;
 
     //! The starting chain has a completion scheduler already.
-    ::stdexec::sender auto start = ::stdexec::schedule(scheduler_A) | THEN_STORE_ID(thrids[0]);
+    ::stdexec::sender auto start = ::stdexec::schedule(scheduler_A) | THEN_STORE_ID(thrids.at(0));
 
     static_assert(std::same_as<
                   ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(start), ::stdexec::env<>>,
@@ -92,8 +94,8 @@ TEST_F(SplitTest, with_transition) {
     >);
     static_assert(!has_completion_scheduler_for<decltype(fork_one), ::stdexec::set_value_t>);
 
-    auto stage_one_branch_a = fork_one | THEN_STORE_ID(thrids[1]);
-    auto stage_one_branch_b = std::move(fork_one) | THEN_STORE_ID(thrids[2]);
+    auto stage_one_branch_a = fork_one | THEN_STORE_ID(thrids.at(1));
+    auto stage_one_branch_b = std::move(fork_one) | THEN_STORE_ID(thrids.at(2));
     auto stage_one = ::stdexec::when_all(std::move(stage_one_branch_a), std::move(stage_one_branch_b));
 
     static_assert(std::same_as<
@@ -102,7 +104,7 @@ TEST_F(SplitTest, with_transition) {
     >);
     static_assert(!has_completion_scheduler_for<decltype(stage_one), ::stdexec::set_value_t>);
 
-    auto post_one = std::move(stage_one) | THEN_STORE_ID(thrids[3]);
+    auto post_one = std::move(stage_one) | THEN_STORE_ID(thrids.at(3));
 
     static_assert(std::same_as<
                   ::stdexec::__completion_domain_of_t<::stdexec::set_value_t, decltype(post_one), ::stdexec::env<>>,
@@ -110,17 +112,17 @@ TEST_F(SplitTest, with_transition) {
     >);
     static_assert(!has_completion_scheduler_for<decltype(post_one), ::stdexec::set_value_t>);
 
-    auto fork_two = std::move(post_one) | ::stdexec::continues_on(scheduler_B) | THEN_STORE_ID(thrids[4])
+    auto fork_two = std::move(post_one) | ::stdexec::continues_on(scheduler_B) | THEN_STORE_ID(thrids.at(4))
                   | ::exec::split();
 
-    auto stage_two_branch_a = fork_two | ::stdexec::continues_on(scheduler_C) | THEN_STORE_ID(thrids[5]);
-    auto stage_two_branch_b = fork_two | ::stdexec::continues_on(scheduler_A) | THEN_STORE_ID(thrids[6]);
-    auto stage_two_branch_c = std::move(fork_two) | THEN_STORE_ID(thrids[7]);
+    auto stage_two_branch_a = fork_two | ::stdexec::continues_on(scheduler_C) | THEN_STORE_ID(thrids.at(5));
+    auto stage_two_branch_b = fork_two | ::stdexec::continues_on(scheduler_A) | THEN_STORE_ID(thrids.at(6));
+    auto stage_two_branch_c = std::move(fork_two) | THEN_STORE_ID(thrids.at(7));
     auto stage_two = ::stdexec::when_all(
         std::move(stage_two_branch_a), std::move(stage_two_branch_b), std::move(stage_two_branch_c));
 
     //! The execution context of the trailing sender is unknown.
-    auto post_two = std::move(stage_two) | THEN_STORE_ID(thrids[8]);
+    auto post_two = std::move(stage_two) | THEN_STORE_ID(thrids.at(8));
 
     ::stdexec::sync_wait(std::move(post_two));
 
