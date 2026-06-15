@@ -25,7 +25,7 @@ auto get_thread_id() {
 //! Simple functor that fills a @c std::vector with the thread ID.
 struct FillWithThreadID
 {
-    std::shared_ptr<std::vector<size_t>> ids;
+    std::shared_ptr<std::vector<size_t>> ids {};
 
     template <std::integral T>
     void operator()(const T index) {
