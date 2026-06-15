@@ -167,7 +167,7 @@ PRAGMA_DIAGNOSTIC_POP
         GraphNodeKernel node(functor, size);
         node.add(graph);
 
-        return {std::move(graph), std::move(functor), std::move(node)};
+        return {std::move(graph), std::move(functor), std::move(node)}; // NOLINT(performance-move-const-arg)
     }
 
     /// Add one last node, that follows the captured nodes.
