@@ -466,10 +466,10 @@ void test_fork_join_reduce(const execution_space& exec) {
         ASSERT_THAT((std::span{mirror.data(), mirror.size()}), testing::ElementsAreArray(expected));
     } else {
         for (size_t ielem = 0; ielem < mirror.size(); ++ielem) {
-            if (mirror(ielem) != expected[ielem]) {
+            if (mirror(ielem) != expected.at(ielem)) {
                 std::cerr << "Value of: mirror(" << ielem << ")\n"
                           << "  Actual: " << mirror(ielem) << "\n"
-                          << "Expected: " << expected[ielem] << std::endl;
+                          << "Expected: " << expected.at(ielem) << std::endl;
             }
         }
         GTEST_SKIP() << "Backends for which the graph uses the vendor implementation are not expected to pass this "

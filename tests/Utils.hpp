@@ -29,7 +29,7 @@ struct FillWithThreadID
 
     template <std::integral T>
     void operator()(const T index) {
-        ids->operator[](index) = get_thread_id();
+        ids->at(index) = get_thread_id();
     }
 };
 

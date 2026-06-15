@@ -77,10 +77,10 @@ TEST_F(StaticThreadPoolTest, then_completion_domain_with_env) {
 TEST_F(StaticThreadPoolTest, transitioning) {
     std::array<std::thread::id, 4> thrids;
 
-    auto work = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids[0])
-              | ::stdexec::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(thrids[1]))
-              | ::stdexec::continues_on(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids[2])
-              | THEN_STORE_ID(thrids[3]);
+    auto work = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids.at(0))
+              | ::stdexec::on(pools.at(index_of_B).get_scheduler(), THEN_STORE_ID(thrids.at(1)))
+              | ::stdexec::continues_on(pools.at(index_of_C).get_scheduler()) | THEN_STORE_ID(thrids.at(2))
+              | THEN_STORE_ID(thrids.at(3));
 
     ::stdexec::sync_wait(std::move(work)); // NOLINT(performance-move-const-arg)
 

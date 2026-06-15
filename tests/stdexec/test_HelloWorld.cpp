@@ -39,19 +39,19 @@ template <::stdexec::sender Sender>
     /// Add 42 to the preceding sender's output's first element and return the vector.
     /// @note Please note that the lambda has to take by @c && because we're nicely moving things around.
     ::stdexec::sender auto add_42 = ::stdexec::then(std::move(handshake), [](std::vector<int> arg) -> std::vector<int> {
-        arg[0] += 42;
+        arg.at(0) += 42;
         return arg;
     });
 
     //! Perform some bulky operation. Each work item atomically adds its index to the first element of the input.
     ::stdexec::sender auto bulky =
         ::stdexec::bulk(std::move(add_42), ::stdexec::par, parallel, [](size_t index, std::vector<int>& arg) {
-            std::atomic_ref<int>(arg[0]) += index;
+            std::atomic_ref<int>(arg.at(0)) += index;
         });
 
     /// Retrieve the first element from the input.
     /// @note Again, things are nicely moved around.
-    return ::stdexec::then(std::move(bulky), [](std::vector<int> arg) -> int { return arg[0]; });
+    return ::stdexec::then(std::move(bulky), [](std::vector<int> arg) -> int { return arg.at(0); });
 }
 
 //! @test Simple @c stdexec test that just aims at showing what can be done.

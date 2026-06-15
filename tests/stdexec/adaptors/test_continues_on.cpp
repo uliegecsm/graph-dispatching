@@ -45,9 +45,9 @@ TEST_F(ContinuesOnTest, continues_on) {
     std::array<std::thread::id, 3> thrids;
     size_t counter = 0;
 
-    auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids[0], { ++counter; })
+    auto chain = ::stdexec::schedule(pools.at(index_of_A).get_scheduler()) | THEN_STORE_ID(thrids.at(0), { ++counter; })
                | ::stdexec::continues_on(pools.at(index_of_B).get_scheduler())
-               | THEN_STORE_ID(thrids[1], { ++counter; }) | THEN_STORE_ID(thrids[2], { ++counter; });
+               | THEN_STORE_ID(thrids.at(1), { ++counter; }) | THEN_STORE_ID(thrids.at(2), { ++counter; });
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 

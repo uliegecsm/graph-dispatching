@@ -41,9 +41,9 @@ TEST_F(OnTest, on) {
     std::array<std::thread::id, 3> thrids;
     size_t counter = 0;
 
-    auto chain = ::stdexec::schedule(scheduler_A) | THEN_STORE_ID(thrids[0], { ++counter; })
-               | ::stdexec::on(scheduler_B, THEN_STORE_ID(thrids[1], { ++counter; }))
-               | THEN_STORE_ID(thrids[2], { ++counter; });
+    auto chain = ::stdexec::schedule(scheduler_A) | THEN_STORE_ID(thrids.at(0), { ++counter; })
+               | ::stdexec::on(scheduler_B, THEN_STORE_ID(thrids.at(1), { ++counter; }))
+               | THEN_STORE_ID(thrids.at(2), { ++counter; });
 
     ::stdexec::sync_wait(std::move(chain)); // NOLINT(performance-move-const-arg)
 

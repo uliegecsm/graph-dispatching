@@ -70,8 +70,8 @@ TEST_P(GraphTest, runtime_stdexec)
     using view_t = Kokkos::View<int[size], memory_space>;
 
     //! Which nodes will be added.
-    const auto add_B = this->GetParam()[0];
-    const auto add_C = this->GetParam()[1];
+    const auto add_B = this->GetParam().at(0);
+    const auto add_C = this->GetParam().at(1);
 
     //! Get some execution context.
     ::exec::static_thread_pool pool{1};
