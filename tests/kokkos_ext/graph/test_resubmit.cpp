@@ -52,7 +52,11 @@ class ResubmitTest
    public:
     using recorder_listener_t = RecorderListener<
         EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent, ProfileEvent
+        BeginFenceEvent,
+        BeginParallelForEvent,
+        AllocateDataEvent,
+        DeallocateDataEvent,
+        ProfileEvent
     >;
 };
 

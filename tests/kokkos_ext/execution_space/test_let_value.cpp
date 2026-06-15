@@ -39,7 +39,10 @@ class LetValueTest
    public:
     using recorder_listener_t = RecorderListener<
         EventDiscardMatcher<execution_space>,
-        BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent
+        BeginFenceEvent,
+        BeginParallelForEvent,
+        AllocateDataEvent,
+        DeallocateDataEvent
     >;
     using variant_t = std::variant<BeginFenceEvent, BeginParallelForEvent, AllocateDataEvent, DeallocateDataEvent>;
 };

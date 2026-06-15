@@ -47,10 +47,12 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk) {
     /// Note that we will create the chain only once, and execute it twice (once on each scheduler).
     /// Also note that @c stdexec::just will decay-copied the received value, and in this case will pass a copy
     /// to the connected receiver.
-    ::stdexec::sender auto chain = ::stdexec::just(std::vector<size_t>(size, 0))
-                                 | ::stdexec::bulk(::stdexec::par, size, [](const auto index, auto& data) {
-                                       data[index] = ::utils::get_thread_id(); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-                                   });
+    ::stdexec::sender auto chain =
+        ::stdexec::just(std::vector<size_t>(size, 0))
+        | ::stdexec::bulk(::stdexec::par, size, [](const auto index, auto& data) {
+              data[index] =
+                  ::utils::get_thread_id(); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+          });
 
     //! Run on pool A.
     ::stdexec::sender auto moved_to_another_A = ::stdexec::starts_on(pools.at(index_of_A).get_scheduler(), chain);
