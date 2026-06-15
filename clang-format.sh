@@ -42,6 +42,7 @@ PATTERNS=(
     'tests/pcg/**.cpp'
     'tests/stdexec/**.cpp'
     'tests/stdexec/**.hpp'
+    'tests/sycl/*'
     'tests/utils/*'
     'tests/CallbackMatchers.hpp'
     'tests/Functors.hpp'

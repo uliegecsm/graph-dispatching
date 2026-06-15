@@ -394,7 +394,7 @@ FROM requirements AS nvidia-stdexec
 
 ARG NVIDIA_STDEXEC_REF
 
-RUN <<EOF
+RUN --mount=target=/patches/stdexec-icpx-ice-when.patch,type=bind,source=docker/patches/stdexec-icpx-ice-when.patch <<EOF
     set -ex
 
     git clone --branch main --shallow-since=2024-06-01 https://github.com/NVIDIA/stdexec /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
@@ -402,6 +402,8 @@ RUN <<EOF
     cd /opt/nvidia/stdexec-${NVIDIA_STDEXEC_REF}
 
     git checkout ${NVIDIA_STDEXEC_REF}
+
+    patch -p1 < /patches/stdexec-icpx-ice-when.patch
 EOF
 
 # Fetch https://github.com/uliegecsm/kokkos-utils sources and install.
