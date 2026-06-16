@@ -54,6 +54,7 @@ TEST_P(cuda, node_enable)
     }
 
     const auto mirror = data.get_host_copy(stream);
+    stream.fence();
 
     ASSERT_EQ(mirror.at(0), expected);
 

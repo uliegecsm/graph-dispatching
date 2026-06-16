@@ -157,7 +157,7 @@ TEST_F(StreamContextTest, move_to_static_thread_pool) {
 
     const view_t witness(Kokkos::view_alloc("witness"));
 
-    exec::static_thread_pool pool{1};
+    exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     auto chain =
         ::stdexec::schedule(stream_ctx.get_scheduler())

@@ -31,7 +31,7 @@ namespace tests::stdexec::adaptors {
 
 //! @test Same as https://github.com/NVIDIA/stdexec/blob/970dbace4ad52a38c9b18665d077f14159792b23/test/stdexec/algos/adaptors/test_when_all.cpp#L253.
 TEST(when_all, propagates_completion_domain_from_same_type_children) {
-    ::exec::static_thread_pool pool_A{1}, pool_B{1};
+    ::exec::static_thread_pool pool_A{1}, pool_B{1}; // NOLINT(misc-const-correctness)
 
     ::stdexec::sender auto sndr = ::stdexec::when_all(
         ::stdexec::starts_on(pool_A.get_scheduler(), ::stdexec::just(13)),
@@ -52,7 +52,7 @@ TEST(when_all, propagates_completion_domain_from_same_type_children) {
  * @warning As stated in @cite P2999R3 (Section 2.1.1, "Dispatching via execution domain tags"), @c stdexec::when_all only accepts a set of senders when they all share a common domain.
  */
 TEST(when_all, propagates_completion_domain_from_different_type_children) {
-    ::exec::static_thread_pool pool{1};
+    ::exec::static_thread_pool pool{1}; // NOLINT(misc-const-correctness)
 
     ::stdexec::sender auto sndr = ::stdexec::when_all(
         ::stdexec::starts_on(::stdexec::inline_scheduler{}, ::stdexec::just(13)),

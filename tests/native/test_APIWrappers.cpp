@@ -66,6 +66,7 @@ TEST(APIWrappers, view_get_host_copy)
     const View<double> data(stream, 2<<6);
 
     const auto mirror = data.get_host_copy(stream);
+    stream.fence();
 
     ASSERT_EQ(mirror.size(), 2<<6);
 }

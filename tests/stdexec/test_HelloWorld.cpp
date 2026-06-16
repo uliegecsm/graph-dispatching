@@ -59,7 +59,7 @@ template <::stdexec::sender Sender>
 TEST(stdexec, hello_world) {
     //! Retrieve the NUMA configuration, and get the number of CPUs on the first node for sizing the thread pool.
     const exec::numa_policy numa(exec::no_numa_policy{});
-    exec::static_thread_pool context(numa.num_cpus(0));
+    exec::static_thread_pool context(numa.num_cpus(0)); // NOLINT(misc-const-correctness)
 
     //! Get a scheduler from the thread pool.
     ::stdexec::scheduler auto scheduler = context.get_scheduler();

@@ -1,5 +1,13 @@
 #include <bit>
 
+#include "tests/IgnoreWarnings.hpp"
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_IGNORED_DEPRECATED_ATTRIBUTES
+PRAGMA_DIAGNOSTIC_IGNORED("-Wshadow")
+PRAGMA_DIAGNOSTIC_IGNORED("-Wsuggest-override")
+#include "stdexec/execution.hpp"
+PRAGMA_DIAGNOSTIC_POP
+
 #include "kokkos_ext/impl/execution_space/parallel_for.hpp"
 
 #include "kokkos-utils/callbacks/RecorderListener.hpp"

@@ -226,8 +226,7 @@ GraphNodeKernel<Functor>::GraphNodeKernel(const Functor& functor, const size_t s
 
     params = {};
 
-    inputs.resize(1);
-    inputs[0] = (void*)&functor;
+    inputs.at(0) = (void * )&functor;
 
     constexpr size_t max_block_size = 1024;
 

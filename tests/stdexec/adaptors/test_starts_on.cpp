@@ -50,8 +50,8 @@ TEST_F(StartsOnTest, twice_with_just_a_bulk) {
     ::stdexec::sender auto chain =
         ::stdexec::just(std::vector<size_t>(size, 0))
         | ::stdexec::bulk(::stdexec::par, size, [](const auto index, auto& data) {
-              data[index] =
-                  ::utils::get_thread_id(); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+              data[index] = // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                  ::utils::get_thread_id();
           });
 
     //! Run on pool A.

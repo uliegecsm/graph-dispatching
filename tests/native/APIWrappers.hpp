@@ -155,7 +155,7 @@ template <typename Functor>
 struct GraphNodeKernel : public GraphNode
 {
     PREFIXED_API(KernelNodeParams) params;
-    std::vector<void*> inputs;
+    std::array<void*, 1> inputs {};
 
     //! @warning The user is responsible for keeping the @c functor alive.
     GraphNodeKernel(const Functor& functor, const size_t shape);

@@ -8,12 +8,21 @@ set(launcher)
 
 if(CUDA IN_LIST Kokkos_DEVICES)
     set(enabled_backend GRAPH_DISPATCHING_ENABLE_CUDA)
-    set(launcher compute-sanitizer --leak-check=full)
+    # Using 'compute-sanitizer' may trigger a weird supposedly false positive error with nvcc on blackwell120.
+    # See https://forums.developer.nvidia.com/t/compute-sanitizer-and-cuda-graph-false-positives.
+    if(Kokkos_CXX_COMPILER_ID STREQUAL "NVIDIA" AND BLACKWELL120 IN_LIST Kokkos_ARCH)
+        set(launcher)
+    else()
+        set(launcher compute-sanitizer --leak-check=full)
+    endif()
 elseif(HIP IN_LIST Kokkos_DEVICES)
     set(enabled_backend GRAPH_DISPATCHING_ENABLE_HIP)
     set(launcher)
 elseif(NOT DEFINED ENABLE_DOXYGEN)
     message(FATAL_ERROR "Unsupported device backend.")
+endif()
+if(launcher)
+    message(STATUS "Launcher for native tests set to '${launcher}'")
 endif()
 
 # Tests that work for both Cuda and HIP.
