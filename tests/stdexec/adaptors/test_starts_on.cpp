@@ -31,7 +31,7 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::stdexec::adaptors {
 
 class StartsOnTest
-    : public utils::StaticThreadPool<'A', 'B'>
+    : public ::utils::StaticThreadPool<'A', 'B'>
     , public ::testing::Test {
    public:
     static constexpr size_t index_of_A = index_of<'A'>();
@@ -151,7 +151,7 @@ TEST_F(StartsOnTest, starts_on_goes_to_begin_of_chain) {
 }
 
 class StartsOnTraitsTest
-    : public utils::StaticThreadPool<'A'>
+    : public ::utils::StaticThreadPool<'A'>
     , public ::testing::Test {
    public:
     template <bool MayThrow>

@@ -14,7 +14,7 @@ struct Counter {
     static inline std::atomic<unsigned int> move_constructions{0};
     static inline std::atomic<unsigned int> move_assignments{0};
 
-    unsigned int id;
+    unsigned int id = 0;
 
     Counter() noexcept
         : id(default_constructions.fetch_add(1, std::memory_order_relaxed)) {

@@ -5,6 +5,8 @@
 
 #include "kokkos-utils/concepts/View.hpp"
 
+#include "tests/utils/Counter.hpp"
+
 namespace tests::kokkos_ext {
 
 template <typename ViewType>
@@ -38,6 +40,17 @@ struct BulkFunctor {
             Kokkos::TeamThreadRange(team_handle, team_handle.team_size()),
             [&]<std::integral T>(const T index) { Kokkos::atomic_add(data.data(), start_index + index); });
     }
+};
+
+template <typename ViewType>
+struct BulkFunctorWithCounter
+    : public BulkFunctor<ViewType>
+    , public utils::Counter {
+    explicit BulkFunctorWithCounter(ViewType view)
+        : BulkFunctor<ViewType>{std::move(view)} {
+    }
+
+    using BulkFunctor<ViewType>::operator();
 };
 
 //! Get the dispatch label from @p Exec and @p label.

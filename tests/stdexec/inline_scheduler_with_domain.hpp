@@ -18,8 +18,9 @@ struct transform_sender_for;
 //! Domain for @ref iswd::inline_scheduler.
 struct domain : public stdexec::default_domain {
     template <stdexec::sender Sndr, typename Env>
-    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr, const Env&>
-    static auto transform_sender(::stdexec::set_value_t, Sndr&& sndr, const Env& env) {
+    requires stdexec::__applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr&&, const Env&>
+    static auto transform_sender(stdexec::set_value_t, Sndr&& sndr, const Env& env)
+        noexcept(stdexec::__nothrow_applicable<transform_sender_for<stdexec::tag_of_t<Sndr>>, Sndr&&, const Env&>) {
         return stdexec::__apply(transform_sender_for<stdexec::tag_of_t<Sndr>>{}, std::forward<Sndr>(sndr), env);
     }
 };
@@ -43,7 +44,8 @@ struct inline_scheduler {
         using completion_signatures = ::stdexec::completion_signatures<::stdexec::set_value_t()>;
 
         template <::stdexec::receiver_of<completion_signatures> Rcvr>
-        auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>) -> operation_state<Rcvr> {
+        auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_constructible_v<operation_state<Rcvr>, Rcvr&&>)
+            -> operation_state<Rcvr> {
             return {.rcvr = std::move(rcvr)};
         }
 

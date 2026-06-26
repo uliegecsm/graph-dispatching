@@ -31,7 +31,7 @@ PRAGMA_DIAGNOSTIC_POP
 namespace tests::stdexec::adaptors {
 
 class LetValueTest
-    : public utils::StaticThreadPool<'A', 'B', 'C', 'D'>
+    : public ::utils::StaticThreadPool<'A', 'B', 'C', 'D'>
     , public ::testing::Test {
    public:
     static constexpr size_t index_of_A = index_of<'A'>();

@@ -38,19 +38,21 @@ template <stdexec::sender Sndr>
 struct ContinuesOnSender {
     using sender_concept = stdexec::sender_t;
 
-    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-
     GRAPH_DISPATCHING_KOKKOS_EXT_COMPL_SIGS_KEEP(ContinuesOnSender)
 
-    template <stdexec::receiver Rcvr>
-    auto connect(Rcvr rcvr) && noexcept(std::is_nothrow_move_constructible_v<Rcvr>)
-        -> stdexec::connect_result_t<Sndr, ContinuesOnReceiver<Rcvr>> {
-        using recv_t = ContinuesOnReceiver<Rcvr>;
+    template <typename Rcvr>
+    using rcvr_t = ContinuesOnReceiver<Rcvr>;
 
-        return stdexec::connect(std::forward<Sndr>(sndr), recv_t{.rcvr = std::move(rcvr)});
+    template <stdexec::receiver Rcvr>
+    auto connect(Rcvr rcvr) && noexcept(
+        std::is_nothrow_constructible_v<rcvr_t<Rcvr>, Rcvr&&> && stdexec::__nothrow_connectable<Sndr&&, rcvr_t<Rcvr>>)
+        -> stdexec::connect_result_t<Sndr, rcvr_t<Rcvr>> {
+        return stdexec::connect(std::forward<Sndr>(sndr), rcvr_t<Rcvr>{.rcvr = std::move(rcvr)});
     }
 
     GRAPH_DISPATCHING_KOKKOS_EXT_FORWARDING_GET_ENV(Sndr, sndr)
+
+    Sndr sndr; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 template <>

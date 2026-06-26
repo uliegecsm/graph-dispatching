@@ -3,6 +3,8 @@
 
 #include "kokkos-utils/concepts/View.hpp"
 
+#include "tests/utils/Counter.hpp"
+
 namespace tests {
 
 //! Increment @ref data.
@@ -37,6 +39,13 @@ struct ThenNoOp {
     KOKKOS_FUNCTION
     void operator()() const noexcept(!MayThrowOnCall) {
     }
+};
+
+template <bool MayThrowOnCall = true, bool MayThrowOnCopy = true, bool MayThrowOnMove = true>
+struct ThenNoOpWithCounter
+    : public ThenNoOp<MayThrowOnCall, MayThrowOnCopy, MayThrowOnMove>
+    , public utils::Counter {
+    using ThenNoOp<MayThrowOnCall, MayThrowOnCopy, MayThrowOnMove>::operator();
 };
 
 //! Add @ref value to @ref data.

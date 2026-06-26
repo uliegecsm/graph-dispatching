@@ -133,12 +133,36 @@ consteval bool test_sndr_decomposition() {
 }
 static_assert(test_sndr_decomposition());
 
+//! @test Check @c noexcept specification of @ref Kokkos::Experimental::ParallelForSender transformation.
+template <typename ViewType, bool ExpectNoThrowTransformable>
+consteval bool test_sndr_no_throw_transformable() {
+    using pfor_sndr_t = Kokkos::Experimental::ParallelForSender<
+        typename ParallelForTest::schedule_sender_t,
+        BulkFunctor<ViewType>,
+        Kokkos::RangePolicy<execution_space>
+    >;
+
+    static_assert(
+        ::stdexec::__detail::__has_nothrow_transform_sender<
+            Kokkos::Experimental::details::execution_space::Domain,
+            ::stdexec::set_value_t,
+            pfor_sndr_t&&,
+            ::stdexec::env<>
+        >
+        == ExpectNoThrowTransformable);
+
+    return true;
+}
+static_assert(test_sndr_no_throw_transformable<typename ParallelForTest::view_s_t, false>());
+static_assert(test_sndr_no_throw_transformable<std::span<int>, true>());
+
 //! @test Check traits of @ref Kokkos::Experimental::details::execution_space::ParallelForClosure.
 template <typename ViewType, bool ExpectNoThrowMoveConstructible>
 consteval bool test_closure_traits() {
-    using functor_t = BulkFunctor<ViewType>;
-    using policy_t = Kokkos::RangePolicy<execution_space>;
-    using closure_t = Kokkos::Experimental::details::execution_space::ParallelForClosure<functor_t, policy_t>;
+    using closure_t = Kokkos::Experimental::details::execution_space::ParallelForClosure<
+        BulkFunctor<ViewType>,
+        Kokkos::RangePolicy<execution_space>
+    >;
 
     //! Models the @ref Kokkos::Experimental::details::execution_space::Closure concept.
     static_assert(Kokkos::Experimental::details::execution_space::Closure<closure_t>);

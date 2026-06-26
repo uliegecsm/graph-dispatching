@@ -54,18 +54,39 @@ struct ParallelForSender {
 
 template <>
 struct transform_sender_for<Kokkos::Experimental::parallel_for_t> {
-    template <typename Env, typename Data, execution_space_completing_sender<Env> Sndr>
-    auto operator()(const Env& env, Kokkos::Experimental::parallel_for_t, Data&& data, Sndr&& sndr) const noexcept {
-        auto [label, functor, policy] = std::forward<Data>(data);
+    template <typename Data>
+    using policy_t = typename std::remove_cvref_t<Data>::policy_t;
 
-        using functor_t = decltype(functor);
-        using policy_t = decltype(policy);
+    template <typename Data>
+    using functor_t = typename std::remove_cvref_t<Data>::functor_t;
+
+    template <typename Data>
+    using closure_t = ParallelForClosure<functor_t<Data>, policy_t<Data>>;
+
+    template <typename Data, typename Sndr>
+    using sndr_t = ParallelForSender<Sndr, functor_t<Data>, policy_t<Data>>;
+
+    template <typename Env, typename Data, execution_space_completing_sender<Env> Sndr>
+    auto operator()(const Env& env, Kokkos::Experimental::parallel_for_t, Data&& data, Sndr&& sndr) const noexcept(
+        stdexec::__nothrow_decay_copyable<Data&&>
+        && std::is_nothrow_constructible_v<sndr_t<Data, Sndr>, closure_t<Data>&&, Sndr&&>) {
+        auto [label, functor, policy] = std::forward<Data>(data);
 
         auto schd = stdexec::get_completion_scheduler<stdexec::set_value_t>(stdexec::get_env(sndr), env);
 
-        policy_t policy_updated(Kokkos::Impl::PolicyUpdate{}, std::move(policy), schd.state->exec);
-        return ParallelForSender<Sndr, functor_t, policy_t>{
-            {{std::move(label), std::move(functor), std::move(policy_updated)}}, std::forward<Sndr>(sndr)};
+        return sndr_t<Data, Sndr>{
+            {{std::move(label), std::move(functor), impl_policy_update(std::move(policy), schd.state->exec)}},
+            std::forward<Sndr>(sndr)};
+    }
+
+   private:
+    /**
+     * @note Marked @c noexcept because @c Kokkos policy update does not throw,
+     * despite not having a @c noexcept specification.
+     */
+    template <Kokkos::ExecutionPolicy ExecPolicy>
+    static auto impl_policy_update(ExecPolicy&& policy, const auto& exec) noexcept {
+        return std::remove_cvref_t<ExecPolicy>(Kokkos::Impl::PolicyUpdate{}, std::forward<ExecPolicy>(policy), exec);
     }
 };
 
