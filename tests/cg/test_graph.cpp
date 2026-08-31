@@ -60,6 +60,12 @@ TYPED_TEST_SUITE(CGGraphTest, CGGraphTestTypes);
 
 TYPED_TEST(CGGraphTest, 10x10)
 {
+#if (defined(KOKKOS_ENABLE_HIP) && HIP_VERSION_MAJOR == 7)
+    if constexpr (std::same_as<execution_space, Kokkos::HIP> && std::same_as<TypeParam, UseHostNode>) {
+        GTEST_SKIP() << "Known to fail with host node on HIP on ROCm 7.";
+    }
+#endif
+    
     typename TestFixture::conjunction_matcher_t matcher{
         EventDiscardMatcher<execution_space>{},
         EventRegionMatcher{.matcher = EventNameMatcher{.name = "CGGraph - submit r"}}};

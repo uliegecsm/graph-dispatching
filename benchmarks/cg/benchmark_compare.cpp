@@ -176,10 +176,14 @@ void parameters(benchmark::Benchmark* benchmark) {
 
 CGBENCHMARK_DEFINE_F(queue)
 CGBENCHMARK_DEFINE_F(graph)
+#if !(defined(KOKKOS_ENABLE_HIP) && HIP_VERSION_MAJOR == 7)
 CGBENCHMARK_DEFINE_F(graph_with_host)
+#endif
 
 CGBENCHMARK_REGISTER_F(queue)->Apply(parameters);
 CGBENCHMARK_REGISTER_F(graph)->Apply(parameters);
+#if !(defined(KOKKOS_ENABLE_HIP) && HIP_VERSION_MAJOR == 7)
 CGBENCHMARK_REGISTER_F(graph_with_host)->Apply(parameters);
+#endif
 
 } // namespace benchmarks::cg
