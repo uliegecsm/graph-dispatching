@@ -131,16 +131,18 @@ class CGBenchmark(BenchmarkBase):
         for flavor in CGFlavor:
             data[flavor] = data[flavor].sort_values(by=['num_rows']).reset_index(drop=True)
 
+        graph_flavors = (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST) if not data[CGFlavor.GRAPH_WITH_HOST]['num_rows'].empty else (CGFlavor.GRAPH,)
+
         # Assert the available number of rows match
         num_rows = data[CGFlavor.QUEUE]['num_rows'].unique()
-        numpy.testing.assert_array_equal(num_rows, data[CGFlavor.GRAPH]['num_rows'].unique())
-        numpy.testing.assert_array_equal(num_rows, data[CGFlavor.GRAPH_WITH_HOST]['num_rows'].unique())
+        for flavor in graph_flavors:
+            numpy.testing.assert_array_equal(num_rows, data[flavor]['num_rows'].unique())
 
         # Normalize the 'queue' loop time w.r.t. the number of iterations.
         data[CGFlavor.QUEUE]['T_E'] = data[CGFlavor.QUEUE]['loop'] / data[CGFlavor.QUEUE]['num_iters']
 
         # Compute T_G_s0, T_G_sr, asymptotic speedup, n_be and S_n.
-        for flavor in (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST):
+        for flavor in graph_flavors:
             data[flavor]['T_G_s0'] = data[flavor]['graph submit 0']
             data[flavor]['T_G_sr'] = data[flavor]['graph submit r'] / (data[flavor]['num_iters'] - 1)
             data[flavor]['S'] = asymptotic_speedup(T_E=data[CGFlavor.QUEUE]['T_E'], T_G_sr=data[flavor]['T_G_sr'])
@@ -165,7 +167,7 @@ class CGBenchmark(BenchmarkBase):
             logging.info(f'Collected data for flavor {flavor}:\n{data[flavor]}')
 
         # Create the figure (one per graph flavor).
-        for flavor in (CGFlavor.GRAPH, CGFlavor.GRAPH_WITH_HOST):
+        for flavor in graph_flavors:
             fig, ax = matplotlib.pyplot.subplots(nrows=1, ncols=1)
 
             # Plot the speedup after n submissions (S_n) and the asymptotic speedup (S) (left axis).
